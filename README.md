@@ -1,34 +1,34 @@
 # ComfyUI Clean Save Nodes
 
-## Ziel
+## Purpose
 
-Dieses Custom-Node-Paket erweitert ComfyUI um eine saubere, minimalistische und workflow-orientierte Bildspeicherung.
+This custom node package extends ComfyUI with clean, minimal, and workflow-oriented image saving.
 
-Der Fokus liegt auf:
+The focus is on:
 
-- klarer Ordnerstruktur (`Model / CLIP`)
-- kurzen, konsistenten Dateinamen
-- automatischer Erkennung aktiver Loader-Namen
-- Template-basierten Speicherpfaden
-- Erhalt von Prompt- und PNG-Metadaten
+- clear folder structure (`Model / CLIP`)
+- short, consistent filenames
+- automatic detection of active loader names
+- template-based output paths
+- preservation of prompt and PNG metadata
 
 ---
 
-## Enthaltene Nodes
+## Included Nodes
 
 - `Save Image Clean`
 - `Strip Model Extension`
 
 ---
 
-## Schnellstart
+## Quick Start
 
-1. Repository in `ComfyUI/custom_nodes/comfyui-clean-save-nodes` ablegen.
-2. Abhaengigkeiten aus `requirements.txt` in der ComfyUI-Python-Umgebung installieren.
-3. ComfyUI neu starten.
-4. `Save Image Clean` im Workflow verwenden.
+1. Place the repository in `ComfyUI/custom_nodes/comfyui-clean-save-nodes`.
+2. Install the dependencies from `requirements.txt` in the Python environment used by ComfyUI.
+3. Restart ComfyUI.
+4. Use `Save Image Clean` in your workflow.
 
-Weitere Doku:
+Additional documentation:
 
 - [Installation](docs/INSTALLATION.md)
 - [Usage](docs/USAGE.md)
@@ -39,46 +39,46 @@ Weitere Doku:
 
 ## Save Image Clean
 
-`Save Image Clean` unterstützt jetzt zwei Modi:
+`Save Image Clean` now supports two modes:
 
-- Legacy-Modus über `model_folder`, `clip_folder`, `subfolder` und `filename_datetime`
-- Template-Modus über `path_template`
+- legacy mode via `model_folder`, `clip_folder`, `subfolder`, and `filename_datetime`
+- template mode via `path_template`
 
-Wenn `path_template` leer ist, verwendet der Node weiter den Legacy-Modus. Das hält bestehende Workflows kompatibel.
+If `path_template` is empty, the node continues to use legacy mode. This keeps existing workflows compatible.
 
-### Legacy-Modus
+### Legacy Mode
 
-Der Legacy-Modus speichert nach diesem Schema:
+Legacy mode saves using this structure:
 
 ```text
 <output_root>/<subfolder>/<model_folder>/<clip_folder>/<filename_datetime>.png
 ```
 
-`filename_datetime` verwendet Python-`strftime`.
+`filename_datetime` uses Python `strftime`.
 
-Beispiel:
+Example:
 
 ```text
 %Y-%m-%d_%H-%M
 ```
 
-### Template-Modus
+### Template Mode
 
-Wenn `path_template` gesetzt ist, wird der Zielpfad aus einem Template berechnet.
+If `path_template` is set, the target path is built from a template.
 
-Empfohlener Startwert:
+Recommended starting value:
 
 ```text
 %ACTIVE_UNET%/%ACTIVE_CLIP%/%date:yyyy-MM-dd_hh-mm%
 ```
 
-Beispielergebnis:
+Example result:
 
 ```text
 jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 ```
 
-### Unterstützte Template-Variablen
+### Supported Template Variables
 
 - `%ACTIVE_UNET%`
 - `%ACTIVE_CLIP%`
@@ -88,15 +88,15 @@ jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 - `%CLIP_FOLDER%`
 - `%SUBFOLDER%`
 
-### Unterstützte Datumsplatzhalter
+### Supported Date Placeholders
 
-Der Template-Modus unterstützt ComfyUI-Style-Datumssegmente:
+Template mode supports ComfyUI-style date segments:
 
 ```text
 %date:yyyy-MM-dd_hh-mm%
 ```
 
-Aktuell werden diese Tokens umgesetzt:
+The following tokens are currently supported:
 
 - `yyyy`
 - `yy`
@@ -107,38 +107,38 @@ Aktuell werden diese Tokens umgesetzt:
 - `mm`
 - `ss`
 
-Hinweis:
-`hh` und `HH` werden beide als 24-Stunden-Ausgabe behandelt.
+Note:
+`hh` and `HH` currently both produce 24-hour output.
 
-### Automatische Loader-Erkennung
+### Automatic Loader Detection
 
-Im Template-Modus versucht der Node, den aktiven Namen über den ComfyUI-`prompt`-Graph upstream vom aktuellen Save-Node zu erkennen.
+In template mode, the node attempts to detect the active name by traversing the ComfyUI `prompt` graph upstream from the current save node.
 
-Aktuell berücksichtigt die Erkennung vor allem:
+The detection currently prioritizes:
 
-- UNET-Loader über Klassen mit `UnetLoader` im Namen
-- CLIP-Loader über Klassen mit `ClipLoader` im Namen
-- Checkpoint-Loader als Fallback über Klassen mit `CheckpointLoader` im Namen
+- UNET loaders via classes whose names contain `UnetLoader`
+- CLIP loaders via classes whose names contain `ClipLoader`
+- checkpoint loaders as a fallback via classes whose names contain `CheckpointLoader`
 
-Wenn keine Erkennung möglich ist, fällt der Node auf die manuell gesetzten Felder `model_folder` und `clip_folder` zurück.
+If detection is not possible, the node falls back to the manually provided `model_folder` and `clip_folder` values.
 
-### Kürzere Namensvarianten
+### Shorter Name Variants
 
-`%MODEL_SHORT%` und `%CLIP_SHORT%` entfernen bekannte Modell-Endungen und kürzen zusätzlich Prefixe im Stil:
+`%MODEL_SHORT%` and `%CLIP_SHORT%` remove known model extensions and also trim prefixes in patterns like:
 
 ```text
 mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0.gguf
 ```
 
-zu:
+to:
 
 ```text
 Huihui-Qwen3-4B-abliterated-v2.Q8_0
 ```
 
-### Pfad- und Namensbereinigung
+### Path and Name Sanitization
 
-Folgende Endungen werden automatisch entfernt:
+The following extensions are removed automatically:
 
 - `.safetensors`
 - `.gguf`
@@ -148,44 +148,44 @@ Folgende Endungen werden automatisch entfernt:
 - `.bin`
 - `.onnx`
 
-Außerdem werden ungültige Windows-Zeichen ersetzt, damit Pfade und Dateinamen stabil bleiben.
+Invalid Windows path characters are also replaced so paths and filenames remain stable.
 
-### Verhalten bei Namenskollisionen
+### Collision Handling
 
-Unterstützte Modi:
+Supported modes:
 
 - `increment`
 - `overwrite`
 - `error`
 - `seconds`
 
-Beispiel für `increment`:
+Example for `increment`:
 
 ```text
 2026-04-21_14-30.png
 2026-04-21_14-30-2.png
 ```
 
-### Metadaten
+### Metadata
 
-Beim Speichern werden vorhandene ComfyUI-Daten in die PNG-Datei geschrieben:
+When saving, the node writes existing ComfyUI data into the PNG file:
 
 - `prompt`
-- Inhalte aus `extra_pnginfo`
+- contents of `extra_pnginfo`
 
-### UI-Vorschau
+### UI Preview
 
-Nach dem Ausführen liefert der Node einen UI-Text mit dem aufgelösten relativen Zielpfad zurück.
+After execution, the node returns a UI text value containing the resolved relative target path.
 
-Das ist eine Laufzeit-Vorschau nach Template-Auflösung, keine permanente Live-Vorschau im Node vor dem Ausführen.
+This is a runtime preview after template resolution, not a permanent live preview inside the node before execution.
 
 ---
 
 ## Strip Model Extension
 
-Dieser Utility-Node entfernt genau eine bekannte Modell-Dateiendung am Ende eines Strings.
+This utility node removes exactly one known model file extension from the end of a string.
 
-Beispiel:
+Example:
 
 ```text
 my-model.safetensors -> my-model
@@ -193,30 +193,30 @@ my-model.safetensors -> my-model
 
 ---
 
-## Was Weiterhin Nicht Implementiert Ist
+## What Is Still Not Implemented
 
-Der aktuelle Stand deckt die Kernfeatures ab, aber nicht alles aus der ursprünglichen Wunschliste.
+The current version covers the core feature set, but not everything from the original wishlist.
 
-Noch offen sind insbesondere:
+Not yet implemented:
 
-- echte Live-Vorschau direkt im Node vor der Ausführung
-- breitere Erkennung exotischer oder projektspezifischer Loader-Typen
-- frei konfigurierbare String-Manipulation innerhalb des Templates
-- weitergehende Kürzungsregeln über die aktuelle Prefix-Entfernung hinaus
-
----
-
-## Designprinzipien
-
-- Ordner = Struktur (`Model / CLIP`)
-- Dateiname = klar und kurz
-- Metadaten = vollständig erhalten
-- Verhalten = explizit statt implizit
+- a true live preview directly inside the node before execution
+- broader detection for exotic or project-specific loader types
+- freely configurable string manipulation inside templates
+- more advanced shortening rules beyond the current prefix removal
 
 ---
 
-## Fazit
+## Design Principles
 
-Der Node unterstützt jetzt sowohl den bisherigen manuellen Save-Workflow als auch einen automatischen Template-Workflow.
+- folders = structure (`Model / CLIP`)
+- filename = clear and short
+- metadata = preserved completely
+- behavior = explicit instead of implicit
 
-Wer `path_template` nutzt, kann Modell-, CLIP- und Zeitinformationen direkt im Zielpfad kombinieren, ohne den Pfad pro Workflow manuell umzubauen.
+---
+
+## Summary
+
+The node now supports both the previous manual save workflow and an automatic template-based workflow.
+
+If you use `path_template`, you can combine model, clip, and time information directly in the target path without manually rebuilding the path for each workflow.
