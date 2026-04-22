@@ -58,6 +58,10 @@ portraits/manual-model/manual-clip/2026-04-22_15-30.png
 - `%CLIP_SHORT%`: shortened form of `%ACTIVE_CLIP%`
 - `%MODEL_FOLDER%`: manual `model_folder` value, without known file extension
 - `%CLIP_FOLDER%`: manual `clip_folder` value, without known file extension
+- `%MODEL_DISPLAY%`: humanized active UNET name, using only the basename and a readable quant suffix when recognized
+- `%CLIP_DISPLAY%`: humanized active CLIP name, using only the basename and a readable quant suffix when recognized
+- `%MODEL_SELECTED%`: value chosen by the `model_source` dropdown or `model_custom_value`
+- `%CLIP_SELECTED%`: value chosen by the `clip_source` dropdown or `clip_custom_value`
 - `%SUBFOLDER%`: sanitized `subfolder` value
 
 ### Variable Meaning Example
@@ -78,6 +82,8 @@ Resolved values:
 - `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
 - `%MODEL_FOLDER%` -> `manual-model`
 - `%CLIP_FOLDER%` -> `manual-clip`
+- `%MODEL_DISPLAY%` -> `jibMixZIT v10`
+- `%CLIP_DISPLAY%` -> `Huihui Qwen3 4B abliterated v2 [8F]`
 - `%SUBFOLDER%` -> `portraits`
 
 Meaning:
@@ -85,6 +91,32 @@ Meaning:
 - `ACTIVE_*` = automatically detected from the active workflow
 - `*_SHORT` = detected active value, but shortened for cleaner names
 - `*_FOLDER` = manual field value from the node
+
+## Dropdown-Based Segment Selection
+
+The node also provides `model_source` and `clip_source` dropdowns.
+
+These let you choose which resolved model and clip values should be used for the path segments without writing a full template.
+
+Model source options:
+
+- `MODEL_FOLDER`
+- `ACTIVE_UNET`
+- `MODEL_SHORT`
+- `MODEL_DISPLAY`
+- `CUSTOM`
+
+Clip source options:
+
+- `CLIP_FOLDER`
+- `ACTIVE_CLIP`
+- `CLIP_SHORT`
+- `CLIP_DISPLAY`
+- `CUSTOM`
+
+When `CUSTOM` is selected, the node uses `model_custom_value` or `clip_custom_value`.
+
+The selected values are also exposed to templates as `%MODEL_SELECTED%` and `%CLIP_SELECTED%`.
 
 ## ComfyUI-Style Placeholders
 

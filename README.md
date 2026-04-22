@@ -94,6 +94,10 @@ jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
 - `%CLIP_SHORT%`
 - `%MODEL_FOLDER%`
 - `%CLIP_FOLDER%`
+- `%MODEL_DISPLAY%`
+- `%CLIP_DISPLAY%`
+- `%MODEL_SELECTED%`
+- `%CLIP_SELECTED%`
 - `%SUBFOLDER%`
 
 Variable meaning:
@@ -118,6 +122,8 @@ Resulting values:
 - `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
 - `%MODEL_FOLDER%` -> `manual-model`
 - `%CLIP_FOLDER%` -> `manual-clip`
+- `%MODEL_DISPLAY%` -> `jibMixZIT v10`
+- `%CLIP_DISPLAY%` -> `Huihui Qwen3 4B abliterated v2 [8F]`
 - `%SUBFOLDER%` -> `portraits`
 
 Example using only the manual folder fields inside a template:
@@ -131,6 +137,35 @@ Example result:
 ```text
 portraits/manual-model/manual-clip/2026-04-22_15-30.png
 ```
+
+### Dropdown-Based Segment Selection
+
+The node now also includes dropdowns for `model_source` and `clip_source`.
+
+These dropdowns let you choose which variable should be used for the model and clip path segments without manually writing a template.
+
+Available model sources:
+
+- `MODEL_FOLDER`
+- `ACTIVE_UNET`
+- `MODEL_SHORT`
+- `MODEL_DISPLAY`
+- `CUSTOM`
+
+Available clip sources:
+
+- `CLIP_FOLDER`
+- `ACTIVE_CLIP`
+- `CLIP_SHORT`
+- `CLIP_DISPLAY`
+- `CUSTOM`
+
+If you choose `CUSTOM`, the matching `model_custom_value` or `clip_custom_value` field is used.
+
+The selected values are also available in template mode through:
+
+- `%MODEL_SELECTED%`
+- `%CLIP_SELECTED%`
 
 ### Supported Search And Replace Placeholders
 
@@ -277,6 +312,7 @@ This is a runtime preview after template resolution, not a permanent live previe
 The in-node help covers:
 
 - the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
+- the purpose of `MODEL_DISPLAY`, `CLIP_DISPLAY`, `MODEL_SELECTED`, and `CLIP_SELECTED`
 - legacy mode versus template mode
 - the purpose of the manual folder fields
 - example template usage

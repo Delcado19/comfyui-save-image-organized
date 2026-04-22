@@ -55,6 +55,10 @@ You can also combine custom variables with ComfyUI-style widget placeholders:
 - `%CLIP_SHORT%`: shortened CLIP name with common prefixes removed
 - `%MODEL_FOLDER%`: manual `model_folder` fallback value without a known model file extension
 - `%CLIP_FOLDER%`: manual `clip_folder` fallback value without a known model file extension
+- `%MODEL_DISPLAY%`: humanized active UNET name, using only the basename and a readable quant suffix when recognized
+- `%CLIP_DISPLAY%`: humanized active CLIP name, using only the basename and a readable quant suffix when recognized
+- `%MODEL_SELECTED%`: value chosen by the `model_source` dropdown or `model_custom_value`
+- `%CLIP_SELECTED%`: value chosen by the `clip_source` dropdown or `clip_custom_value`
 - `%SUBFOLDER%`: sanitized `subfolder` value
 
 In practice this means:
@@ -79,6 +83,8 @@ Resolved variables:
 - `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
 - `%MODEL_FOLDER%` -> `manual-model`
 - `%CLIP_FOLDER%` -> `manual-clip`
+- `%MODEL_DISPLAY%` -> `jibMixZIT v10`
+- `%CLIP_DISPLAY%` -> `Huihui Qwen3 4B abliterated v2 [8F]`
 - `%SUBFOLDER%` -> `portraits`
 
 Example template using only the manual folder fields:
@@ -92,6 +98,32 @@ Example result:
 ```text
 portraits/manual-model/manual-clip/2026-04-22_15-30.png
 ```
+
+## Dropdown-Based Segment Selection
+
+The node also provides `model_source` and `clip_source` dropdowns.
+
+These let you choose which resolved value should be used for the model and clip path segments without having to write a template first.
+
+Model source options:
+
+- `MODEL_FOLDER`
+- `ACTIVE_UNET`
+- `MODEL_SHORT`
+- `MODEL_DISPLAY`
+- `CUSTOM`
+
+Clip source options:
+
+- `CLIP_FOLDER`
+- `ACTIVE_CLIP`
+- `CLIP_SHORT`
+- `CLIP_DISPLAY`
+- `CUSTOM`
+
+When `CUSTOM` is selected, the node uses `model_custom_value` or `clip_custom_value`.
+
+The chosen values are also exposed to templates as `%MODEL_SELECTED%` and `%CLIP_SELECTED%`.
 
 ## Search And Replace Placeholders
 
@@ -174,6 +206,7 @@ The node description and field tooltips explain:
 
 - legacy mode versus template mode
 - the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
+- the purpose of `MODEL_DISPLAY`, `CLIP_DISPLAY`, `MODEL_SELECTED`, and `CLIP_SELECTED`
 - how `model_folder`, `clip_folder`, and `subfolder` affect the final path
 - which placeholder styles are supported in `path_template`
 - the difference between `%date:...%` and `%strftime:...%`
