@@ -147,6 +147,15 @@ Use this when you want to confirm which workflow loader values were detected, wh
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
 
+### Convenience variables
+
+- `%WIDTH%`
+- `%HEIGHT%`
+- `%SEED%`
+- `%BATCH_INDEX%`
+
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save.
+
 ### Optional detailed variables
 
 - `%FRIENDLY_MODEL_NAME%`
@@ -292,6 +301,8 @@ Model and text encoder names are detected when the workflow runs.
 Before the first run, the inline example inside the node uses sample names so you can still understand the structure.
 
 The helper preview also shows `%node.widget%` placeholders as `{node.widget}` until the workflow runs, and it warns when the current template contains unknown placeholders.
+
+After a successful run, the helper panel switches to the real resolved save path from the last execution and can show the latest detection summary details.
 
 If detection fails:
 

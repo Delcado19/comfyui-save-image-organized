@@ -130,6 +130,15 @@ This is useful when you want to confirm which workflow loader values were detect
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
 
+### Convenience
+
+- `%WIDTH%`
+- `%HEIGHT%`
+- `%SEED%`
+- `%BATCH_INDEX%`
+
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save.
+
 ### Detailed
 
 - `%FRIENDLY_MODEL_NAME%`
@@ -180,6 +189,8 @@ Examples:
 - `%Empty Latent Image.height%`
 
 Before the first run, the helper preview shows these as `{node.widget}` because the real values only exist when the workflow executes.
+
+After a successful run, the helper panel switches to the real resolved save path from the last execution and can show the latest detection summary details.
 
 ## Date And Time
 

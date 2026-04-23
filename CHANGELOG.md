@@ -11,11 +11,13 @@ All notable changes to this project will be documented in this file.
 - regression coverage for multi-image save output and preserved PNG prompt metadata
 - broader regression coverage for checkpoint loader fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or direct node id
 - GitHub Actions CI on Windows with `ruff` and `pytest`
+- convenience template variables `%WIDTH%`, `%HEIGHT%`, `%SEED%`, and `%BATCH_INDEX%`
 
 ### Changed
 
 - path template errors now report clearer guidance for unknown variables, unknown `%node.widget%` node references, ambiguous node matches, unknown widget names, and linked or unsupported widget values
 - the in-node helper preview now warns about unknown placeholders, shows `%node.widget%` values as `{node.widget}` before execution, and makes it clearer that detected names are sample values until the workflow runs
+- after execution, the helper preview now switches to the last real resolved save path and can show the latest detection details
 
 ## [0.2.0] - 2026-04-23
 

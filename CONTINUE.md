@@ -45,16 +45,16 @@ The following items are the core of the `v0.2.0` release:
 ## Known Gaps
 
 - The automated test suite is still small, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or node id.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, and basic save/metadata behavior, but not a wide library of real exported workflow fixtures from multiple ComfyUI installations.
-- Frontend preview logic is clearer than before and now warns about unknown placeholders, but it still uses sample names before first workflow execution and does not yet reflect real post-run detection details inside the helper panel itself.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior, but not a wide library of real exported workflow fixtures from multiple ComfyUI installations.
+- Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, but this area is still the most likely place for future edge cases from third-party custom nodes.
 
 ## Next Priorities
 
-1. Decide whether detection summary details should also surface in the in-node helper panel after execution, not only in the output text.
-2. Extend save tests toward additional collision modes such as `overwrite` and `seconds`.
-3. Consider direct convenience variables such as `%WIDTH%`, `%HEIGHT%`, `%SEED%`, and `%BATCH_INDEX%`.
-4. Build a small library of representative real exported workflow fixtures from multiple ComfyUI/custom-node setups.
+1. Build a small library of representative real exported workflow fixtures from multiple ComfyUI/custom-node setups.
+2. Consider whether convenience-variable coverage should expand further, for example with `%BATCH_SIZE%` or similar workflow-oriented shortcuts.
+3. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
+4. Add broader manual validation across different custom-node ecosystems and loader families.
 5. Keep `CHANGELOG.md` moving from the fresh `Unreleased` section after the `v0.2.0` tag.
 
 ## v0.2.0 Roadmap

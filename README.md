@@ -106,6 +106,15 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
 
+### Convenience Variables
+
+- `%WIDTH%`
+- `%HEIGHT%`
+- `%SEED%`
+- `%BATCH_INDEX%`
+
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves.
+
 ### Detection Info
 
 `Detection Info` is optional and only affects the node's UI text output after a run.
@@ -226,6 +235,8 @@ Model and text encoder names are detected when the workflow runs.
 Before the first run, the inline example inside the node uses sample names so the structure stays understandable.
 
 The helper preview also shows `%node.widget%` placeholders as `{node.widget}` until the workflow runs, and it warns when the current template contains unknown placeholders.
+
+After a successful run, the helper panel switches to the real resolved save path from the last execution and can show the latest detection summary details.
 
 If detection fails:
 

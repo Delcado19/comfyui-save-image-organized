@@ -260,6 +260,43 @@ def test_resolve_target_path_errors_when_requested(workspace_tmp_path):
         )
 
 
+def test_resolve_target_path_overwrites_when_requested(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+
+    existing = workspace_tmp_path / "example.png"
+    existing.write_bytes(b"first")
+
+    target = saver._resolve_target_path(
+        output_root=workspace_tmp_path,
+        relative_path=existing.relative_to(workspace_tmp_path),
+        collision_mode="overwrite",
+    )
+
+    assert target == existing
+
+
+def test_resolve_target_path_uses_seconds_name_when_requested(workspace_tmp_path, monkeypatch):
+    saver = nodes.SaveImageClean()
+
+    existing = workspace_tmp_path / "example.png"
+    existing.write_bytes(b"first")
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls):
+            return cls(2026, 4, 22, 21, 22, 5)
+
+    monkeypatch.setattr(nodes, "datetime", FixedDateTime)
+
+    target = saver._resolve_target_path(
+        output_root=workspace_tmp_path,
+        relative_path=existing.relative_to(workspace_tmp_path),
+        collision_mode="seconds",
+    )
+
+    assert target == workspace_tmp_path / "2026-04-22_21-22-05.png"
+
+
 def test_render_path_template_rejects_linked_or_unsupported_widget_values():
     prompt = {
         "10": {
@@ -471,3 +508,43 @@ def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path)
         assert png.info["prompt"] == str(prompt)
         assert png.info["seed"] == str(extra_pnginfo["seed"])
         assert png.info["sampler"] == extra_pnginfo["sampler"]
+
+
+def test_save_images_supports_convenience_variables(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((3, 4, 3), dtype=np.float32)),
+        DummyImage(np.zeros((3, 4, 3), dtype=np.float32)),
+    ]
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 321,
+            },
+        },
+    }
+
+    result = saver.save_images(
+        images=images,
+        path_template="%WIDTH%x%HEIGHT%/%SEED%/%BATCH_INDEX%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert [item["filename"] for item in saved_images] == ["1.png", "2.png"]
+    assert [item["subfolder"] for item in saved_images] == [r"4x3\321", r"4x3\321"]
+    assert (workspace_tmp_path / "4x3" / "321" / "1.png").exists()
+    assert (workspace_tmp_path / "4x3" / "321" / "2.png").exists()

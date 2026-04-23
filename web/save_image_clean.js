@@ -102,6 +102,10 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "MODEL_NAME",
     "TEXT_ENCODER_NAME",
     "FILENAME",
+    "WIDTH",
+    "HEIGHT",
+    "SEED",
+    "BATCH_INDEX",
     "FRIENDLY_MODEL_NAME",
     "EXACT_MODEL_NAME",
     "CUSTOM_MODEL_NAME",
@@ -548,6 +552,10 @@ function buildVariables(node, now) {
         FRIENDLY_TEXT_ENCODER_NAME: humanizeDisplayName(SAMPLE_CLIP, "text_encoder"),
         CUSTOM_MODEL_NAME: customModelName,
         CUSTOM_TEXT_ENCODER_NAME: customTextEncoderName,
+        WIDTH: "1024",
+        HEIGHT: "1024",
+        SEED: "123456789",
+        BATCH_INDEX: "1",
         FILENAME: buildFilenameValue(node, now),
     };
 
@@ -669,14 +677,29 @@ function createHelpPanelWidget(node) {
 
     const outputValueEl = createPreviewValue();
 
+    const detailsEl = document.createElement("div");
+    detailsEl.style.cssText = [
+        "display:none",
+        "font-size:11px",
+        "line-height:1.35",
+        "color:#cfcfcf",
+        "background:rgba(0,0,0,0.12)",
+        "border-radius:8px",
+        "padding:8px 10px",
+        "white-space:pre-wrap",
+        "word-break:break-word",
+    ].join(";");
+
     container.appendChild(titleEl);
     container.appendChild(noteEl);
     container.appendChild(outputValueEl);
+    container.appendChild(detailsEl);
 
     node.__saveImageCleanHelpRefs = {
         titleEl,
         noteEl,
         outputValueEl,
+        detailsEl,
     };
     node.__saveImageCleanHelpWidget = node.addDOMWidget("save_image_clean_help", "custom", container, {
         getMinHeight: () => 90,
@@ -687,6 +710,25 @@ function createHelpPanelWidget(node) {
     });
 
     return node.__saveImageCleanHelpWidget;
+}
+
+function clearLastRunState(node) {
+    delete node.__saveImageCleanLastRunInfo;
+}
+
+function setLastRunStateFromMessage(node, message) {
+    const textItems = Array.isArray(message?.text)
+        ? message.text.filter((item) => typeof item === "string" && item.trim())
+        : [];
+    if (!textItems.length) {
+        clearLastRunState(node);
+        return;
+    }
+
+    node.__saveImageCleanLastRunInfo = {
+        path: textItems[0],
+        details: textItems.slice(1),
+    };
 }
 
 function updateHelp(node) {
@@ -700,15 +742,25 @@ function updateHelp(node) {
     const variables = buildVariables(node, now);
     const useLegacyOrder = saveLayout === "";
     const defaultNote = "Preview uses sample detected names until the workflow runs.";
+    const lastRunInfo = node.__saveImageCleanLastRunInfo;
 
     ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
 
-    if (useLegacyOrder) {
+    if (lastRunInfo) {
+        refs.outputValueEl.textContent = lastRunInfo.path;
+        refs.noteEl.textContent = "Last run used real detected values.";
+        refs.noteEl.style.color = "#8eb7ff";
+        refs.outputValueEl.style.borderColor = "rgba(142, 183, 255, 0.3)";
+        refs.detailsEl.textContent = lastRunInfo.details.join("\n");
+        refs.detailsEl.style.display = lastRunInfo.details.length ? "block" : "none";
+    } else if (useLegacyOrder) {
         refs.outputValueEl.textContent = buildLegacyExample(node, variables);
         refs.noteEl.textContent = defaultNote;
         refs.noteEl.style.color = "#a9a9a9";
         refs.outputValueEl.style.borderColor = "transparent";
+        refs.detailsEl.textContent = "";
+        refs.detailsEl.style.display = "none";
     } else {
         const preview = buildLayoutExample(node, variables, now);
         const warning = preview.notes.find((note) => note.tone === "warning");
@@ -716,6 +768,8 @@ function updateHelp(node) {
         refs.noteEl.textContent = warning?.message || preview.notes[0]?.message || defaultNote;
         refs.noteEl.style.color = warning ? "#f0be47" : "#a9a9a9";
         refs.outputValueEl.style.borderColor = warning ? "rgba(240, 190, 71, 0.35)" : "transparent";
+        refs.detailsEl.textContent = "";
+        refs.detailsEl.style.display = "none";
     }
     refs.titleEl.textContent = "Example Output";
 
@@ -748,13 +802,20 @@ function hookWidgetUpdates(node) {
         const originalCallback = widget.callback;
         widget.callback = function () {
             const result = originalCallback?.apply(this, arguments);
+            clearLastRunState(node);
             updateHelp(node);
             return result;
         };
 
         if (widget.inputEl) {
-            widget.inputEl.addEventListener("input", () => updateHelp(node));
-            widget.inputEl.addEventListener("change", () => updateHelp(node));
+            widget.inputEl.addEventListener("input", () => {
+                clearLastRunState(node);
+                updateHelp(node);
+            });
+            widget.inputEl.addEventListener("change", () => {
+                clearLastRunState(node);
+                updateHelp(node);
+            });
         }
 
         widget.__saveImageCleanHooked = true;
@@ -790,6 +851,14 @@ app.registerExtension({
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
+            updateHelp(this);
+            return result;
+        };
+
+        const onExecuted = nodeType.prototype.onExecuted;
+        nodeType.prototype.onExecuted = function (message) {
+            const result = onExecuted?.apply(this, arguments);
+            setLastRunStateFromMessage(this, message);
             updateHelp(this);
             return result;
         };

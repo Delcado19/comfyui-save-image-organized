@@ -556,8 +556,50 @@ def _extract_string_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], pr
     return values
 
 
+def _extract_scalar_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> list[str]:
+    values = []
+    exact_normalized = {_normalize_identifier(item) for item in exact}
+    prefix_normalized = tuple(_normalize_identifier(item) for item in prefix)
+
+    for key, value in inputs.items():
+        key_normalized = _normalize_identifier(key)
+        if key_normalized not in exact_normalized and not any(
+            key_normalized.startswith(item) for item in prefix_normalized
+        ):
+            continue
+
+        coerced = _coerce_template_value(value)
+        if coerced is not None:
+            values.append(coerced)
+
+    return values
+
+
 def _matches_loader_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> bool:
     return bool(_extract_string_inputs(inputs, exact=exact, prefix=prefix))
+
+
+def _find_upstream_scalar_input(
+    prompt: Any,
+    unique_id: Any,
+    *,
+    exact: tuple[str, ...],
+    prefix: tuple[str, ...] = (),
+) -> str:
+    best_match: tuple[int, int, str] | None = None
+
+    for _, node, distance in _walk_prompt_upstream(prompt, unique_id):
+        inputs = node.get("inputs", {})
+        if not isinstance(inputs, dict):
+            continue
+
+        values = _extract_scalar_inputs(inputs, exact=exact, prefix=prefix)
+        for value_index, value in enumerate(values):
+            candidate = (distance, value_index, value)
+            if best_match is None or candidate < best_match:
+                best_match = candidate
+
+    return best_match[2] if best_match else ""
 
 
 def _get_unet_loader_priority(class_type: str, inputs: dict[str, Any]) -> int | None:
@@ -1073,9 +1115,28 @@ class SaveImageClean:
         subfolder: str,
         model_source: str,
         clip_source: str,
+        image_width: int | None,
+        image_height: int | None,
+        batch_index: int,
         now: datetime,
     ) -> tuple[dict[str, str], dict[str, str]]:
         active_names = _find_active_names(prompt=prompt, unique_id=unique_id)
+        seed_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("seed", "noise_seed"),
+            prefix=("seed", "noise_seed"),
+        )
+        width_value = str(image_width) if image_width is not None else _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("width",),
+        )
+        height_value = str(image_height) if image_height is not None else _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("height",),
+        )
 
         manual_model = _strip_known_extension(model_folder)
         manual_clip = _strip_known_extension(clip_folder)
@@ -1091,6 +1152,10 @@ class SaveImageClean:
             "FRIENDLY_TEXT_ENCODER_NAME": _humanize_display_name(raw_active_clip, kind="text_encoder"),
             "CUSTOM_MODEL_NAME": manual_model or "",
             "CUSTOM_TEXT_ENCODER_NAME": manual_clip or "",
+            "WIDTH": width_value or "0",
+            "HEIGHT": height_value or "0",
+            "SEED": seed_value or "",
+            "BATCH_INDEX": str(batch_index),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
             "FILENAME": _render_filename_value(filename_datetime or DEFAULT_FILENAME_PATTERN, now),
         }
@@ -1120,6 +1185,10 @@ class SaveImageClean:
             "FRIENDLY_TEXT_ENCODER_NAME": variables["FRIENDLY_TEXT_ENCODER_NAME"],
             "CUSTOM_MODEL_NAME": variables["CUSTOM_MODEL_NAME"],
             "CUSTOM_TEXT_ENCODER_NAME": variables["CUSTOM_TEXT_ENCODER_NAME"],
+            "WIDTH": variables["WIDTH"],
+            "HEIGHT": variables["HEIGHT"],
+            "SEED": variables["SEED"],
+            "BATCH_INDEX": variables["BATCH_INDEX"],
         }
 
         return variables, detection_state
@@ -1189,6 +1258,9 @@ class SaveImageClean:
         model_source: str,
         clip_source: str,
         detection_info: str,
+        image_width: int | None,
+        image_height: int | None,
+        batch_index: int,
         path_template: str,
         prompt: Any,
         unique_id: Any,
@@ -1203,6 +1275,9 @@ class SaveImageClean:
             subfolder=subfolder,
             model_source=model_source,
             clip_source=clip_source,
+            image_width=image_width,
+            image_height=image_height,
+            batch_index=batch_index,
             now=now,
         )
         detection_lines = self._build_detection_info_lines(detection_info, detection_state)
@@ -1271,28 +1346,37 @@ class SaveImageClean:
     ):
         output_root = Path(self.output_dir)
         metadata = self._build_metadata(prompt=prompt, extra_pnginfo=extra_pnginfo)
-        relative_path, preview, detection_lines = self._resolve_relative_output_path(
-            model_folder=model_folder,
-            clip_folder=clip_folder,
-            filename_datetime=filename_datetime,
-            subfolder=subfolder,
-            model_source=model_source,
-            clip_source=clip_source,
-            detection_info=detection_info,
-            path_template=path_template,
-            prompt=prompt,
-            unique_id=unique_id,
-        )
-
         saved = []
-        for image in images:
+        preview = ""
+        detection_lines: list[str] = []
+        for batch_index, image in enumerate(images, start=1):
+            array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
+            image_height, image_width = array.shape[:2]
+            relative_path, current_preview, current_detection_lines = self._resolve_relative_output_path(
+                model_folder=model_folder,
+                clip_folder=clip_folder,
+                filename_datetime=filename_datetime,
+                subfolder=subfolder,
+                model_source=model_source,
+                clip_source=clip_source,
+                detection_info=detection_info,
+                image_width=image_width,
+                image_height=image_height,
+                batch_index=batch_index,
+                path_template=path_template,
+                prompt=prompt,
+                unique_id=unique_id,
+            )
+            if not preview:
+                preview = current_preview
+                detection_lines = current_detection_lines
+
             target_path = self._resolve_target_path(
                 output_root=output_root,
                 relative_path=relative_path,
                 collision_mode=collision_mode,
             )
 
-            array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             pil_image = Image.fromarray(array)
             pil_image.save(target_path, pnginfo=metadata, compress_level=self.compress_level)
 
