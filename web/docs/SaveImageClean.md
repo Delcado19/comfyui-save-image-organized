@@ -126,6 +126,18 @@ Used in two cases:
 - `error` = stop instead
 - `seconds` = retry with a seconds-based name
 
+### Detection Info
+
+Optional runtime detection details in the node output text.
+
+Options:
+
+- `Off`
+- `Summary`
+- `Verbose`
+
+Use this when you want to confirm which workflow loader values were detected, whether custom fallback was used, and which final names were selected.
+
 ## Variables You Will Actually Use
 
 ### Main variables

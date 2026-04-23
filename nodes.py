@@ -131,6 +131,7 @@ CLIP_SOURCE_LABEL_TO_KEY = {
 }
 MODEL_SOURCE_OPTIONS = list(MODEL_SOURCE_LABEL_TO_KEY.keys())
 CLIP_SOURCE_OPTIONS = list(CLIP_SOURCE_LABEL_TO_KEY.keys())
+DETECTION_INFO_OPTIONS = ["Off", "Summary", "Verbose"]
 DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
 
 
@@ -988,6 +989,17 @@ class SaveImageClean:
                         ),
                     },
                 ),
+                "detection_info": (
+                    DETECTION_INFO_OPTIONS,
+                    {
+                        "default": "Off",
+                        "tooltip": (
+                            "Optional runtime detection summary in the node output text. "
+                            "Use Summary or Verbose when you want to see which model and text "
+                            "encoder names were detected and selected."
+                        ),
+                    },
+                ),
             },
             "optional": {
                 "subfolder": (
@@ -1062,7 +1074,7 @@ class SaveImageClean:
         model_source: str,
         clip_source: str,
         now: datetime,
-    ) -> dict[str, str]:
+    ) -> tuple[dict[str, str], dict[str, str]]:
         active_names = _find_active_names(prompt=prompt, unique_id=unique_id)
 
         manual_model = _strip_known_extension(model_folder)
@@ -1085,7 +1097,87 @@ class SaveImageClean:
         variables["MODEL_NAME"] = _resolve_selected_variable(model_source, variables, kind="model")
         variables["TEXT_ENCODER_NAME"] = _resolve_selected_variable(clip_source, variables, kind="clip")
 
-        return variables
+        detection_state = {
+            "RAW_ACTIVE_MODEL_NAME": active_names["ACTIVE_UNET"] or "",
+            "RAW_ACTIVE_TEXT_ENCODER_NAME": active_names["ACTIVE_CLIP"] or "",
+            "DETECTED_MODEL_NAME": active_unet if active_names["ACTIVE_UNET"] else "",
+            "DETECTED_TEXT_ENCODER_NAME": active_clip if active_names["ACTIVE_CLIP"] else "",
+            "MODEL_DETECTION_SOURCE": (
+                "workflow" if active_names["ACTIVE_UNET"] else "custom_fallback" if manual_model else "default_placeholder"
+            ),
+            "TEXT_ENCODER_DETECTION_SOURCE": (
+                "workflow" if active_names["ACTIVE_CLIP"] else "custom_fallback" if manual_clip else "default_placeholder"
+            ),
+            "MANUAL_MODEL_NAME": manual_model,
+            "MANUAL_TEXT_ENCODER_NAME": manual_clip,
+            "SELECTED_MODEL_SOURCE": model_source,
+            "SELECTED_TEXT_ENCODER_SOURCE": clip_source,
+            "SELECTED_MODEL_NAME": variables["MODEL_NAME"],
+            "SELECTED_TEXT_ENCODER_NAME": variables["TEXT_ENCODER_NAME"],
+            "EXACT_MODEL_NAME": variables["EXACT_MODEL_NAME"],
+            "EXACT_TEXT_ENCODER_NAME": variables["EXACT_TEXT_ENCODER_NAME"],
+            "FRIENDLY_MODEL_NAME": variables["FRIENDLY_MODEL_NAME"],
+            "FRIENDLY_TEXT_ENCODER_NAME": variables["FRIENDLY_TEXT_ENCODER_NAME"],
+            "CUSTOM_MODEL_NAME": variables["CUSTOM_MODEL_NAME"],
+            "CUSTOM_TEXT_ENCODER_NAME": variables["CUSTOM_TEXT_ENCODER_NAME"],
+        }
+
+        return variables, detection_state
+
+    def _build_detection_info_lines(self, detection_info: str, detection_state: dict[str, str]) -> list[str]:
+        if detection_info == "Off":
+            return []
+
+        def format_detection_line(kind_label: str, detection_source: str, detected_value: str, manual_value: str) -> str:
+            if detection_source == "workflow":
+                return f"{kind_label} detection: workflow loader -> {detected_value}"
+            if detection_source == "custom_fallback":
+                return f"{kind_label} detection: custom fallback -> {manual_value}"
+            return f"{kind_label} detection: no workflow match, using default placeholder"
+
+        lines = [
+            "Detection Summary",
+            format_detection_line(
+                "Model",
+                detection_state["MODEL_DETECTION_SOURCE"],
+                detection_state["DETECTED_MODEL_NAME"],
+                detection_state["MANUAL_MODEL_NAME"],
+            ),
+            (
+                f"Model output: {detection_state['SELECTED_MODEL_SOURCE']} -> "
+                f"{detection_state['SELECTED_MODEL_NAME']}"
+            ),
+            format_detection_line(
+                "Text encoder",
+                detection_state["TEXT_ENCODER_DETECTION_SOURCE"],
+                detection_state["DETECTED_TEXT_ENCODER_NAME"],
+                detection_state["MANUAL_TEXT_ENCODER_NAME"],
+            ),
+            (
+                f"Text encoder output: {detection_state['SELECTED_TEXT_ENCODER_SOURCE']} -> "
+                f"{detection_state['SELECTED_TEXT_ENCODER_NAME']}"
+            ),
+        ]
+
+        if detection_info == "Verbose":
+            lines.extend(
+                [
+                    (
+                        "Model variants: "
+                        f"Friendly={detection_state['FRIENDLY_MODEL_NAME']} | "
+                        f"Exact={detection_state['EXACT_MODEL_NAME']} | "
+                        f"Custom={detection_state['CUSTOM_MODEL_NAME'] or '(empty)'}"
+                    ),
+                    (
+                        "Text encoder variants: "
+                        f"Friendly={detection_state['FRIENDLY_TEXT_ENCODER_NAME']} | "
+                        f"Exact={detection_state['EXACT_TEXT_ENCODER_NAME']} | "
+                        f"Custom={detection_state['CUSTOM_TEXT_ENCODER_NAME'] or '(empty)'}"
+                    ),
+                ]
+            )
+
+        return lines
 
     def _resolve_relative_output_path(
         self,
@@ -1096,12 +1188,13 @@ class SaveImageClean:
         subfolder: str,
         model_source: str,
         clip_source: str,
+        detection_info: str,
         path_template: str,
         prompt: Any,
         unique_id: Any,
-    ) -> tuple[Path, str]:
+    ) -> tuple[Path, str, list[str]]:
         now = datetime.now()
-        variables = self._build_template_variables(
+        variables, detection_state = self._build_template_variables(
             prompt=prompt,
             unique_id=unique_id,
             model_folder=model_folder,
@@ -1112,11 +1205,12 @@ class SaveImageClean:
             clip_source=clip_source,
             now=now,
         )
+        detection_lines = self._build_detection_info_lines(detection_info, detection_state)
 
         if path_template and path_template.strip():
             rendered = _render_path_template(path_template.strip(), variables, now, prompt)
             relative_path = _normalize_template_file_path(rendered)
-            return relative_path, rendered
+            return relative_path, rendered, detection_lines
 
         clean_model = _sanitize_path_component(variables["MODEL_NAME"])
         clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
@@ -1127,7 +1221,7 @@ class SaveImageClean:
         if clean_subfolder:
             relative_path = Path(clean_subfolder) / relative_path
         preview = str(relative_path.with_suffix(""))
-        return relative_path, preview
+        return relative_path, preview, detection_lines
 
     def _resolve_target_path(
         self,
@@ -1166,6 +1260,7 @@ class SaveImageClean:
         collision_mode: str,
         model_source: str,
         clip_source: str,
+        detection_info: str,
         subfolder: str = "",
         model_folder: str = "",
         clip_folder: str = "",
@@ -1176,13 +1271,14 @@ class SaveImageClean:
     ):
         output_root = Path(self.output_dir)
         metadata = self._build_metadata(prompt=prompt, extra_pnginfo=extra_pnginfo)
-        relative_path, preview = self._resolve_relative_output_path(
+        relative_path, preview, detection_lines = self._resolve_relative_output_path(
             model_folder=model_folder,
             clip_folder=clip_folder,
             filename_datetime=filename_datetime,
             subfolder=subfolder,
             model_source=model_source,
             clip_source=clip_source,
+            detection_info=detection_info,
             path_template=path_template,
             prompt=prompt,
             unique_id=unique_id,
@@ -1208,7 +1304,7 @@ class SaveImageClean:
                 }
             )
 
-        return {"ui": {"images": saved, "text": [preview]}}
+        return {"ui": {"images": saved, "text": [preview, *detection_lines]}}
 
 
 NODE_CLASS_MAPPINGS = {

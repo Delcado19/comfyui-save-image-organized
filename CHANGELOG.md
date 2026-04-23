@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - isolated `uv`-based `pytest` setup with initial regression coverage for naming, template rendering, loader detection, and collision handling
+- optional `Detection Info` runtime output with `Off`, `Summary`, and `Verbose` modes for model and text encoder resolution
 
 ### Changed
 

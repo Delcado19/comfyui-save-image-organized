@@ -109,6 +109,18 @@ Used directly in `Custom` mode and as fallback if text encoder detection fails.
 - `error`
 - `seconds`
 
+### Detection Info
+
+Optional runtime detection details in the node output text.
+
+Options:
+
+- `Off`
+- `Summary`
+- `Verbose`
+
+This is useful when you want to confirm which workflow loader values were detected, whether custom fallback was used, and which final names were selected for saving.
+
 ## Useful Variables
 
 ### Main

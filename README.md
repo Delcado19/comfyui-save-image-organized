@@ -106,6 +106,18 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
 
+### Detection Info
+
+`Detection Info` is optional and only affects the node's UI text output after a run.
+
+Options:
+
+- `Off`
+- `Summary`
+- `Verbose`
+
+Use it when you want to see which model and text encoder names were detected, whether custom fallback was used, and which visible output names were finally selected.
+
 ### Detailed Variables
 
 - `%FRIENDLY_MODEL_NAME%`
