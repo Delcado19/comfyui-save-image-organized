@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - `Custom Model Name` and `Custom Text Encoder Name` are now used directly in `Custom` mode and automatically as fallback if detection fails
 - the template variable names now match the visible UI language: `%TOP_FOLDER%`, `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, and `%FILENAME%`
 - friendly names now shorten common descriptor words such as `abliterated`, `instruct`, `heretic`, and `uncensored` into bracket tags like `[Ablt]`, `[Inst]`, `[Her]`, and `[Unc]`
+- friendly model names now normalize known image-model families such as `FLUX.2 Klein 9B`, `Qwen Image Edit 2511`, `Z-Image Turbo`, and `ERNIE Image`
 - `Output Root` was removed to keep the node focused on ComfyUI's normal output folder
 - the node help and markdown docs were rewritten around the new naming scheme and simpler default flow
 

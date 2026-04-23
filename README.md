@@ -64,7 +64,7 @@ Default filename:
 Example result:
 
 ```text
-portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
+portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4b zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
 ```
 
 If `Top Folder` is empty, no extra folder is added.
@@ -79,7 +79,7 @@ Both dropdowns use the same three choices:
 
 Examples:
 
-- `Friendly` model name: `flux 2 klein 9b [5K-M]`
+- `Friendly` model name: `FLUX.2 Klein 9B [5K-M]`
 - `Exact` model name: `flux-2-klein-9b-Q5_K_M`
 - `Friendly` text encoder: `Lockout Qwen3 4b zimage V2 [Her][Q8]`
 - `Exact` text encoder: `Lockout-Qwen3-4b-zimage-hereticV2-q8`

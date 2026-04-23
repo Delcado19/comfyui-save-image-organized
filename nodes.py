@@ -55,6 +55,36 @@ DISPLAY_TAG_ABBREVIATIONS = {
     "turbo": "[Tbo]",
 }
 DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq"}
+KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS = (
+    (r"flux2klein9b", "FLUX.2 Klein 9B"),
+    (r"flux2klein4b", "FLUX.2 Klein 4B"),
+    (r"flux2dev", "FLUX.2 Dev"),
+    (r"flux1kontextdev", "FLUX.1 Kontext Dev"),
+    (r"flux1filldev", "FLUX.1 Fill Dev"),
+    (r"flux1schnell", "FLUX.1 Schnell"),
+    (r"flux1dev", "FLUX.1 Dev"),
+    (r"hidreame11", "HiDream E1.1"),
+    (r"hidreame1", "HiDream E1"),
+    (r"hidreami1full", "HiDream I1 Full"),
+    (r"hidreami1fast", "HiDream I1 Fast"),
+    (r"hidreami1dev", "HiDream I1 Dev"),
+    (r"hidreami1", "HiDream I1"),
+    (r"qwenimageedit2511", "Qwen Image Edit 2511"),
+    (r"qwenimageedit2509", "Qwen Image Edit 2509"),
+    (r"qwenimageedit", "Qwen Image Edit"),
+    (r"qwenimage", "Qwen Image"),
+    (r"ovisimage7b", "Ovis Image"),
+    (r"ovisimage", "Ovis Image"),
+    (r"newbieimageexp01", "NewBie Image Exp0.1"),
+    (r"omnigen2", "OmniGen2"),
+    (r"ernieimageturbo", "ERNIE Image Turbo"),
+    (r"ernieimage", "ERNIE Image"),
+    (r"zimageturbo", "Z-Image Turbo"),
+    (r"zit", "Z-Image Turbo"),
+    (r"zimage", "Z-Image"),
+    (r"stablediffusion15", "Stable Diffusion 1.5"),
+    (r"sd15", "Stable Diffusion 1.5"),
+)
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
@@ -185,6 +215,18 @@ def _normalize_version_token(value: str) -> str | None:
     return f"V{match.group(1)}"
 
 
+def _normalize_display_identifier(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", (value or "").strip().casefold())
+
+
+def _match_known_image_model_display(value: str) -> str | None:
+    normalized = _normalize_display_identifier(value)
+    for pattern, display in KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS:
+        if re.search(pattern, normalized):
+            return display
+    return None
+
+
 def _extract_tag_and_version(value: str) -> tuple[str | None, str | None]:
     lowered = value.lower()
     for word in sorted(DISPLAY_TAG_ABBREVIATIONS, key=len, reverse=True):
@@ -201,7 +243,7 @@ def _extract_tag_and_version(value: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _humanize_display_name(value: str) -> str:
+def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
     base_value = _basename_without_known_extension(value or "")
     match = QUANT_SUFFIX_RE.match(base_value)
 
@@ -213,6 +255,16 @@ def _humanize_display_name(value: str) -> str:
     tag_match = LEADING_TAG_RE.match(base_value)
     if tag_match:
         base_value = tag_match.group(1)
+
+    if kind == "model":
+        known_model_display = _match_known_image_model_display(base_value)
+        if known_model_display:
+            raw_parts = [part for part in re.split(r"[\s._-]+", base_value.strip()) if part]
+            version_parts = [version for part in raw_parts if (version := _normalize_version_token(part))]
+            base_value = _join_display_parts([known_model_display] + version_parts) or "unnamed"
+            if quant_display:
+                return _join_display_parts([base_value, quant_display])
+            return base_value
 
     base_value = DISPLAY_DOT_RE.sub(" ", base_value)
     base_value = base_value.replace("_", " ").replace("-", " ")
@@ -693,7 +745,7 @@ class SaveImageClean:
         "- Change Model Name, Text Encoder Name, or Filename only if you want different output\n"
         "- Clear Save Layout only if you want the built-in folder order instead of a custom layout\n\n"
         "Default result example:\n"
-        "portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
+        "portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4b zimage V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
         "Open the Info tab for copy-paste templates, variable explanations, and beginner examples."
     )
     SEARCH_ALIASES = [
@@ -855,8 +907,8 @@ class SaveImageClean:
         variables = {
             "EXACT_MODEL_NAME": active_unet,
             "EXACT_TEXT_ENCODER_NAME": active_clip,
-            "FRIENDLY_MODEL_NAME": _humanize_display_name(raw_active_unet),
-            "FRIENDLY_TEXT_ENCODER_NAME": _humanize_display_name(raw_active_clip),
+            "FRIENDLY_MODEL_NAME": _humanize_display_name(raw_active_unet, kind="model"),
+            "FRIENDLY_TEXT_ENCODER_NAME": _humanize_display_name(raw_active_clip, kind="text_encoder"),
             "CUSTOM_MODEL_NAME": manual_model or "",
             "CUSTOM_TEXT_ENCODER_NAME": manual_clip or "",
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",

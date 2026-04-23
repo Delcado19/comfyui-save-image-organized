@@ -47,6 +47,36 @@ const DISPLAY_TAG_ABBREVIATIONS = {
     turbo: "[Tbo]",
 };
 const DISPLAY_DROP_WORDS = new Set(["gguf", "gptq", "awq"]);
+const KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS = [
+    [/flux2klein9b/, "FLUX.2 Klein 9B"],
+    [/flux2klein4b/, "FLUX.2 Klein 4B"],
+    [/flux2dev/, "FLUX.2 Dev"],
+    [/flux1kontextdev/, "FLUX.1 Kontext Dev"],
+    [/flux1filldev/, "FLUX.1 Fill Dev"],
+    [/flux1schnell/, "FLUX.1 Schnell"],
+    [/flux1dev/, "FLUX.1 Dev"],
+    [/hidreame11/, "HiDream E1.1"],
+    [/hidreame1/, "HiDream E1"],
+    [/hidreami1full/, "HiDream I1 Full"],
+    [/hidreami1fast/, "HiDream I1 Fast"],
+    [/hidreami1dev/, "HiDream I1 Dev"],
+    [/hidreami1/, "HiDream I1"],
+    [/qwenimageedit2511/, "Qwen Image Edit 2511"],
+    [/qwenimageedit2509/, "Qwen Image Edit 2509"],
+    [/qwenimageedit/, "Qwen Image Edit"],
+    [/qwenimage/, "Qwen Image"],
+    [/ovisimage7b/, "Ovis Image"],
+    [/ovisimage/, "Ovis Image"],
+    [/newbieimageexp01/, "NewBie Image Exp0.1"],
+    [/omnigen2/, "OmniGen2"],
+    [/ernieimageturbo/, "ERNIE Image Turbo"],
+    [/ernieimage/, "ERNIE Image"],
+    [/zimageturbo/, "Z-Image Turbo"],
+    [/zit/, "Z-Image Turbo"],
+    [/zimage/, "Z-Image"],
+    [/stablediffusion15/, "Stable Diffusion 1.5"],
+    [/sd15/, "Stable Diffusion 1.5"],
+];
 
 function getWidget(node, name) {
     return (node.widgets || []).find((widget) => widget.name === name);
@@ -176,6 +206,20 @@ function normalizeVersionToken(value) {
     return match ? `V${match[1]}` : "";
 }
 
+function normalizeDisplayIdentifier(value) {
+    return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function matchKnownImageModelDisplay(value) {
+    const normalized = normalizeDisplayIdentifier(value);
+    for (const [pattern, display] of KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS) {
+        if (pattern.test(normalized)) {
+            return display;
+        }
+    }
+    return "";
+}
+
 function extractTagAndVersion(value) {
     const text = String(value || "");
     const lowered = text.toLowerCase();
@@ -195,7 +239,7 @@ function extractTagAndVersion(value) {
     return { tag: "", version: "" };
 }
 
-function humanizeDisplayName(value) {
+function humanizeDisplayName(value, kind = "generic") {
     let baseValue = basenameWithoutKnownExtension(value || "");
     let quantDisplay = "";
     const quantMatch = baseValue.match(QUANT_RE);
@@ -207,6 +251,20 @@ function humanizeDisplayName(value) {
     const tagMatch = baseValue.match(/^(?:[A-Z0-9]{2,8}[_-]+)(.+)$/);
     if (tagMatch) {
         baseValue = tagMatch[1];
+    }
+
+    if (kind === "model") {
+        const knownModelDisplay = matchKnownImageModelDisplay(baseValue);
+        if (knownModelDisplay) {
+            const versionParts = String(baseValue || "")
+                .trim()
+                .split(/[\s._-]+/)
+                .filter(Boolean)
+                .map((part) => normalizeVersionToken(part))
+                .filter(Boolean);
+            const cleanBase = joinDisplayParts([knownModelDisplay, ...versionParts]) || "unnamed";
+            return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
+        }
     }
 
     baseValue = baseValue
@@ -348,8 +406,8 @@ function buildVariables(node, now) {
         TOP_FOLDER: topFolder.trim() ? sanitizePathPart(topFolder) : "",
         EXACT_MODEL_NAME: basenameWithoutKnownExtension(SAMPLE_MODEL) || "model",
         EXACT_TEXT_ENCODER_NAME: basenameWithoutKnownExtension(SAMPLE_CLIP) || "text-encoder",
-        FRIENDLY_MODEL_NAME: humanizeDisplayName(SAMPLE_MODEL),
-        FRIENDLY_TEXT_ENCODER_NAME: humanizeDisplayName(SAMPLE_CLIP),
+        FRIENDLY_MODEL_NAME: humanizeDisplayName(SAMPLE_MODEL, "model"),
+        FRIENDLY_TEXT_ENCODER_NAME: humanizeDisplayName(SAMPLE_CLIP, "text_encoder"),
         CUSTOM_MODEL_NAME: customModelName,
         CUSTOM_TEXT_ENCODER_NAME: customTextEncoderName,
         FILENAME: buildFilenameValue(node, now),
