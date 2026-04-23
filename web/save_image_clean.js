@@ -20,6 +20,9 @@ const SAMPLE_MODEL = "flux-2-klein-9b-Q5_K_M.gguf";
 const SAMPLE_CLIP = "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf";
 const DEFAULT_LAYOUT = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%";
 const DEFAULT_FILENAME = "%date:yyyy-MM-dd_hh-mm-ss%";
+const VARIABLE_TOKEN_RE = /%([A-Z0-9_]+)%/g;
+const NODE_WIDGET_TOKEN_RE = /%([^%./\\]+)\.([^%./\\]+)%/g;
+const UNKNOWN_TOKEN_RE = /%([^%]+)%/g;
 const COMMON_EXTENSIONS = [
     ".safetensors",
     ".gguf",
@@ -94,6 +97,18 @@ const KNOWN_TEXT_ENCODER_DISPLAY_ALIASES = [
     ["llama", "Llama"],
     ["bert", "BERT"],
 ];
+const VALID_TEMPLATE_VARIABLES = new Set([
+    "TOP_FOLDER",
+    "MODEL_NAME",
+    "TEXT_ENCODER_NAME",
+    "FILENAME",
+    "FRIENDLY_MODEL_NAME",
+    "EXACT_MODEL_NAME",
+    "CUSTOM_MODEL_NAME",
+    "FRIENDLY_TEXT_ENCODER_NAME",
+    "EXACT_TEXT_ENCODER_NAME",
+    "CUSTOM_TEXT_ENCODER_NAME",
+]);
 const DISPLAY_WORD_RE = /[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?/g;
 
 function getWidget(node, name) {
@@ -552,18 +567,50 @@ function buildLegacyExample(node, variables) {
     return parts.join("/");
 }
 
+function formatPreviewNote(message, tone = "info") {
+    return {
+        message,
+        tone,
+    };
+}
+
 function buildLayoutExample(node, variables, now) {
     const layout = String(getWidget(node, "path_template")?.value || DEFAULT_LAYOUT).trim();
+    const notes = [];
+    let usesWidgetPlaceholder = false;
+
     let rendered = layout.replace(/%date:([^%]+)%/g, (_, format) => renderDateFormat(format, now));
     rendered = rendered.replace(/%strftime:([^%]+)%/g, (_, format) => renderStrftime(format, now));
-    rendered = rendered.replace(/%([^%./\\]+)\.([^%./\\]+)%/g, (_, nodeName, widgetName) => `<${nodeName}.${widgetName}>`);
-    rendered = rendered.replace(/%([A-Z0-9_]+)%/g, (_, key) => variables[key] ?? `%${key}%`);
+    rendered = rendered.replace(NODE_WIDGET_TOKEN_RE, (_, nodeName, widgetName) => {
+        usesWidgetPlaceholder = true;
+        return `{${nodeName}.${widgetName}}`;
+    });
+    rendered = rendered.replace(VARIABLE_TOKEN_RE, (_, key) => variables[key] ?? `%${key}%`);
+
+    const remainingTokens = [...rendered.matchAll(UNKNOWN_TOKEN_RE)].map((match) => match[1]);
+    const unknownVariables = remainingTokens.filter((token) => /^[A-Z0-9_]+$/.test(token) && !VALID_TEMPLATE_VARIABLES.has(token));
+    const unknownPlaceholders = remainingTokens.filter((token) => !/^[A-Z0-9_]+$/.test(token));
+
+    if (unknownVariables.length || unknownPlaceholders.length) {
+        const details = [
+            unknownVariables.length ? `variables: ${unknownVariables.join(", ")}` : "",
+            unknownPlaceholders.length ? `placeholders: ${unknownPlaceholders.join(", ")}` : "",
+        ].filter(Boolean);
+        notes.push(formatPreviewNote(`Preview warning: unknown ${details.join(" | ")}`, "warning"));
+    }
+
+    if (usesWidgetPlaceholder) {
+        notes.push(formatPreviewNote("Widget placeholders show as {node.widget} until the workflow runs."));
+    }
 
     let cleanPath = sanitizeRelativePath(rendered);
     if (!cleanPath.toLowerCase().endsWith(".png")) {
         cleanPath = `${cleanPath}.png`;
     }
-    return cleanPath;
+    return {
+        path: cleanPath,
+        notes,
+    };
 }
 
 function createHelpPanelWidget(node) {
@@ -590,6 +637,14 @@ function createHelpPanelWidget(node) {
     const titleEl = document.createElement("div");
     titleEl.style.cssText = "font-size:12px;font-weight:600;color:#f3f3f3;";
 
+    const noteEl = document.createElement("div");
+    noteEl.style.cssText = [
+        "font-size:11px",
+        "line-height:1.35",
+        "color:#a9a9a9",
+        "min-height:14px",
+    ].join(";");
+
     const createPreviewValue = () => {
         const valueEl = document.createElement("div");
         valueEl.style.cssText = [
@@ -607,6 +662,7 @@ function createHelpPanelWidget(node) {
             "white-space:nowrap",
             "overflow:hidden",
             "text-overflow:ellipsis",
+            "border:1px solid transparent",
         ].join(";");
         return valueEl;
     };
@@ -614,15 +670,17 @@ function createHelpPanelWidget(node) {
     const outputValueEl = createPreviewValue();
 
     container.appendChild(titleEl);
+    container.appendChild(noteEl);
     container.appendChild(outputValueEl);
 
     node.__saveImageCleanHelpRefs = {
         titleEl,
+        noteEl,
         outputValueEl,
     };
     node.__saveImageCleanHelpWidget = node.addDOMWidget("save_image_clean_help", "custom", container, {
-        getMinHeight: () => 74,
-        getMaxHeight: () => 84,
+        getMinHeight: () => 90,
+        getMaxHeight: () => 104,
         serialize: false,
         hideOnZoom: false,
         margin: 8,
@@ -641,18 +699,29 @@ function updateHelp(node) {
     const saveLayout = String(getWidget(node, "path_template")?.value || "").trim();
     const variables = buildVariables(node, now);
     const useLegacyOrder = saveLayout === "";
+    const defaultNote = "Preview uses sample detected names until the workflow runs.";
 
     ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
 
-    refs.outputValueEl.textContent = useLegacyOrder
-        ? buildLegacyExample(node, variables)
-        : buildLayoutExample(node, variables, now);
+    if (useLegacyOrder) {
+        refs.outputValueEl.textContent = buildLegacyExample(node, variables);
+        refs.noteEl.textContent = defaultNote;
+        refs.noteEl.style.color = "#a9a9a9";
+        refs.outputValueEl.style.borderColor = "transparent";
+    } else {
+        const preview = buildLayoutExample(node, variables, now);
+        const warning = preview.notes.find((note) => note.tone === "warning");
+        refs.outputValueEl.textContent = preview.path;
+        refs.noteEl.textContent = warning?.message || preview.notes[0]?.message || defaultNote;
+        refs.noteEl.style.color = warning ? "#f0be47" : "#a9a9a9";
+        refs.outputValueEl.style.borderColor = warning ? "rgba(240, 190, 71, 0.35)" : "transparent";
+    }
     refs.titleEl.textContent = "Example Output";
 
     const newSize = node.computeSize();
     newSize[0] = Math.max(newSize[0], node.size[0]);
-    newSize[1] = Math.max(newSize[1], 390);
+    newSize[1] = Math.max(newSize[1], 404);
     node.setSize?.(newSize);
     node.setDirtyCanvas?.(true, true);
 }

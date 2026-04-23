@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - path template errors now report clearer guidance for unknown variables, unknown `%node.widget%` node references, ambiguous node matches, unknown widget names, and linked or unsupported widget values
+- the in-node helper preview now warns about unknown placeholders, shows `%node.widget%` values as `{node.widget}` before execution, and makes it clearer that detected names are sample values until the workflow runs
 
 ## [0.2.0] - 2026-04-23
 

@@ -179,6 +179,8 @@ Examples:
 - `%Empty Latent Image.width%`
 - `%Empty Latent Image.height%`
 
+Before the first run, the helper preview shows these as `{node.widget}` because the real values only exist when the workflow executes.
+
 ## Date And Time
 
 You can choose between:

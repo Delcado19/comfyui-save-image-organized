@@ -225,6 +225,8 @@ Model and text encoder names are detected when the workflow runs.
 
 Before the first run, the inline example inside the node uses sample names so the structure stays understandable.
 
+The helper preview also shows `%node.widget%` placeholders as `{node.widget}` until the workflow runs, and it warns when the current template contains unknown placeholders.
+
 If detection fails:
 
 - `Custom Model Name` is used as fallback
