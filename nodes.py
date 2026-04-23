@@ -55,36 +55,37 @@ DISPLAY_TAG_ABBREVIATIONS = {
     "turbo": "[Tbo]",
 }
 DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq"}
-KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS = (
-    (r"flux2klein9b", "FLUX.2 Klein 9B"),
-    (r"flux2klein4b", "FLUX.2 Klein 4B"),
-    (r"flux2dev", "FLUX.2 Dev"),
-    (r"flux1kontextdev", "FLUX.1 Kontext Dev"),
-    (r"flux1filldev", "FLUX.1 Fill Dev"),
-    (r"flux1schnell", "FLUX.1 Schnell"),
-    (r"flux1dev", "FLUX.1 Dev"),
-    (r"hidreame11", "HiDream E1.1"),
-    (r"hidreame1", "HiDream E1"),
-    (r"hidreami1full", "HiDream I1 Full"),
-    (r"hidreami1fast", "HiDream I1 Fast"),
-    (r"hidreami1dev", "HiDream I1 Dev"),
-    (r"hidreami1", "HiDream I1"),
-    (r"qwenimageedit2511", "Qwen Image Edit 2511"),
-    (r"qwenimageedit2509", "Qwen Image Edit 2509"),
-    (r"qwenimageedit", "Qwen Image Edit"),
-    (r"qwenimage", "Qwen Image"),
-    (r"ovisimage7b", "Ovis Image"),
-    (r"ovisimage", "Ovis Image"),
-    (r"newbieimageexp01", "NewBie Image Exp0.1"),
-    (r"omnigen2", "OmniGen2"),
-    (r"ernieimageturbo", "ERNIE Image Turbo"),
-    (r"ernieimage", "ERNIE Image"),
-    (r"zimageturbo", "Z-Image Turbo"),
-    (r"zit", "Z-Image Turbo"),
-    (r"zimage", "Z-Image"),
-    (r"stablediffusion15", "Stable Diffusion 1.5"),
-    (r"sd15", "Stable Diffusion 1.5"),
+KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = (
+    ("flux2klein9b", "FLUX.2 Klein 9B"),
+    ("flux2klein4b", "FLUX.2 Klein 4B"),
+    ("flux2dev", "FLUX.2 Dev"),
+    ("flux1kontextdev", "FLUX.1 Kontext Dev"),
+    ("flux1filldev", "FLUX.1 Fill Dev"),
+    ("flux1schnell", "FLUX.1 Schnell"),
+    ("flux1dev", "FLUX.1 Dev"),
+    ("hidreame11", "HiDream E1.1"),
+    ("hidreame1", "HiDream E1"),
+    ("hidreami1full", "HiDream I1 Full"),
+    ("hidreami1fast", "HiDream I1 Fast"),
+    ("hidreami1dev", "HiDream I1 Dev"),
+    ("hidreami1", "HiDream I1"),
+    ("qwenimageedit2511", "Qwen Image Edit 2511"),
+    ("qwenimageedit2509", "Qwen Image Edit 2509"),
+    ("qwenimageedit", "Qwen Image Edit"),
+    ("qwenimage", "Qwen Image"),
+    ("ovisimage7b", "Ovis Image"),
+    ("ovisimage", "Ovis Image"),
+    ("newbieimageexp01", "NewBie Image Exp0.1"),
+    ("omnigen2", "OmniGen2"),
+    ("ernieimageturbo", "ERNIE Image Turbo"),
+    ("ernieimage", "ERNIE Image"),
+    ("zimageturbo", "Z-Image Turbo"),
+    ("zit", "Z-Image Turbo"),
+    ("zimage", "Z-Image"),
+    ("stablediffusion15", "Stable Diffusion 1.5"),
+    ("sd15", "Stable Diffusion 1.5"),
 )
+DISPLAY_WORD_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?")
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
@@ -219,12 +220,8 @@ def _normalize_display_identifier(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", (value or "").strip().casefold())
 
 
-def _match_known_image_model_display(value: str) -> str | None:
-    normalized = _normalize_display_identifier(value)
-    for pattern, display in KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS:
-        if re.search(pattern, normalized):
-            return display
-    return None
+def _iter_display_words(value: str) -> list[tuple[int, int, str]]:
+    return [(match.start(), match.end(), match.group(0)) for match in DISPLAY_WORD_RE.finditer(value or "")]
 
 
 def _extract_tag_and_version(value: str) -> tuple[str | None, str | None]:
@@ -243,30 +240,8 @@ def _extract_tag_and_version(value: str) -> tuple[str | None, str | None]:
     return None, None
 
 
-def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
-    base_value = _basename_without_known_extension(value or "")
-    match = QUANT_SUFFIX_RE.match(base_value)
-
-    quant_display = ""
-    if match:
-        base_value = match.group("base").rstrip(" ._-")
-        quant_display = _format_quant_display(match.group("quant")) or f"[{match.group('quant').upper()}]"
-
-    tag_match = LEADING_TAG_RE.match(base_value)
-    if tag_match:
-        base_value = tag_match.group(1)
-
-    if kind == "model":
-        known_model_display = _match_known_image_model_display(base_value)
-        if known_model_display:
-            raw_parts = [part for part in re.split(r"[\s._-]+", base_value.strip()) if part]
-            version_parts = [version for part in raw_parts if (version := _normalize_version_token(part))]
-            base_value = _join_display_parts([known_model_display] + version_parts) or "unnamed"
-            if quant_display:
-                return _join_display_parts([base_value, quant_display])
-            return base_value
-
-    base_value = DISPLAY_DOT_RE.sub(" ", base_value)
+def _humanize_display_name_generic(value: str, quant_display: str = "") -> str:
+    base_value = DISPLAY_DOT_RE.sub(" ", value or "")
     base_value = base_value.replace("_", " ").replace("-", " ")
     base_parts = [part for part in re.sub(r"\s+", " ", base_value).strip().split(" ") if part]
     plain_parts = []
@@ -292,10 +267,75 @@ def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
         plain_parts.append(part)
 
     base_value = _join_display_parts(plain_parts + version_parts + tag_parts) or "unnamed"
-
     if quant_display:
         return _join_display_parts([base_value, quant_display])
     return base_value
+
+
+def _match_known_image_model_display(value: str, quant_display: str = "") -> str | None:
+    words = _iter_display_words(value)
+    if not words:
+        return None
+
+    normalized_words = [_normalize_display_identifier(word) for _, _, word in words]
+    best_match: tuple[int, int, int, str] | None = None
+
+    for start_index in range(len(normalized_words)):
+        compact = ""
+        for end_index in range(start_index, len(normalized_words)):
+            compact += normalized_words[end_index]
+            for alias, display in KNOWN_IMAGE_MODEL_DISPLAY_ALIASES:
+                if compact != alias:
+                    continue
+                candidate = (len(alias), start_index, end_index, display)
+                if best_match is None or candidate > best_match:
+                    best_match = candidate
+
+    if best_match is None:
+        return None
+
+    _, start_index, end_index, display = best_match
+    prefix_raw = (value or "")[: words[start_index][0]]
+    suffix_raw = (value or "")[words[end_index][1] :]
+
+    parts = []
+    if prefix_raw.strip():
+        prefix_display = _humanize_display_name_generic(prefix_raw)
+        if prefix_display != "unnamed":
+            parts.append(prefix_display)
+
+    parts.append(display)
+
+    if suffix_raw.strip():
+        suffix_display = _humanize_display_name_generic(suffix_raw)
+        if suffix_display != "unnamed":
+            parts.append(suffix_display)
+
+    base_value = _join_display_parts(parts) or display
+    if quant_display:
+        return _join_display_parts([base_value, quant_display])
+    return base_value
+
+
+def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
+    base_value = _basename_without_known_extension(value or "")
+    match = QUANT_SUFFIX_RE.match(base_value)
+
+    quant_display = ""
+    if match:
+        base_value = match.group("base").rstrip(" ._-")
+        quant_display = _format_quant_display(match.group("quant")) or f"[{match.group('quant').upper()}]"
+
+    tag_match = LEADING_TAG_RE.match(base_value)
+    if tag_match:
+        base_value = tag_match.group(1)
+
+    if kind == "model":
+        known_model_display = _match_known_image_model_display(base_value, quant_display)
+        if known_model_display:
+            return known_model_display
+
+    return _humanize_display_name_generic(base_value, quant_display)
 
 
 def _normalize_template_file_path(value: str) -> Path:

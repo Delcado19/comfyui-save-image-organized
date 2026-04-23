@@ -47,36 +47,37 @@ const DISPLAY_TAG_ABBREVIATIONS = {
     turbo: "[Tbo]",
 };
 const DISPLAY_DROP_WORDS = new Set(["gguf", "gptq", "awq"]);
-const KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS = [
-    [/flux2klein9b/, "FLUX.2 Klein 9B"],
-    [/flux2klein4b/, "FLUX.2 Klein 4B"],
-    [/flux2dev/, "FLUX.2 Dev"],
-    [/flux1kontextdev/, "FLUX.1 Kontext Dev"],
-    [/flux1filldev/, "FLUX.1 Fill Dev"],
-    [/flux1schnell/, "FLUX.1 Schnell"],
-    [/flux1dev/, "FLUX.1 Dev"],
-    [/hidreame11/, "HiDream E1.1"],
-    [/hidreame1/, "HiDream E1"],
-    [/hidreami1full/, "HiDream I1 Full"],
-    [/hidreami1fast/, "HiDream I1 Fast"],
-    [/hidreami1dev/, "HiDream I1 Dev"],
-    [/hidreami1/, "HiDream I1"],
-    [/qwenimageedit2511/, "Qwen Image Edit 2511"],
-    [/qwenimageedit2509/, "Qwen Image Edit 2509"],
-    [/qwenimageedit/, "Qwen Image Edit"],
-    [/qwenimage/, "Qwen Image"],
-    [/ovisimage7b/, "Ovis Image"],
-    [/ovisimage/, "Ovis Image"],
-    [/newbieimageexp01/, "NewBie Image Exp0.1"],
-    [/omnigen2/, "OmniGen2"],
-    [/ernieimageturbo/, "ERNIE Image Turbo"],
-    [/ernieimage/, "ERNIE Image"],
-    [/zimageturbo/, "Z-Image Turbo"],
-    [/zit/, "Z-Image Turbo"],
-    [/zimage/, "Z-Image"],
-    [/stablediffusion15/, "Stable Diffusion 1.5"],
-    [/sd15/, "Stable Diffusion 1.5"],
+const KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = [
+    ["flux2klein9b", "FLUX.2 Klein 9B"],
+    ["flux2klein4b", "FLUX.2 Klein 4B"],
+    ["flux2dev", "FLUX.2 Dev"],
+    ["flux1kontextdev", "FLUX.1 Kontext Dev"],
+    ["flux1filldev", "FLUX.1 Fill Dev"],
+    ["flux1schnell", "FLUX.1 Schnell"],
+    ["flux1dev", "FLUX.1 Dev"],
+    ["hidreame11", "HiDream E1.1"],
+    ["hidreame1", "HiDream E1"],
+    ["hidreami1full", "HiDream I1 Full"],
+    ["hidreami1fast", "HiDream I1 Fast"],
+    ["hidreami1dev", "HiDream I1 Dev"],
+    ["hidreami1", "HiDream I1"],
+    ["qwenimageedit2511", "Qwen Image Edit 2511"],
+    ["qwenimageedit2509", "Qwen Image Edit 2509"],
+    ["qwenimageedit", "Qwen Image Edit"],
+    ["qwenimage", "Qwen Image"],
+    ["ovisimage7b", "Ovis Image"],
+    ["ovisimage", "Ovis Image"],
+    ["newbieimageexp01", "NewBie Image Exp0.1"],
+    ["omnigen2", "OmniGen2"],
+    ["ernieimageturbo", "ERNIE Image Turbo"],
+    ["ernieimage", "ERNIE Image"],
+    ["zimageturbo", "Z-Image Turbo"],
+    ["zit", "Z-Image Turbo"],
+    ["zimage", "Z-Image"],
+    ["stablediffusion15", "Stable Diffusion 1.5"],
+    ["sd15", "Stable Diffusion 1.5"],
 ];
+const DISPLAY_WORD_RE = /[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?/g;
 
 function getWidget(node, name) {
     return (node.widgets || []).find((widget) => widget.name === name);
@@ -210,14 +211,122 @@ function normalizeDisplayIdentifier(value) {
     return String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
-function matchKnownImageModelDisplay(value) {
-    const normalized = normalizeDisplayIdentifier(value);
-    for (const [pattern, display] of KNOWN_IMAGE_MODEL_DISPLAY_PATTERNS) {
-        if (pattern.test(normalized)) {
-            return display;
+function iterDisplayWords(value) {
+    const text = String(value || "");
+    return Array.from(text.matchAll(DISPLAY_WORD_RE)).map((match) => ({
+        start: match.index,
+        end: match.index + match[0].length,
+        text: match[0],
+    }));
+}
+
+function humanizeDisplayNameGeneric(value, quantDisplay = "") {
+    let baseValue = String(value || "")
+        .replace(/(?<!\d)\.|\.(?!\d)/g, " ")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    const plainParts = [];
+    const versionParts = [];
+    const tagParts = [];
+    for (const part of (baseValue || "unnamed").split(" ").filter(Boolean)) {
+        if (DISPLAY_DROP_WORDS.has(part.toLowerCase())) {
+            continue;
+        }
+
+        const version = normalizeVersionToken(part);
+        if (version) {
+            versionParts.push(version);
+            continue;
+        }
+
+        const tagged = extractTagAndVersion(part);
+        if (tagged.tag) {
+            if (tagged.version) {
+                versionParts.push(tagged.version);
+            }
+            tagParts.push(tagged.tag);
+            continue;
+        }
+
+        plainParts.push(part);
+    }
+
+    const cleanBase = joinDisplayParts([...plainParts, ...versionParts, ...tagParts]) || "unnamed";
+    return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
+}
+
+function matchKnownImageModelDisplay(value, quantDisplay = "") {
+    const words = iterDisplayWords(value);
+    if (!words.length) {
+        return "";
+    }
+
+    const normalizedWords = words.map((word) => normalizeDisplayIdentifier(word.text));
+    let bestMatch = null;
+
+    for (let startIndex = 0; startIndex < normalizedWords.length; startIndex += 1) {
+        let compact = "";
+        for (let endIndex = startIndex; endIndex < normalizedWords.length; endIndex += 1) {
+            compact += normalizedWords[endIndex];
+            for (const [alias, display] of KNOWN_IMAGE_MODEL_DISPLAY_ALIASES) {
+                if (compact !== alias) {
+                    continue;
+                }
+                const candidate = {
+                    length: alias.length,
+                    startIndex,
+                    endIndex,
+                    display,
+                };
+                if (
+                    !bestMatch
+                    || candidate.length > bestMatch.length
+                    || (
+                        candidate.length === bestMatch.length
+                        && (
+                            candidate.startIndex > bestMatch.startIndex
+                            || (
+                                candidate.startIndex === bestMatch.startIndex
+                                && candidate.endIndex > bestMatch.endIndex
+                            )
+                        )
+                    )
+                ) {
+                    bestMatch = candidate;
+                }
+            }
         }
     }
-    return "";
+
+    if (!bestMatch) {
+        return "";
+    }
+
+    const text = String(value || "");
+    const prefixRaw = text.slice(0, words[bestMatch.startIndex].start);
+    const suffixRaw = text.slice(words[bestMatch.endIndex].end);
+    const parts = [];
+
+    if (prefixRaw.trim()) {
+        const prefixDisplay = humanizeDisplayNameGeneric(prefixRaw);
+        if (prefixDisplay !== "unnamed") {
+            parts.push(prefixDisplay);
+        }
+    }
+
+    parts.push(bestMatch.display);
+
+    if (suffixRaw.trim()) {
+        const suffixDisplay = humanizeDisplayNameGeneric(suffixRaw);
+        if (suffixDisplay !== "unnamed") {
+            parts.push(suffixDisplay);
+        }
+    }
+
+    const cleanBase = joinDisplayParts(parts) || bestMatch.display;
+    return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
 }
 
 function extractTagAndVersion(value) {
@@ -254,53 +363,13 @@ function humanizeDisplayName(value, kind = "generic") {
     }
 
     if (kind === "model") {
-        const knownModelDisplay = matchKnownImageModelDisplay(baseValue);
+        const knownModelDisplay = matchKnownImageModelDisplay(baseValue, quantDisplay);
         if (knownModelDisplay) {
-            const versionParts = String(baseValue || "")
-                .trim()
-                .split(/[\s._-]+/)
-                .filter(Boolean)
-                .map((part) => normalizeVersionToken(part))
-                .filter(Boolean);
-            const cleanBase = joinDisplayParts([knownModelDisplay, ...versionParts]) || "unnamed";
-            return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
+            return knownModelDisplay;
         }
     }
 
-    baseValue = baseValue
-        .replace(/(?<!\d)\.|\.(?!\d)/g, " ")
-        .replace(/[_-]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-    const plainParts = [];
-    const versionParts = [];
-    const tagParts = [];
-    for (const part of (baseValue || "unnamed").split(" ").filter(Boolean)) {
-        if (DISPLAY_DROP_WORDS.has(part.toLowerCase())) {
-            continue;
-        }
-
-        const version = normalizeVersionToken(part);
-        if (version) {
-            versionParts.push(version);
-            continue;
-        }
-
-        const tagged = extractTagAndVersion(part);
-        if (tagged.tag) {
-            if (tagged.version) {
-                versionParts.push(tagged.version);
-            }
-            tagParts.push(tagged.tag);
-            continue;
-        }
-
-        plainParts.push(part);
-    }
-
-    const cleanBase = joinDisplayParts([...plainParts, ...versionParts, ...tagParts]) || "unnamed";
-    return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
+    return humanizeDisplayNameGeneric(baseValue, quantDisplay);
 }
 
 function sanitizePathPart(value) {
