@@ -163,6 +163,74 @@ def test_find_active_names_picks_nearest_unet_and_clip_loaders():
     }
 
 
+def test_find_active_names_falls_back_to_checkpoint_loader_values():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["3", 1],
+            },
+        },
+        "3": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": "sdxl-checkpoint-v1.safetensors",
+            },
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "sdxl-checkpoint-v1.safetensors",
+        "ACTIVE_CLIP": "sdxl-checkpoint-v1.safetensors",
+    }
+
+
+def test_find_active_names_detects_diffusion_model_loader_variants():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+            },
+        },
+        "3": {
+            "class_type": "LoadDiffusionModelGGUF",
+            "inputs": {
+                "diffusion_model_name": "qwen-image-edit-2509-Q8_0.gguf",
+            },
+        },
+        "4": {
+            "class_type": "TextEncoderLoader",
+            "inputs": {
+                "text_encoder_name": "umt5xxl-fp16.gguf",
+            },
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "qwen-image-edit-2509-Q8_0.gguf",
+        "ACTIVE_CLIP": "umt5xxl-fp16.gguf",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 
@@ -210,6 +278,49 @@ def test_render_path_template_rejects_linked_or_unsupported_widget_values():
             datetime(2026, 4, 22, 21, 22, 5),
             prompt,
         )
+
+
+def test_render_path_template_resolves_node_name_for_search_and_replace():
+    prompt = {
+        "10": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 31415,
+            },
+            "_meta": {
+                "Node name for S&R": "Sampler Alias",
+            },
+        }
+    }
+
+    rendered = nodes._render_path_template(
+        "%Sampler Alias.seed%",
+        {},
+        datetime(2026, 4, 22, 21, 22, 5),
+        prompt,
+    )
+
+    assert rendered == "31415"
+
+
+def test_render_path_template_resolves_direct_node_id_references():
+    prompt = {
+        "42": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 777,
+            },
+        }
+    }
+
+    rendered = nodes._render_path_template(
+        "%42.seed%",
+        {},
+        datetime(2026, 4, 22, 21, 22, 5),
+        prompt,
+    )
+
+    assert rendered == "777"
 
 
 class DummyImage:

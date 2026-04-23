@@ -9,6 +9,7 @@ This file is for continuation context, not end-user documentation.
 
 - Branch status was clean on `main` on 2026-04-23.
 - The next visible project version should be `v0.2.0`.
+- GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
   - `Strip Model Extension`
@@ -43,17 +44,17 @@ The following items are the core of the `v0.2.0` release:
 
 ## Known Gaps
 
-- The automated test suite is still small, but it now covers core helper behavior, multi-image save execution, and PNG metadata preservation.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, and basic save/metadata behavior, but not broader real-world prompt fixtures or format variations.
+- The automated test suite is still small, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or node id.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, and basic save/metadata behavior, but not a wide library of real exported workflow fixtures from multiple ComfyUI installations.
 - Frontend preview logic is clearer than before and now warns about unknown placeholders, but it still uses sample names before first workflow execution and does not yet reflect real post-run detection details inside the helper panel itself.
 - Compatibility has been expanded for loader naming patterns, but this area is still the most likely place for future edge cases from third-party custom nodes.
 
 ## Next Priorities
 
-1. Expand regression coverage across representative prompt payloads from common ComfyUI ecosystems.
-2. Decide whether detection summary details should also surface in the in-node helper panel after execution, not only in the output text.
-3. Extend save tests toward additional collision modes and more than one loader-family prompt shape per workflow style.
-4. Consider direct convenience variables such as `%WIDTH%`, `%HEIGHT%`, `%SEED%`, and `%BATCH_INDEX%`.
+1. Decide whether detection summary details should also surface in the in-node helper panel after execution, not only in the output text.
+2. Extend save tests toward additional collision modes such as `overwrite` and `seconds`.
+3. Consider direct convenience variables such as `%WIDTH%`, `%HEIGHT%`, `%SEED%`, and `%BATCH_INDEX%`.
+4. Build a small library of representative real exported workflow fixtures from multiple ComfyUI/custom-node setups.
 5. Keep `CHANGELOG.md` moving from the fresh `Unreleased` section after the `v0.2.0` tag.
 
 ## v0.2.0 Roadmap

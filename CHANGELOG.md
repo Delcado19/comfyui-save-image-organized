@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - isolated `uv`-based `pytest` setup with initial regression coverage for naming, template rendering, loader detection, and collision handling
 - optional `Detection Info` runtime output with `Off`, `Summary`, and `Verbose` modes for model and text encoder resolution
 - regression coverage for multi-image save output and preserved PNG prompt metadata
+- broader regression coverage for checkpoint loader fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or direct node id
+- GitHub Actions CI on Windows with `ruff` and `pytest`
 
 ### Changed
 
