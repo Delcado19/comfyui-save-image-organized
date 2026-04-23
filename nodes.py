@@ -54,7 +54,7 @@ DISPLAY_TAG_ABBREVIATIONS = {
     "preview": "[Prev]",
     "turbo": "[Tbo]",
 }
-DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq", "zimage"}
+DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq"}
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
@@ -101,6 +101,8 @@ def _sanitize_path_component(value: str) -> str:
 def _sanitize_relative_path(value: str) -> Path:
     parts = []
     for raw_part in PATH_SPLIT_RE.split((value or "").strip()):
+        if not raw_part or not raw_part.strip():
+            continue
         cleaned = _sanitize_path_component(raw_part)
         if cleaned:
             parts.append(cleaned)
@@ -212,7 +214,6 @@ def _humanize_display_name(value: str) -> str:
     if tag_match:
         base_value = tag_match.group(1)
 
-    base_value = re.sub(r"(?i)\bz[\s._-]*image\b", " ", base_value)
     base_value = DISPLAY_DOT_RE.sub(" ", base_value)
     base_value = base_value.replace("_", " ").replace("-", " ")
     base_parts = [part for part in re.sub(r"\s+", " ", base_value).strip().split(" ") if part]

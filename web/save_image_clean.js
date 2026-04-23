@@ -46,7 +46,7 @@ const DISPLAY_TAG_ABBREVIATIONS = {
     preview: "[Prev]",
     turbo: "[Tbo]",
 };
-const DISPLAY_DROP_WORDS = new Set(["gguf", "gptq", "awq", "zimage"]);
+const DISPLAY_DROP_WORDS = new Set(["gguf", "gptq", "awq"]);
 
 function getWidget(node, name) {
     return (node.widgets || []).find((widget) => widget.name === name);
@@ -209,7 +209,6 @@ function humanizeDisplayName(value) {
         baseValue = tagMatch[1];
     }
 
-    baseValue = baseValue.replace(/\bz[\s._-]*image\b/gi, " ");
     baseValue = baseValue
         .replace(/(?<!\d)\.|\.(?!\d)/g, " ")
         .replace(/[_-]+/g, " ")

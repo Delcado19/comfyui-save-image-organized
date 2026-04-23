@@ -33,7 +33,7 @@ The default filename is:
 Example result:
 
 ```text
-portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][q8]/2026-04-22_15-30-10.png
+portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b zimage V2 [Her][q8]/2026-04-22_15-30-10.png
 ```
 
 ## Main Inputs
