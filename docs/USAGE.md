@@ -2,132 +2,164 @@
 
 ## Save Image Clean
 
-`Save Image Clean` supports two output strategies.
+`Save Image Clean` now follows one simple structure:
 
-### 1. Legacy Mode
+- `Top Folder`
+- `Model Name`
+- `Text Encoder Name`
+- `Filename`
 
-Leave `path_template` empty and provide:
-
-- `model_folder`
-- `clip_folder`
-- `subfolder`
-- `filename_datetime`
-
-The resulting path is:
+The default layout is:
 
 ```text
-<output_root>/<subfolder>/<model_folder>/<clip_folder>/<filename_datetime>.png
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
 ```
 
-`filename_datetime` uses Python `strftime`, for example:
+The default filename is:
 
 ```text
-%Y-%m-%d_%H-%M
+%date:yyyy-MM-dd_hh-mm-ss%
 ```
 
-### 2. Template Mode
+## Fastest Setup
 
-Set `path_template` to generate the full relative output path.
-
-Recommended template:
-
-```text
-%ACTIVE_UNET%/%ACTIVE_CLIP%/%date:yyyy-MM-dd_hh-mm%
-```
+1. Add the node
+2. Leave `Save Layout` unchanged
+3. Pick `Friendly`, `Exact`, or `Custom` for `Model Name`
+4. Pick `Friendly`, `Exact`, or `Custom` for `Text Encoder Name`
+5. Leave `Filename` unchanged unless you want a different timestamp
+6. Queue the workflow
 
 Example result:
 
 ```text
-jibMixZIT_v10/Huihui-Qwen3-4B-abliterated-v2.Q8_0/2026-04-21_14-37.png
+portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][q8]/2026-04-22_15-30-10.png
 ```
 
-You can also combine custom variables with ComfyUI-style widget placeholders:
+## Main Inputs
+
+### Save Layout
+
+Main folder layout for the saved image.
+
+Default:
 
 ```text
-%KSampler.seed%/%Empty Latent Image.width%x%Empty Latent Image.height%/%date:yyyy-MM-dd_hh-mm%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
 ```
 
-## Template Variables
+### Model Name
 
-- `%ACTIVE_UNET%`: detected UNET loader name without a known model file extension
-- `%ACTIVE_CLIP%`: detected CLIP loader name without a known model file extension
-- `%MODEL_SHORT%`: shortened UNET name with common prefixes removed
-- `%CLIP_SHORT%`: shortened CLIP name with common prefixes removed
-- `%MODEL_FOLDER%`: manual `model_folder` fallback value without a known model file extension
-- `%CLIP_FOLDER%`: manual `clip_folder` fallback value without a known model file extension
-- `%MODEL_DISPLAY%`: humanized active UNET name, using only the basename and a readable quant suffix when recognized
-- `%CLIP_DISPLAY%`: humanized active CLIP name, using only the basename and a readable quant suffix when recognized
-- `%MODEL_SELECTED%`: value chosen by the `model_source` dropdown or `model_custom_value`
-- `%CLIP_SELECTED%`: value chosen by the `clip_source` dropdown or `clip_custom_value`
-- `%SUBFOLDER%`: sanitized `subfolder` value
+Controls what `%MODEL_NAME%` becomes.
 
-In practice this means:
+Options:
 
-- `ACTIVE_*`: auto-detected from the active workflow, then stripped of known model file extensions
-- `*_SHORT`: based on the detected active name, but further shortened for cleaner output names
-- `*_FOLDER`: taken from the manual node input fields, then stripped of known model file extensions
+- `Friendly`
+- `Exact`
+- `Custom`
 
-Example values:
+### Text Encoder Name
 
-- detected UNET loader name: `jibMixZIT_v10.safetensors`
-- detected CLIP loader name: `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0.gguf`
-- manual `model_folder`: `manual-model`
-- manual `clip_folder`: `manual-clip.gguf`
-- `subfolder`: `portraits`
+Controls what `%TEXT_ENCODER_NAME%` becomes.
 
-Resolved variables:
+Options:
 
-- `%ACTIVE_UNET%` -> `jibMixZIT_v10`
-- `%ACTIVE_CLIP%` -> `mradermacher - Huihui-Qwen3-4B-abliterated-v2.Q8_0`
-- `%MODEL_SHORT%` -> `jibMixZIT_v10`
-- `%CLIP_SHORT%` -> `Huihui-Qwen3-4B-abliterated-v2.Q8_0`
-- `%MODEL_FOLDER%` -> `manual-model`
-- `%CLIP_FOLDER%` -> `manual-clip`
-- `%MODEL_DISPLAY%` -> `jibMixZIT v10`
-- `%CLIP_DISPLAY%` -> `Huihui Qwen3 4B abliterated v2 [8F]`
-- `%SUBFOLDER%` -> `portraits`
+- `Friendly`
+- `Exact`
+- `Custom`
 
-Example template using only the manual folder fields:
+Common descriptor words in `Friendly` names are shortened into bracket tags:
+
+- `abliterated` -> `[Ablt]`
+- `instruct` -> `[Inst]`
+- `heretic` -> `[Her]`
+- `uncensored` -> `[Unc]`
+- `decensored` -> `[Dec]`
+- `thinking` -> `[Think]`
+- `reasoning` -> `[Rsn]`
+
+### Filename
+
+Controls what `%FILENAME%` becomes.
+
+Default:
 
 ```text
-%SUBFOLDER%/%MODEL_FOLDER%/%CLIP_FOLDER%/%date:yyyy-MM-dd_hh-mm%
+%date:yyyy-MM-dd_hh-mm-ss%
 ```
 
-Example result:
+### Top Folder
+
+Optional first folder.
+
+If empty, no extra folder is added.
+
+### Custom Model Name
+
+Used directly in `Custom` mode and as fallback if model detection fails.
+
+### Custom Text Encoder Name
+
+Used directly in `Custom` mode and as fallback if text encoder detection fails.
+
+### If File Exists
+
+- `increment`
+- `overwrite`
+- `error`
+- `seconds`
+
+## Useful Variables
+
+### Main
+
+- `%TOP_FOLDER%`
+- `%MODEL_NAME%`
+- `%TEXT_ENCODER_NAME%`
+- `%FILENAME%`
+
+### Detailed
+
+- `%FRIENDLY_MODEL_NAME%`
+- `%EXACT_MODEL_NAME%`
+- `%CUSTOM_MODEL_NAME%`
+- `%FRIENDLY_TEXT_ENCODER_NAME%`
+- `%EXACT_TEXT_ENCODER_NAME%`
+- `%CUSTOM_TEXT_ENCODER_NAME%`
+
+## Example Layouts
+
+### Default
 
 ```text
-portraits/manual-model/manual-clip/2026-04-22_15-30.png
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
 ```
 
-## Dropdown-Based Segment Selection
+### No top folder
 
-The node also provides `model_source` and `clip_source` dropdowns.
+```text
+%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+```
 
-These let you choose which resolved value should be used for the model and clip path segments without having to write a template first.
+### Exact model only
 
-Model source options:
+```text
+%TOP_FOLDER%/%EXACT_MODEL_NAME%/%FILENAME%
+```
 
-- `MODEL_FOLDER`
-- `ACTIVE_UNET`
-- `MODEL_SHORT`
-- `MODEL_DISPLAY`
-- `CUSTOM`
+### Include seed
 
-Clip source options:
+```text
+%MODEL_NAME%/%KSampler.seed%/%FILENAME%
+```
 
-- `CLIP_FOLDER`
-- `ACTIVE_CLIP`
-- `CLIP_SHORT`
-- `CLIP_DISPLAY`
-- `CUSTOM`
+### Include image size
 
-When `CUSTOM` is selected, the node uses `model_custom_value` or `clip_custom_value`.
+```text
+%MODEL_NAME%/%Empty Latent Image.width%x%Empty Latent Image.height%/%FILENAME%
+```
 
-The chosen values are also exposed to templates as `%MODEL_SELECTED%` and `%CLIP_SELECTED%`.
-
-## Search And Replace Placeholders
-
-Template mode also supports ComfyUI-style `%node.widget%` placeholders.
+## `%node.widget%`
 
 Examples:
 
@@ -135,93 +167,72 @@ Examples:
 - `%Empty Latent Image.width%`
 - `%Empty Latent Image.height%`
 
-Resolution is based on the execution prompt and can match:
+## Date And Time
 
-- node title when present
-- `Node name for S&R` when present
-- node class name
-- internal node id
+You can choose between:
 
-If multiple nodes match the same name, the node raises an error so the template stays explicit.
+- `ComfyUI-style` with `%date:...%`
+- `Python-style` with `%strftime:...%`
 
-## Date Tokens
-
-Inside `%date:...%`, these ComfyUI-style tokens are supported:
-
-- `M`
-- `yyyy`
-- `yy`
-- `d`
-- `MM`
-- `dd`
-- `h`
-- `hh`
-- `m`
-- `mm`
-- `s`
-- `ss`
-
-Example:
+Recommended default:
 
 ```text
-%date:yyyy-MM-dd_hh-mm%
+%date:yyyy-MM-dd_hh-mm-ss%
 ```
 
-Unsupported text inside `%date:...%` remains unchanged.
+Example result:
 
-## Strftime Tokens
+```text
+2026-04-22_21-22-05
+```
 
-Inside `%strftime:...%`, these directives are supported:
+### `%date:...%`
 
-- `%Y`
-- `%y`
-- `%m`
-- `%d`
-- `%H`
-- `%M`
-- `%S`
-- `%f`
-- `%%`
+| Token | Meaning | Example |
+|---|---|---|
+| `yyyy` | year, 4 digits | `2026` |
+| `yy` | year, 2 digits | `26` |
+| `MM` | month with leading zero | `04` |
+| `M` | month without leading zero | `4` |
+| `dd` | day with leading zero | `22` |
+| `d` | day without leading zero | `22` |
+| `hh` | hour with leading zero | `21` |
+| `h` | hour without leading zero | `21` |
+| `mm` | minute with leading zero | `07` |
+| `m` | minute without leading zero | `7` |
+| `ss` | second with leading zero | `05` |
+| `s` | second without leading zero | `5` |
 
-Example:
+Examples:
+
+```text
+%date:yyyy-MM-dd%
+-> 2026-04-22
+
+%date:yyyy-MM-dd_hh-mm%
+-> 2026-04-22_21-22
+```
+
+### `%strftime:...%`
+
+| Token | Meaning | Example |
+|---|---|---|
+| `%Y` | year, 4 digits | `2026` |
+| `%y` | year, 2 digits | `26` |
+| `%m` | month with leading zero | `04` |
+| `%d` | day with leading zero | `22` |
+| `%H` | hour with leading zero | `21` |
+| `%M` | minute with leading zero | `22` |
+| `%S` | second with leading zero | `05` |
+| `%f` | microseconds | `123456` |
+| `%%` | literal percent sign | `%` |
+
+Examples:
 
 ```text
 %strftime:%Y-%m-%d_%H-%M-%S%
+-> 2026-04-22_21-22-05
+
+%strftime:%Y%m%d_%H%M%S%
+-> 20260422_212205
 ```
-
-This subset is intentionally small so behavior stays consistent across platforms.
-
-## Collision Modes
-
-- `increment`: appends `-2`, `-3`, and so on
-- `overwrite`: replaces an existing file
-- `error`: raises an error if the path already exists
-- `seconds`: retries with a timestamp that includes seconds
-
-## In-Node Help
-
-`Save Image Clean` also exposes inline help in ComfyUI itself.
-
-The node description and field tooltips explain:
-
-- legacy mode versus template mode
-- the difference between `ACTIVE_*`, `*_SHORT`, and `*_FOLDER`
-- the purpose of `MODEL_DISPLAY`, `CLIP_DISPLAY`, `MODEL_SELECTED`, and `CLIP_SELECTED`
-- how `model_folder`, `clip_folder`, and `subfolder` affect the final path
-- which placeholder styles are supported in `path_template`
-- the difference between `%date:...%` and `%strftime:...%`
-
-The package also includes markdown-based node docs so the ComfyUI `Info` tab can show fuller help than the default generated table.
-
-## Loader Detection Notes
-
-Template mode traverses the upstream `prompt` graph from the current save node.
-
-It currently favors:
-
-- dedicated UNET loaders such as `UNETLoader`, `UnetLoaderGGUF`, and `Load Diffusion Model` style nodes
-- dedicated CLIP or text encoder loaders such as `CLIPLoader`, `DualCLIPLoader`, `TripleCLIPLoader`, `QuadrupleCLIPLoader`, and `TextEncoderLoader` style nodes
-- checkpoint loaders such as `CheckpointLoaderSimple`, `ImageOnlyCheckpointLoader`, and `unCLIPCheckpointLoader`
-- custom loader nodes that use similar class names and input names for diffusion model or text encoder selection
-
-If no loader name is found, the node falls back to the manual folder inputs.

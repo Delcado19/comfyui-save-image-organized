@@ -16,9 +16,9 @@ Before opening a pull request, verify at least the following:
 
 1. ComfyUI starts without import errors.
 2. `Save Image Clean` appears in the node list.
-3. Legacy mode still saves to `<subfolder>/<model_folder>/<clip_folder>/<timestamp>.png`.
-4. Template mode resolves placeholders such as `%ACTIVE_UNET%` and `%date:yyyy-MM-dd_hh-mm%`.
-5. Template mode resolves `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.
+3. The default save layout resolves to `<top_folder>/<model_name>/<text_encoder_name>/<filename>.png` when `Save Layout` uses its default value.
+4. Custom save layouts resolve placeholders such as `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, `%FILENAME%`, and `%date:yyyy-MM-dd_hh-mm%`.
+5. Custom save layouts resolve `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.
 6. Saved PNG files still contain prompt metadata.
 
 ## Coding Guidelines

@@ -35,9 +35,26 @@ DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
 QUANT_SUFFIX_RE = re.compile(
     r"(?i)^(?P<base>.*?)(?:[ ._-]+)?(?P<quant>"
-    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|F16"
+    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|F16"
     r")$"
 )
+DISPLAY_TAG_ABBREVIATIONS = {
+    "abliterated": "[Ablt]",
+    "instruct": "[Inst]",
+    "heretic": "[Her]",
+    "uncensored": "[Unc]",
+    "decensored": "[Dec]",
+    "thinking": "[Think]",
+    "reasoning": "[Rsn]",
+    "coder": "[Cod]",
+    "creative": "[Crtv]",
+    "roleplay": "[RP]",
+    "roleplaying": "[RP]",
+    "vision": "[Vis]",
+    "preview": "[Prev]",
+    "turbo": "[Tbo]",
+}
+DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq", "zimage"}
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
@@ -52,8 +69,19 @@ CLIP_EXTRACTION_PREFIX_KEYS = ("clip_name", "text_encoder_name", "encoder_name")
 CHECKPOINT_DETECTION_EXACT_KEYS = ("ckpt_name", "checkpoint_name", "model_name", "name")
 CHECKPOINT_DETECTION_PREFIX_KEYS = ("ckpt_name", "checkpoint_name")
 
-MODEL_SOURCE_OPTIONS = ["MODEL_FOLDER", "ACTIVE_UNET", "MODEL_SHORT", "MODEL_DISPLAY", "CUSTOM"]
-CLIP_SOURCE_OPTIONS = ["CLIP_FOLDER", "ACTIVE_CLIP", "CLIP_SHORT", "CLIP_DISPLAY", "CUSTOM"]
+MODEL_SOURCE_LABEL_TO_KEY = {
+    "Friendly": "FRIENDLY_MODEL_NAME",
+    "Exact": "EXACT_MODEL_NAME",
+    "Custom": "CUSTOM",
+}
+CLIP_SOURCE_LABEL_TO_KEY = {
+    "Friendly": "FRIENDLY_TEXT_ENCODER_NAME",
+    "Exact": "EXACT_TEXT_ENCODER_NAME",
+    "Custom": "CUSTOM",
+}
+MODEL_SOURCE_OPTIONS = list(MODEL_SOURCE_LABEL_TO_KEY.keys())
+CLIP_SOURCE_OPTIONS = list(CLIP_SOURCE_LABEL_TO_KEY.keys())
+DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
 
 
 def _sanitize_path_component(value: str) -> str:
@@ -112,7 +140,8 @@ def _format_quant_display(value: str) -> str | None:
         "Q5_K_M": "[5K-M]",
         "Q5_K_S": "[5K-S]",
         "Q6_K": "[6K]",
-        "Q8_0": "[8F]",
+        "Q8_0": "[q8]",
+        "Q8": "[q8]",
         "FP8_E4M3FN": "[FP8-E4M3FN]",
         "FP8_E5M2": "[FP8-E5M2]",
         "BF16": "[BF16]",
@@ -125,7 +154,49 @@ def _format_quant_display(value: str) -> str | None:
     if match:
         return f"[IQ{match.group(1)}-{match.group(2)}]"
 
+    plain_quant = re.fullmatch(r"Q(\d+)", normalized)
+    if plain_quant:
+        return f"[q{plain_quant.group(1)}]"
+
     return None
+
+
+def _join_display_parts(parts: list[str]) -> str:
+    result = ""
+    for part in parts:
+        if not part:
+            continue
+        if not result:
+            result = part
+            continue
+        if result.endswith("]") and part.startswith("["):
+            result += part
+        else:
+            result += f" {part}"
+    return result.strip()
+
+
+def _normalize_version_token(value: str) -> str | None:
+    match = re.fullmatch(r"(?i)v(\d+(?:\.\d+)*)", value.strip())
+    if not match:
+        return None
+    return f"V{match.group(1)}"
+
+
+def _extract_tag_and_version(value: str) -> tuple[str | None, str | None]:
+    lowered = value.lower()
+    for word in sorted(DISPLAY_TAG_ABBREVIATIONS, key=len, reverse=True):
+        if lowered == word:
+            return DISPLAY_TAG_ABBREVIATIONS[word], None
+
+        if not lowered.startswith(word):
+            continue
+
+        version = _normalize_version_token(value[len(word) :])
+        if version:
+            return DISPLAY_TAG_ABBREVIATIONS[word], version
+
+    return None, None
 
 
 def _humanize_display_name(value: str) -> str:
@@ -141,12 +212,36 @@ def _humanize_display_name(value: str) -> str:
     if tag_match:
         base_value = tag_match.group(1)
 
+    base_value = re.sub(r"(?i)\bz[\s._-]*image\b", " ", base_value)
     base_value = DISPLAY_DOT_RE.sub(" ", base_value)
     base_value = base_value.replace("_", " ").replace("-", " ")
-    base_value = re.sub(r"\s+", " ", base_value).strip() or "unnamed"
+    base_parts = [part for part in re.sub(r"\s+", " ", base_value).strip().split(" ") if part]
+    plain_parts = []
+    version_parts = []
+    tag_parts = []
+    for part in base_parts:
+        lowered = part.lower()
+        if lowered in DISPLAY_DROP_WORDS:
+            continue
+
+        version = _normalize_version_token(part)
+        if version:
+            version_parts.append(version)
+            continue
+
+        tag, attached_version = _extract_tag_and_version(part)
+        if tag:
+            if attached_version:
+                version_parts.append(attached_version)
+            tag_parts.append(tag)
+            continue
+
+        plain_parts.append(part)
+
+    base_value = _join_display_parts(plain_parts + version_parts + tag_parts) or "unnamed"
 
     if quant_display:
-        return f"{base_value} {quant_display}"
+        return _join_display_parts([base_value, quant_display])
     return base_value
 
 
@@ -231,10 +326,20 @@ def _replace_strftime_tokens(template: str, now: datetime) -> str:
             raise ValueError("Unterminated %strftime:...% placeholder in path template.")
 
 
-def _resolve_selected_variable(source: str, custom_value: str, variables: dict[str, str], *, fallback: str) -> str:
-    if source == "CUSTOM":
-        return custom_value.strip() or "unnamed"
-    return variables.get(source, variables.get(fallback, "unnamed")) or "unnamed"
+def _resolve_selected_variable(source: str, variables: dict[str, str], *, kind: str) -> str:
+    if kind == "model":
+        source_key = MODEL_SOURCE_LABEL_TO_KEY.get(source, "FRIENDLY_MODEL_NAME")
+        custom_key = "CUSTOM_MODEL_NAME"
+        default_key = "FRIENDLY_MODEL_NAME"
+    else:
+        source_key = CLIP_SOURCE_LABEL_TO_KEY.get(source, "FRIENDLY_TEXT_ENCODER_NAME")
+        custom_key = "CUSTOM_TEXT_ENCODER_NAME"
+        default_key = "FRIENDLY_TEXT_ENCODER_NAME"
+
+    if source_key == "CUSTOM":
+        return variables.get(custom_key, "") or "unnamed"
+
+    return variables.get(source_key, variables.get(default_key, "unnamed")) or "unnamed"
 
 
 def _normalize_identifier(value: str) -> str:
@@ -533,6 +638,12 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
     return rendered
 
 
+def _render_filename_value(pattern: str, now: datetime) -> str:
+    rendered = DATE_TOKEN_RE.sub(lambda match: _render_date_format(match.group(1), now), pattern or "")
+    rendered = _replace_strftime_tokens(rendered, now)
+    return _sanitize_path_component(rendered)
+
+
 class StripModelExtension:
     """Remove only the final known model extension from a loader/model name string."""
 
@@ -571,29 +682,18 @@ class StripModelExtension:
 
 
 class SaveImageClean:
-    """Save images using either an explicit template or the legacy folder fields."""
+    """Save images into a readable folder layout with template support."""
 
-    DEFAULT_TEMPLATE = "%ACTIVE_UNET%/%ACTIVE_CLIP%/%date:yyyy-MM-dd_hh-mm%"
+    DEFAULT_TEMPLATE = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%"
     DESCRIPTION = (
-        "Saves images with cleaner folder names and template-driven output paths.\n\n"
-        "Legacy mode:\n"
-        "- Leave path_template empty\n"
-        "- Output becomes <subfolder>/<model_folder>/<clip_folder>/<filename_datetime>.png\n\n"
-        "Template mode:\n"
-        "- Set path_template to build the full relative path\n"
-        "- Supports custom variables such as %ACTIVE_UNET%, %ACTIVE_CLIP%, %MODEL_SHORT%, "
-        "%CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, %MODEL_DISPLAY%, %CLIP_DISPLAY%, "
-        "%MODEL_SELECTED%, %CLIP_SELECTED%, and %SUBFOLDER%\n"
-        "- Supports ComfyUI-style %node.widget%, ComfyUI-style %date:...%, and a small "
-        "%strftime:...% subset\n\n"
-        "Variable meaning:\n"
-        "- ACTIVE_* = auto-detected active loader names without known file extensions\n"
-        "- *_SHORT = shortened versions of the detected active names\n"
-        "- *_FOLDER = manual field values without known file extensions\n\n"
-        "Example template:\n"
-        "%SUBFOLDER%/%MODEL_FOLDER%/%CLIP_FOLDER%/%date:yyyy-MM-dd_hh-mm%\n"
-        "Example result:\n"
-        "portraits/manual-model/manual-clip/2026-04-22_15-30.png"
+        "Save images into a clean, readable folder structure.\n\n"
+        "Quick start:\n"
+        "- Leave the default Save Layout alone for the simplest setup\n"
+        "- Change Model Name, Text Encoder Name, or Filename only if you want different output\n"
+        "- Clear Save Layout only if you want the built-in folder order instead of a custom layout\n\n"
+        "Default result example:\n"
+        "portraits/flux 2 klein 9b [5K-M]/Lockout Qwen3 4b V2 [Her][q8]/2026-04-22_15-30-10.png\n\n"
+        "Open the Info tab for copy-paste templates, variable explanations, and beginner examples."
     )
     SEARCH_ALIASES = [
         "save image",
@@ -615,25 +715,34 @@ class SaveImageClean:
         return {
             "required": {
                 "images": ("IMAGE",),
-                "model_folder": (
+                "path_template": (
                     "STRING",
                     {
                         "multiline": False,
-                        "default": "model",
+                        "default": cls.DEFAULT_TEMPLATE,
                         "tooltip": (
-                            "Manual model folder value. Used directly in legacy mode and as "
-                            "%MODEL_FOLDER% fallback in template mode."
+                            "Main save layout. The default layout is Top Folder / Model Name / "
+                            "Text Encoder Name / Filename. Clear it only if you want the built-in order."
                         ),
                     },
                 ),
-                "clip_folder": (
-                    "STRING",
+                "model_source": (
+                    MODEL_SOURCE_OPTIONS,
                     {
-                        "multiline": False,
-                        "default": "clip",
+                        "default": "Friendly",
                         "tooltip": (
-                            "Manual clip folder value. Used directly in legacy mode and as "
-                            "%CLIP_FOLDER% fallback in template mode."
+                            "Choose how the model name should look. "
+                            "Friendly is the easiest option for most people."
+                        ),
+                    },
+                ),
+                "clip_source": (
+                    CLIP_SOURCE_OPTIONS,
+                    {
+                        "default": "Friendly",
+                        "tooltip": (
+                            "Choose how the text encoder name should look. "
+                            "Friendly is the easiest option for most people."
                         ),
                     },
                 ),
@@ -641,10 +750,10 @@ class SaveImageClean:
                     "STRING",
                     {
                         "multiline": False,
-                        "default": "%Y-%m-%d_%H-%M",
+                        "default": DEFAULT_FILENAME_PATTERN,
                         "tooltip": (
-                            "Legacy-mode filename pattern using Python strftime, for example "
-                            "%Y-%m-%d_%H-%M."
+                            "Filename pattern. The default is year-month-day_hour-minute-second. "
+                            "Supports plain text, %date:...%, and the small %strftime:...% subset."
                         ),
                     },
                 ),
@@ -653,88 +762,42 @@ class SaveImageClean:
                     {
                         "default": "increment",
                         "tooltip": (
-                            "How to handle an existing target file: increment appends -2, "
-                            "overwrite replaces, error stops, seconds retries with a seconds timestamp."
+                            "What to do if the file already exists. "
+                            "Increment is the safest default."
                         ),
                     },
                 ),
+            },
+            "optional": {
                 "subfolder": (
                     "STRING",
                     {
                         "multiline": False,
                         "default": "",
                         "tooltip": (
-                            "Optional top-level folder. In legacy mode it becomes the first path segment. "
-                            "In template mode it is available as %SUBFOLDER%."
+                            "Optional extra top folder, such as portraits or test-renders."
                         ),
                     },
                 ),
-                "model_source": (
-                    MODEL_SOURCE_OPTIONS,
-                    {
-                        "default": "MODEL_FOLDER",
-                        "tooltip": (
-                            "Select which model-related variable should be used for the model segment "
-                            "in legacy mode and for %MODEL_SELECTED% in template mode."
-                        ),
-                    },
-                ),
-                "clip_source": (
-                    CLIP_SOURCE_OPTIONS,
-                    {
-                        "default": "CLIP_FOLDER",
-                        "tooltip": (
-                            "Select which clip-related variable should be used for the clip segment "
-                            "in legacy mode and for %CLIP_SELECTED% in template mode."
-                        ),
-                    },
-                ),
-            },
-            "optional": {
-                "base_output_folder": (
+                "model_folder": (
                     "STRING",
                     {
                         "multiline": False,
                         "default": "",
                         "tooltip": (
-                            "Optional absolute or custom base output folder. Leave empty to use "
-                            "ComfyUI's default output directory."
+                            "Custom model name. Used directly in Custom mode, and also as a "
+                            "fallback if auto-detection fails."
                         ),
                     },
                 ),
-                "path_template": (
+                "clip_folder": (
                     "STRING",
                     {
                         "multiline": False,
                         "default": "",
                         "tooltip": (
-                            "Full relative output path template. Supports %ACTIVE_UNET%, %ACTIVE_CLIP%, "
-                            "%MODEL_SHORT%, %CLIP_SHORT%, %MODEL_FOLDER%, %CLIP_FOLDER%, "
-                            "%MODEL_DISPLAY%, %CLIP_DISPLAY%, %MODEL_SELECTED%, %CLIP_SELECTED%, "
-                            "%SUBFOLDER%, ComfyUI-style %node.widget%, %date:yyyy-MM-dd_hh-mm%, and a limited "
-                            "%strftime:%Y-%m-%d_%H-%M-%S% subset."
-                        ),
-                    },
-                ),
-                "model_custom_value": (
-                    "STRING",
-                    {
-                        "multiline": False,
-                        "default": "",
-                        "tooltip": (
-                            "Custom model segment used when model_source is set to CUSTOM. "
-                            "Also available through %MODEL_SELECTED%."
-                        ),
-                    },
-                ),
-                "clip_custom_value": (
-                    "STRING",
-                    {
-                        "multiline": False,
-                        "default": "",
-                        "tooltip": (
-                            "Custom clip segment used when clip_source is set to CUSTOM. "
-                            "Also available through %CLIP_SELECTED%."
+                            "Custom text encoder name. Used directly in Custom mode, and also as "
+                            "a fallback if auto-detection fails."
                         ),
                     },
                 ),
@@ -766,11 +829,6 @@ class SaveImageClean:
 
         return metadata
 
-    def _resolve_output_root(self, base_output_folder: str | None) -> Path:
-        if base_output_folder and base_output_folder.strip():
-            return Path(base_output_folder.strip())
-        return Path(self.output_dir)
-
     def _build_template_variables(
         self,
         *,
@@ -778,44 +836,33 @@ class SaveImageClean:
         unique_id: Any,
         model_folder: str,
         clip_folder: str,
+        filename_datetime: str,
         subfolder: str,
         model_source: str,
         clip_source: str,
-        model_custom_value: str,
-        clip_custom_value: str,
+        now: datetime,
     ) -> dict[str, str]:
         active_names = _find_active_names(prompt=prompt, unique_id=unique_id)
 
         manual_model = _strip_known_extension(model_folder)
         manual_clip = _strip_known_extension(clip_folder)
         raw_active_unet = active_names["ACTIVE_UNET"] or manual_model or "model"
-        raw_active_clip = active_names["ACTIVE_CLIP"] or manual_clip or "clip"
+        raw_active_clip = active_names["ACTIVE_CLIP"] or manual_clip or "text-encoder"
         active_unet = _basename_without_known_extension(raw_active_unet) or manual_model or "model"
-        active_clip = _basename_without_known_extension(raw_active_clip) or manual_clip or "clip"
+        active_clip = _basename_without_known_extension(raw_active_clip) or manual_clip or "text-encoder"
 
         variables = {
-            "ACTIVE_UNET": active_unet,
-            "ACTIVE_CLIP": active_clip,
-            "MODEL_SHORT": _shorten_model_name(active_unet),
-            "CLIP_SHORT": _shorten_model_name(active_clip),
-            "MODEL_FOLDER": manual_model or active_unet,
-            "CLIP_FOLDER": manual_clip or active_clip,
-            "MODEL_DISPLAY": _humanize_display_name(raw_active_unet),
-            "CLIP_DISPLAY": _humanize_display_name(raw_active_clip),
-            "SUBFOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
+            "EXACT_MODEL_NAME": active_unet,
+            "EXACT_TEXT_ENCODER_NAME": active_clip,
+            "FRIENDLY_MODEL_NAME": _humanize_display_name(raw_active_unet),
+            "FRIENDLY_TEXT_ENCODER_NAME": _humanize_display_name(raw_active_clip),
+            "CUSTOM_MODEL_NAME": manual_model or "",
+            "CUSTOM_TEXT_ENCODER_NAME": manual_clip or "",
+            "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
+            "FILENAME": _render_filename_value(filename_datetime or DEFAULT_FILENAME_PATTERN, now),
         }
-        variables["MODEL_SELECTED"] = _resolve_selected_variable(
-            model_source,
-            model_custom_value,
-            variables,
-            fallback="MODEL_FOLDER",
-        )
-        variables["CLIP_SELECTED"] = _resolve_selected_variable(
-            clip_source,
-            clip_custom_value,
-            variables,
-            fallback="CLIP_FOLDER",
-        )
+        variables["MODEL_NAME"] = _resolve_selected_variable(model_source, variables, kind="model")
+        variables["TEXT_ENCODER_NAME"] = _resolve_selected_variable(clip_source, variables, kind="clip")
 
         return variables
 
@@ -829,8 +876,6 @@ class SaveImageClean:
         model_source: str,
         clip_source: str,
         path_template: str,
-        model_custom_value: str,
-        clip_custom_value: str,
         prompt: Any,
         unique_id: Any,
     ) -> tuple[Path, str]:
@@ -840,11 +885,11 @@ class SaveImageClean:
             unique_id=unique_id,
             model_folder=model_folder,
             clip_folder=clip_folder,
+            filename_datetime=filename_datetime,
             subfolder=subfolder,
             model_source=model_source,
             clip_source=clip_source,
-            model_custom_value=model_custom_value,
-            clip_custom_value=clip_custom_value,
+            now=now,
         )
 
         if path_template and path_template.strip():
@@ -852,10 +897,10 @@ class SaveImageClean:
             relative_path = _normalize_template_file_path(rendered)
             return relative_path, rendered
 
-        clean_model = _sanitize_path_component(variables["MODEL_SELECTED"])
-        clean_clip = _sanitize_path_component(variables["CLIP_SELECTED"])
+        clean_model = _sanitize_path_component(variables["MODEL_NAME"])
+        clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
         clean_subfolder = _sanitize_path_component(subfolder) if subfolder.strip() else ""
-        base_name = _sanitize_path_component(now.strftime(filename_datetime))
+        base_name = variables["FILENAME"]
 
         relative_path = Path(clean_model) / clean_clip / f"{base_name}.png"
         if clean_subfolder:
@@ -896,22 +941,19 @@ class SaveImageClean:
     def save_images(
         self,
         images,
-        model_folder: str,
-        clip_folder: str,
-        filename_datetime: str,
+        path_template: str,
         collision_mode: str,
-        subfolder: str,
         model_source: str,
         clip_source: str,
-        base_output_folder: str = "",
-        path_template: str = "",
-        model_custom_value: str = "",
-        clip_custom_value: str = "",
+        subfolder: str = "",
+        model_folder: str = "",
+        clip_folder: str = "",
+        filename_datetime: str = DEFAULT_FILENAME_PATTERN,
         prompt: Any = None,
         extra_pnginfo: Any = None,
         unique_id: Any = None,
     ):
-        output_root = self._resolve_output_root(base_output_folder)
+        output_root = Path(self.output_dir)
         metadata = self._build_metadata(prompt=prompt, extra_pnginfo=extra_pnginfo)
         relative_path, preview = self._resolve_relative_output_path(
             model_folder=model_folder,
@@ -921,8 +963,6 @@ class SaveImageClean:
             model_source=model_source,
             clip_source=clip_source,
             path_template=path_template,
-            model_custom_value=model_custom_value,
-            clip_custom_value=clip_custom_value,
             prompt=prompt,
             unique_id=unique_id,
         )
