@@ -27,7 +27,7 @@ Default filename:
 Example result:
 
 ```text
-portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4b zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
+portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
 ```
 
 If `Top Folder` is empty, no extra folder is added.
@@ -75,7 +75,7 @@ Options:
 
 Example for a detected text encoder `Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf`:
 
-- `Friendly` -> `Lockout Qwen3 4b zimage V2 [Her][Q8]`
+- `Friendly` -> `Lockout Qwen3 4B zimage V2 [Her][Q8]`
 - `Exact` -> `Lockout-Qwen3-4b-zimage-hereticV2-q8`
 - `Custom` -> uses `Custom Text Encoder Name`
 

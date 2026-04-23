@@ -29,7 +29,7 @@ const COMMON_EXTENSIONS = [
     ".onnx",
 ];
 const DATE_TOKEN_RE = /yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s/g;
-const QUANT_RE = /^(.*?)(?:[ ._-]+)?(Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|F16)$/i;
+const QUANT_RE = /^(.*?)(?:[ ._-]+)?(Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16)$/i;
 const DISPLAY_TAG_ABBREVIATIONS = {
     abliterated: "[Ablt]",
     instruct: "[Inst]",
@@ -76,6 +76,20 @@ const KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = [
     ["zimage", "Z-Image"],
     ["stablediffusion15", "Stable Diffusion 1.5"],
     ["sd15", "Stable Diffusion 1.5"],
+];
+const KNOWN_TEXT_ENCODER_DISPLAY_ALIASES = [
+    ["qwen34b", "Qwen3 4B"],
+    ["qwen257b", "Qwen2.5 7B"],
+    ["clipl", "CLIP-L"],
+    ["clipg", "CLIP-G"],
+    ["t5xxl", "T5 XXL"],
+    ["oldt5xxl", "Old T5 XXL"],
+    ["t5base", "T5 Base"],
+    ["mt5xl", "mT5 XL"],
+    ["umt5xxl", "UMT5 XXL"],
+    ["gemma22b", "Gemma 2 2B"],
+    ["llama", "Llama"],
+    ["bert", "BERT"],
 ];
 const DISPLAY_WORD_RE = /[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?/g;
 
@@ -167,6 +181,7 @@ function formatQuantDisplay(quant) {
         FP8_E4M3FN: "[FP8-E4M3FN]",
         FP8_E5M2: "[FP8-E5M2]",
         BF16: "[BF16]",
+        FP16: "[FP16]",
         F16: "[FP16]",
     };
     if (exactMap[normalized]) {
@@ -257,7 +272,7 @@ function humanizeDisplayNameGeneric(value, quantDisplay = "") {
     return quantDisplay ? joinDisplayParts([cleanBase, quantDisplay]) : cleanBase;
 }
 
-function matchKnownImageModelDisplay(value, quantDisplay = "") {
+function matchKnownDisplayAliases(value, aliases, quantDisplay = "") {
     const words = iterDisplayWords(value);
     if (!words.length) {
         return "";
@@ -270,7 +285,7 @@ function matchKnownImageModelDisplay(value, quantDisplay = "") {
         let compact = "";
         for (let endIndex = startIndex; endIndex < normalizedWords.length; endIndex += 1) {
             compact += normalizedWords[endIndex];
-            for (const [alias, display] of KNOWN_IMAGE_MODEL_DISPLAY_ALIASES) {
+            for (const [alias, display] of aliases) {
                 if (compact !== alias) {
                     continue;
                 }
@@ -363,9 +378,22 @@ function humanizeDisplayName(value, kind = "generic") {
     }
 
     if (kind === "model") {
-        const knownModelDisplay = matchKnownImageModelDisplay(baseValue, quantDisplay);
+        const knownModelDisplay = matchKnownDisplayAliases(
+            baseValue,
+            KNOWN_IMAGE_MODEL_DISPLAY_ALIASES,
+            quantDisplay,
+        );
         if (knownModelDisplay) {
             return knownModelDisplay;
+        }
+    } else if (kind === "text_encoder") {
+        const knownTextEncoderDisplay = matchKnownDisplayAliases(
+            baseValue,
+            KNOWN_TEXT_ENCODER_DISPLAY_ALIASES,
+            quantDisplay,
+        );
+        if (knownTextEncoderDisplay) {
+            return knownTextEncoderDisplay;
         }
     }
 

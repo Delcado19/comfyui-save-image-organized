@@ -35,7 +35,7 @@ DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
 QUANT_SUFFIX_RE = re.compile(
     r"(?i)^(?P<base>.*?)(?:[ ._-]+)?(?P<quant>"
-    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|F16"
+    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16"
     r")$"
 )
 DISPLAY_TAG_ABBREVIATIONS = {
@@ -84,6 +84,20 @@ KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = (
     ("zimage", "Z-Image"),
     ("stablediffusion15", "Stable Diffusion 1.5"),
     ("sd15", "Stable Diffusion 1.5"),
+)
+KNOWN_TEXT_ENCODER_DISPLAY_ALIASES = (
+    ("qwen34b", "Qwen3 4B"),
+    ("qwen257b", "Qwen2.5 7B"),
+    ("clipl", "CLIP-L"),
+    ("clipg", "CLIP-G"),
+    ("t5xxl", "T5 XXL"),
+    ("oldt5xxl", "Old T5 XXL"),
+    ("t5base", "T5 Base"),
+    ("mt5xl", "mT5 XL"),
+    ("umt5xxl", "UMT5 XXL"),
+    ("gemma22b", "Gemma 2 2B"),
+    ("llama", "Llama"),
+    ("bert", "BERT"),
 )
 DISPLAY_WORD_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?")
 
@@ -178,6 +192,7 @@ def _format_quant_display(value: str) -> str | None:
         "FP8_E4M3FN": "[FP8-E4M3FN]",
         "FP8_E5M2": "[FP8-E5M2]",
         "BF16": "[BF16]",
+        "FP16": "[FP16]",
         "F16": "[FP16]",
     }
     if normalized in exact_map:
@@ -272,7 +287,11 @@ def _humanize_display_name_generic(value: str, quant_display: str = "") -> str:
     return base_value
 
 
-def _match_known_image_model_display(value: str, quant_display: str = "") -> str | None:
+def _match_known_display_aliases(
+    value: str,
+    aliases: tuple[tuple[str, str], ...],
+    quant_display: str = "",
+) -> str | None:
     words = _iter_display_words(value)
     if not words:
         return None
@@ -284,7 +303,7 @@ def _match_known_image_model_display(value: str, quant_display: str = "") -> str
         compact = ""
         for end_index in range(start_index, len(normalized_words)):
             compact += normalized_words[end_index]
-            for alias, display in KNOWN_IMAGE_MODEL_DISPLAY_ALIASES:
+            for alias, display in aliases:
                 if compact != alias:
                     continue
                 candidate = (len(alias), start_index, end_index, display)
@@ -331,9 +350,21 @@ def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
         base_value = tag_match.group(1)
 
     if kind == "model":
-        known_model_display = _match_known_image_model_display(base_value, quant_display)
+        known_model_display = _match_known_display_aliases(
+            base_value,
+            KNOWN_IMAGE_MODEL_DISPLAY_ALIASES,
+            quant_display,
+        )
         if known_model_display:
             return known_model_display
+    elif kind == "text_encoder":
+        known_text_encoder_display = _match_known_display_aliases(
+            base_value,
+            KNOWN_TEXT_ENCODER_DISPLAY_ALIASES,
+            quant_display,
+        )
+        if known_text_encoder_display:
+            return known_text_encoder_display
 
     return _humanize_display_name_generic(base_value, quant_display)
 
