@@ -29,7 +29,8 @@ const COMMON_EXTENSIONS = [
     ".onnx",
 ];
 const DATE_TOKEN_RE = /yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s/g;
-const QUANT_RE = /^(.*?)(?:[ ._-]+)?(Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16)$/i;
+const SCALED_FP8_RE = /^(.*?)(?:[ ._-]+)?FP8[ ._-]*(E4M3FN|E5M2)[ ._-]*SCALED$/i;
+const QUANT_RE = /^(.*?)(?:[ ._-]+)?(Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16|FP32)$/i;
 const DISPLAY_TAG_ABBREVIATIONS = {
     abliterated: "[Ablt]",
     instruct: "[Inst]",
@@ -79,6 +80,7 @@ const KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = [
 ];
 const KNOWN_TEXT_ENCODER_DISPLAY_ALIASES = [
     ["qwen34b", "Qwen3 4B"],
+    ["qwen25vl", "Qwen2.5 VL"],
     ["qwen257b", "Qwen2.5 7B"],
     ["clipl", "CLIP-L"],
     ["clipg", "CLIP-G"],
@@ -171,6 +173,8 @@ function basenameWithoutKnownExtension(value) {
 function formatQuantDisplay(quant) {
     const normalized = String(quant || "").toUpperCase();
     const exactMap = {
+        Q3_K_M: "[3K-M]",
+        Q3_K_S: "[3K-S]",
         Q4_K_M: "[4K-M]",
         Q4_K_S: "[4K-S]",
         Q5_K_M: "[5K-M]",
@@ -180,6 +184,7 @@ function formatQuantDisplay(quant) {
         Q8: "[Q8]",
         FP8_E4M3FN: "[FP8-E4M3FN]",
         FP8_E5M2: "[FP8-E5M2]",
+        FP32: "[FP32]",
         BF16: "[BF16]",
         FP16: "[FP16]",
         F16: "[FP16]",
@@ -365,11 +370,33 @@ function extractTagAndVersion(value) {
 
 function humanizeDisplayName(value, kind = "generic") {
     let baseValue = basenameWithoutKnownExtension(value || "");
+    const extraParts = [];
     let quantDisplay = "";
-    const quantMatch = baseValue.match(QUANT_RE);
-    if (quantMatch) {
-        baseValue = quantMatch[1].replace(/[ ._-]+$/, "");
-        quantDisplay = formatQuantDisplay(quantMatch[2]);
+
+    const scaledFp8Match = baseValue.match(SCALED_FP8_RE);
+    if (scaledFp8Match) {
+        baseValue = scaledFp8Match[1].replace(/[ ._-]+$/, "");
+        extraParts.push("Scaled");
+        quantDisplay = `[FP8-${scaledFp8Match[2].toUpperCase()}]`;
+    } else {
+        const quantMatch = baseValue.match(QUANT_RE);
+        if (quantMatch) {
+            baseValue = quantMatch[1].replace(/[ ._-]+$/, "");
+            quantDisplay = formatQuantDisplay(quantMatch[2]);
+        }
+    }
+
+    const aliases = kind === "model"
+        ? KNOWN_IMAGE_MODEL_DISPLAY_ALIASES
+        : kind === "text_encoder"
+            ? KNOWN_TEXT_ENCODER_DISPLAY_ALIASES
+            : null;
+
+    if (aliases) {
+        const knownDisplay = matchKnownDisplayAliases(baseValue, aliases);
+        if (knownDisplay) {
+            return joinDisplayParts([knownDisplay, ...extraParts, quantDisplay]);
+        }
     }
 
     const tagMatch = baseValue.match(/^(?:[A-Z0-9]{2,8}[_-]+)(.+)$/);
@@ -377,27 +404,15 @@ function humanizeDisplayName(value, kind = "generic") {
         baseValue = tagMatch[1];
     }
 
-    if (kind === "model") {
-        const knownModelDisplay = matchKnownDisplayAliases(
-            baseValue,
-            KNOWN_IMAGE_MODEL_DISPLAY_ALIASES,
-            quantDisplay,
-        );
-        if (knownModelDisplay) {
-            return knownModelDisplay;
-        }
-    } else if (kind === "text_encoder") {
-        const knownTextEncoderDisplay = matchKnownDisplayAliases(
-            baseValue,
-            KNOWN_TEXT_ENCODER_DISPLAY_ALIASES,
-            quantDisplay,
-        );
-        if (knownTextEncoderDisplay) {
-            return knownTextEncoderDisplay;
+    if (aliases) {
+        const knownDisplay = matchKnownDisplayAliases(baseValue, aliases);
+        if (knownDisplay) {
+            return joinDisplayParts([knownDisplay, ...extraParts, quantDisplay]);
         }
     }
 
-    return humanizeDisplayNameGeneric(baseValue, quantDisplay);
+    const baseDisplay = humanizeDisplayNameGeneric(baseValue);
+    return joinDisplayParts([baseDisplay, ...extraParts, quantDisplay]);
 }
 
 function sanitizePathPart(value) {

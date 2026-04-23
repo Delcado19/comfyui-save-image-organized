@@ -33,9 +33,12 @@ STRFTIME_DIRECTIVE_RE = re.compile(r"%(?:[%YymdHMSf]|[A-Za-z])")
 IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
 DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
+SCALED_FP8_SUFFIX_RE = re.compile(
+    r"(?i)^(?P<base>.*?)(?:[ ._-]+)?FP8[ ._-]*(?P<format>E4M3FN|E5M2)[ ._-]*SCALED$"
+)
 QUANT_SUFFIX_RE = re.compile(
     r"(?i)^(?P<base>.*?)(?:[ ._-]+)?(?P<quant>"
-    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16"
+    r"Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16|FP32"
     r")$"
 )
 DISPLAY_TAG_ABBREVIATIONS = {
@@ -87,6 +90,7 @@ KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = (
 )
 KNOWN_TEXT_ENCODER_DISPLAY_ALIASES = (
     ("qwen34b", "Qwen3 4B"),
+    ("qwen25vl", "Qwen2.5 VL"),
     ("qwen257b", "Qwen2.5 7B"),
     ("clipl", "CLIP-L"),
     ("clipg", "CLIP-G"),
@@ -182,6 +186,8 @@ def _format_quant_display(value: str) -> str | None:
     normalized = value.upper()
 
     exact_map = {
+        "Q3_K_M": "[3K-M]",
+        "Q3_K_S": "[3K-S]",
         "Q4_K_M": "[4K-M]",
         "Q4_K_S": "[4K-S]",
         "Q5_K_M": "[5K-M]",
@@ -191,6 +197,7 @@ def _format_quant_display(value: str) -> str | None:
         "Q8": "[Q8]",
         "FP8_E4M3FN": "[FP8-E4M3FN]",
         "FP8_E5M2": "[FP8-E5M2]",
+        "FP32": "[FP32]",
         "BF16": "[BF16]",
         "FP16": "[FP16]",
         "F16": "[FP16]",
@@ -338,35 +345,42 @@ def _match_known_display_aliases(
 
 def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
     base_value = _basename_without_known_extension(value or "")
-    match = QUANT_SUFFIX_RE.match(base_value)
+    extra_parts: list[str] = []
 
-    quant_display = ""
-    if match:
-        base_value = match.group("base").rstrip(" ._-")
-        quant_display = _format_quant_display(match.group("quant")) or f"[{match.group('quant').upper()}]"
+    scaled_fp8_match = SCALED_FP8_SUFFIX_RE.match(base_value)
+    if scaled_fp8_match:
+        base_value = scaled_fp8_match.group("base").rstrip(" ._-")
+        extra_parts.append("Scaled")
+        quant_display = f"[FP8-{scaled_fp8_match.group('format').upper()}]"
+    else:
+        quant_display = ""
+        match = QUANT_SUFFIX_RE.match(base_value)
+        if match:
+            base_value = match.group("base").rstrip(" ._-")
+            quant_display = _format_quant_display(match.group("quant")) or f"[{match.group('quant').upper()}]"
+
+    aliases: tuple[tuple[str, str], ...] | None = None
+    if kind == "model":
+        aliases = KNOWN_IMAGE_MODEL_DISPLAY_ALIASES
+    elif kind == "text_encoder":
+        aliases = KNOWN_TEXT_ENCODER_DISPLAY_ALIASES
+
+    if aliases:
+        known_display = _match_known_display_aliases(base_value, aliases)
+        if known_display:
+            return _join_display_parts([known_display, *extra_parts, quant_display])
 
     tag_match = LEADING_TAG_RE.match(base_value)
     if tag_match:
         base_value = tag_match.group(1)
 
-    if kind == "model":
-        known_model_display = _match_known_display_aliases(
-            base_value,
-            KNOWN_IMAGE_MODEL_DISPLAY_ALIASES,
-            quant_display,
-        )
-        if known_model_display:
-            return known_model_display
-    elif kind == "text_encoder":
-        known_text_encoder_display = _match_known_display_aliases(
-            base_value,
-            KNOWN_TEXT_ENCODER_DISPLAY_ALIASES,
-            quant_display,
-        )
-        if known_text_encoder_display:
-            return known_text_encoder_display
+    if aliases:
+        known_display = _match_known_display_aliases(base_value, aliases)
+        if known_display:
+            return _join_display_parts([known_display, *extra_parts, quant_display])
 
-    return _humanize_display_name_generic(base_value, quant_display)
+    base_display = _humanize_display_name_generic(base_value)
+    return _join_display_parts([base_display, *extra_parts, quant_display])
 
 
 def _normalize_template_file_path(value: str) -> Path:
