@@ -253,6 +253,12 @@ The helper preview also shows `%node.widget%` placeholders as `{node.widget}` un
 
 After a successful run, the helper panel keeps a detection snapshot from the last execution. If you change layout-related widgets afterwards, the preview can still reuse those last detected model/text-encoder values until the next run refreshes them.
 
+The helper now shows an explicit status badge:
+
+- `Sample Preview` before the first real run
+- `Fresh Detection` right after a run with current detected values
+- `Last Detection Snapshot` after later edits, when the preview is still using the last known detection state
+
 If detection fails:
 
 - `Custom Model Name` is used as fallback

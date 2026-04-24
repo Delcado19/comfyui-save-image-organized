@@ -651,8 +651,34 @@ function createHelpPanelWidget(node) {
         "pointer-events:none",
     ].join(";");
 
+    const headerEl = document.createElement("div");
+    headerEl.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "gap:8px",
+    ].join(";");
+
     const titleEl = document.createElement("div");
     titleEl.style.cssText = "font-size:12px;font-weight:600;color:#f3f3f3;";
+
+    const statusEl = document.createElement("div");
+    statusEl.style.cssText = [
+        "display:inline-flex",
+        "align-items:center",
+        "min-height:20px",
+        "padding:0 8px",
+        "border-radius:999px",
+        "font-size:10px",
+        "font-weight:600",
+        "letter-spacing:0.03em",
+        "text-transform:uppercase",
+        "color:#cfcfcf",
+        "background:rgba(255,255,255,0.06)",
+        "border:1px solid rgba(255,255,255,0.08)",
+        "box-sizing:border-box",
+        "white-space:nowrap",
+    ].join(";");
 
     const noteEl = document.createElement("div");
     noteEl.style.cssText = [
@@ -710,7 +736,9 @@ function createHelpPanelWidget(node) {
         "word-break:break-word",
     ].join(";");
 
-    container.appendChild(titleEl);
+    headerEl.appendChild(titleEl);
+    headerEl.appendChild(statusEl);
+    container.appendChild(headerEl);
     container.appendChild(noteEl);
     container.appendChild(outputValueEl);
     container.appendChild(detailsTitleEl);
@@ -718,6 +746,7 @@ function createHelpPanelWidget(node) {
 
     node.__saveImageCleanHelpRefs = {
         titleEl,
+        statusEl,
         noteEl,
         outputValueEl,
         detailsTitleEl,
@@ -792,6 +821,34 @@ function buildDetectionSnapshotLines(snapshot) {
     ];
 }
 
+function setHelperStatus(refs, status) {
+    const states = {
+        sample: {
+            label: "Sample Preview",
+            color: "#b7b7b7",
+            background: "rgba(255,255,255,0.06)",
+            border: "rgba(255,255,255,0.08)",
+        },
+        fresh: {
+            label: "Fresh Detection",
+            color: "#8eb7ff",
+            background: "rgba(142,183,255,0.12)",
+            border: "rgba(142,183,255,0.28)",
+        },
+        stale: {
+            label: "Last Detection Snapshot",
+            color: "#f0be47",
+            background: "rgba(240,190,71,0.12)",
+            border: "rgba(240,190,71,0.28)",
+        },
+    };
+    const current = states[status] || states.sample;
+    refs.statusEl.textContent = current.label;
+    refs.statusEl.style.color = current.color;
+    refs.statusEl.style.background = current.background;
+    refs.statusEl.style.borderColor = current.border;
+}
+
 function updateHelp(node) {
     const refs = node.__saveImageCleanHelpRefs;
     if (!refs) {
@@ -810,11 +867,13 @@ function updateHelp(node) {
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
 
     if (lastRunInfo && !lastRunInfo.stale) {
+        setHelperStatus(refs, "fresh");
         refs.outputValueEl.textContent = lastRunInfo.path;
         refs.noteEl.textContent = "Last run used real detected values.";
         refs.noteEl.style.color = "#8eb7ff";
         refs.outputValueEl.style.borderColor = "rgba(142, 183, 255, 0.3)";
     } else if (useLegacyOrder) {
+        setHelperStatus(refs, detectionSnapshot ? "stale" : "sample");
         refs.outputValueEl.textContent = buildLegacyExample(node, variables);
         refs.noteEl.textContent = detectionSnapshot
             ? "Preview uses the last detected values from a previous run."
@@ -822,6 +881,7 @@ function updateHelp(node) {
         refs.noteEl.style.color = detectionSnapshot ? "#f0be47" : "#a9a9a9";
         refs.outputValueEl.style.borderColor = detectionSnapshot ? "rgba(240, 190, 71, 0.35)" : "transparent";
     } else {
+        setHelperStatus(refs, detectionSnapshot ? "stale" : "sample");
         const preview = buildLayoutExample(node, variables, now);
         const warning = preview.notes.find((note) => note.tone === "warning");
         const staleMessage = detectionSnapshot
