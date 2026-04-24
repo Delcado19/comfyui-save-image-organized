@@ -11,6 +11,7 @@ const LABELS = {
     filename_datetime: "Filename",
     collision_mode: "If File Exists",
     detection_info: "Detection Info",
+    export_workflow_metadata: "Export Workflow Metadata",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",
