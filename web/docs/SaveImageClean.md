@@ -138,6 +138,16 @@ Options:
 
 Use this when you want to confirm which workflow loader values were detected, whether custom fallback was used, and which final names were selected.
 
+### Export Workflow Metadata
+
+Controls whether saved PNGs embed prompt and workflow data like the normal ComfyUI `Save Image`
+node.
+
+Options:
+
+- `On`: saves prompt and workflow metadata into the PNG
+- `Off`: writes a clean PNG without embedded workflow metadata
+
 ## Variables You Will Actually Use
 
 ### Main variables
@@ -308,7 +318,8 @@ If detection fails:
 
 - `Custom Model Name` is used as fallback for the model side
 - `Custom Text Encoder Name` is used as fallback for the text encoder side
-### Workflow Metadata
+
+## Workflow Metadata
 
 `Export Workflow Metadata` controls whether PNG files store prompt and workflow metadata like the
 normal ComfyUI `Save Image` node.

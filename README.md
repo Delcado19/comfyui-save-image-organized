@@ -2,7 +2,7 @@
 
 ![ComfyUI Save Image Organized social preview](assets/github-social-preview.png)
 
-ComfyUI Save Image Organized is a ComfyUI custom node package for organized image saving, filename templates, model and text encoder naming, and PNG prompt metadata preservation.
+ComfyUI Save Image Organized is a ComfyUI custom node package for organized image saving, filename templates, model and text encoder naming, and PNG workflow metadata export.
 
 It is built for ComfyUI workflows that need readable output folders, predictable filenames, and easier organization across checkpoints, UNETs, CLIPs, GGUF text encoders, and template-driven save paths.
 
@@ -12,8 +12,8 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - readable folder names for models and text encoders
 - filename templates with `%date:...%`, `%strftime:...%`, and `%node.widget%`
 - automatic model and text encoder detection from the active workflow
-- preserved PNG workflow metadata for downstream browsing and archiving
-- optional switch to disable embedded workflow metadata export
+- PNG workflow metadata export that matches ComfyUI's normal `Save Image` behavior
+- optional switch to disable embedded workflow metadata export entirely
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
@@ -39,7 +39,7 @@ Documentation:
 - ComfyUI users who want better output organization without rewriting their workflow
 - FLUX, SDXL, checkpoint, UNET, CLIP, and GGUF-heavy setups with messy loader names
 - workflows that save many test renders and need searchable folders and filenames
-- users who want template-based output paths while keeping prompt metadata inside PNG files
+- users who want template-based output paths while keeping full workflow metadata inside PNG files
 
 ## Save Image Organized
 
@@ -127,6 +127,16 @@ Options:
 - `Verbose`
 
 Use it when you want to see which model and text encoder names were detected, whether custom fallback was used, and which visible output names were finally selected.
+
+### Workflow Metadata
+
+`Export Workflow Metadata` controls whether saved PNGs embed prompt and workflow data like the
+normal ComfyUI `Save Image` node.
+
+Options:
+
+- `On`: saves prompt and workflow metadata into the PNG
+- `Off`: writes a clean PNG without embedded workflow metadata
 
 ### Detailed Variables
 
