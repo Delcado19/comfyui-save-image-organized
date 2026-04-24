@@ -7,10 +7,9 @@ from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
 
+import folder_paths
 import numpy as np
 from PIL import Image, PngImagePlugin
-
-import folder_paths
 
 
 COMMON_EXTENSIONS = (

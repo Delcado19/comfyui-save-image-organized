@@ -21,7 +21,8 @@ Before opening a pull request, verify at least the following:
 4. Custom save layouts resolve placeholders such as `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, `%FILENAME%`, and `%date:yyyy-MM-dd_hh-mm%`.
 5. Custom save layouts resolve `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.
 6. Saved PNG files still contain prompt metadata.
-7. `python -m pytest` passes in a local development environment with the dev dependencies installed.
+7. `ruff check .` passes in a local development environment with the dev dependencies installed.
+8. `python -m pytest` passes in a local development environment with the dev dependencies installed.
 
 ## Coding Guidelines
 

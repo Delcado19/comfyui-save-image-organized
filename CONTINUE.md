@@ -7,8 +7,8 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- Branch status was clean on `main` on 2026-04-23.
-- The next visible project version should be `v0.2.0`.
+- The repository already has a `v0.2.0` tag.
+- `main` now contains additional unreleased work beyond `v0.2.0`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -42,6 +42,20 @@ The following items are the core of the `v0.2.0` release:
 - direct and fallback use of custom model/text encoder names
 - removal of the old `Output Root` concept
 
+## Current Unreleased Work
+
+The current post-`v0.2.0` work on `main` adds:
+
+- clearer template error messages for unknown variables, bad `%node.widget%` references, ambiguous node matches, and unsupported widget values
+- optional `Detection Info` runtime output with `Off`, `Summary`, and `Verbose` modes
+- broader regression coverage for save behavior, collision handling, checkpoint fallback, diffusion-model loader variants, and PNG prompt metadata preservation
+- helper-preview improvements that warn about unknown placeholders, show `%node.widget%` placeholders clearly before execution, and switch to the last real resolved path after a successful run
+- convenience template variables:
+  - `%WIDTH%`
+  - `%HEIGHT%`
+  - `%SEED%`
+  - `%BATCH_INDEX%`
+
 ## Known Gaps
 
 - The automated test suite is still small, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or node id.
@@ -55,39 +69,10 @@ The following items are the core of the `v0.2.0` release:
 2. Consider whether convenience-variable coverage should expand further, for example with `%BATCH_SIZE%` or similar workflow-oriented shortcuts.
 3. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
 4. Add broader manual validation across different custom-node ecosystems and loader families.
-5. Keep `CHANGELOG.md` moving from the fresh `Unreleased` section after the `v0.2.0` tag.
+5. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 
-## v0.2.0 Roadmap
+## Deferred Ideas
 
-### Must Have
-
-- Better template error UX:
-  - unknown variables should name the exact token
-  - invalid `%node.widget%` references should identify the missing node or widget
-  - ambiguous node matches should explain why resolution failed
-  - unsupported `%strftime:...%` directives should stay explicit and user-facing
-- Detection transparency:
-  - optional debug/info output for which model loader was detected
-  - optional debug/info output for which text encoder source was detected
-  - visible note when the node falls back to custom names
-- Automated tests for core behavior:
-  - friendly/exact/custom naming
-  - loader detection
-  - path template rendering
-  - `%date:...%` and `%strftime:...%`
-  - collision modes
-- More informative preview behavior:
-  - make it clearer when the preview uses sample values
-  - surface invalid template tokens earlier
-  - keep the preview close to the final resolved save path
-
-### Should Have
-
-- Direct convenience variables for common workflow values:
-  - `%WIDTH%`
-  - `%HEIGHT%`
-  - `%SEED%`
-  - `%BATCH_INDEX%`
 - Expanded collision strategies:
   - millisecond timestamp option
   - hash-based suffix option
@@ -96,9 +81,6 @@ The following items are the core of the `v0.2.0` release:
   - toggle PNG metadata writing
   - optional prompt-only metadata mode
   - clearer handling for extra PNG info
-
-### Nice To Have
-
 - Small text filters for templates:
   - `lower`
   - `upper`
@@ -106,7 +88,7 @@ The following items are the core of the `v0.2.0` release:
 - Optional additional export formats such as JPEG or WebP
 - Small UI diagnostics such as which loader path produced the active names
 
-### Not A v0.2.0 Priority
+## Out Of Scope For Now
 
 - a large template language
 - regex-heavy filename/path transformation features
