@@ -712,6 +712,66 @@ def test_save_images_verbose_detection_reports_missing_loader_on_current_branch(
     assert any("Text encoder output: Friendly -> text encoder" in line for line in result["ui"]["text"])
 
 
+def test_save_images_includes_structured_detection_snapshot_in_ui(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+                "seed": 321,
+            },
+        },
+        "3": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "Flux\\flux-2-klein-9b-Q5_K_M.gguf",
+            },
+        },
+        "4": {
+            "class_type": "CLIPLoaderGGUF",
+            "inputs": {
+                "clip_name": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+            },
+        },
+    }
+
+    result = saver.save_images(
+        images=[image],
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Exact",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    payload = result["ui"]["save_image_clean"][0]
+    assert payload["model_detection_source"] == "workflow"
+    assert payload["text_encoder_detection_source"] == "workflow"
+    assert payload["detected_model_name"] == "flux-2-klein-9b-Q5_K_M"
+    assert payload["detected_text_encoder_name"] == "Lockout-Qwen3-4b-zimage-hereticV2-q8"
+    assert payload["selected_model_source"] == "Friendly"
+    assert payload["selected_text_encoder_source"] == "Exact"
+    assert payload["selected_model_name"] == "FLUX.2 Klein 9B [5K-M]"
+    assert payload["selected_text_encoder_name"] == "Lockout-Qwen3-4b-zimage-hereticV2-q8"
+    assert payload["seed"] == "321"
+    assert payload["width"] == "2"
+    assert payload["height"] == "2"
+    assert payload["detection_lines"] == []
+
+
 def test_save_images_increments_across_multiple_images_and_creates_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

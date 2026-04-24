@@ -251,7 +251,7 @@ Before the first run, the inline example inside the node uses sample names so th
 
 The helper preview also shows `%node.widget%` placeholders as `{node.widget}` until the workflow runs, and it warns when the current template contains unknown placeholders.
 
-After a successful run, the helper panel switches to the real resolved save path from the last execution and can show the latest detection summary details.
+After a successful run, the helper panel keeps a detection snapshot from the last execution. If you change layout-related widgets afterwards, the preview can still reuse those last detected model/text-encoder values until the next run refreshes them.
 
 If detection fails:
 

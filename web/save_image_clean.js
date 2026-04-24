@@ -538,25 +538,33 @@ function resolveSelectedValue(sourceLabel, variables, kind) {
     return sanitizePathPart(variables[key] || "unnamed");
 }
 
-function buildVariables(node, now) {
+function buildVariables(node, now, detectionSnapshot = null) {
     const topFolder = getWidget(node, "subfolder")?.value || "";
     const customModelName = stripKnownExtension(getWidget(node, "model_folder")?.value || "");
     const customTextEncoderName = stripKnownExtension(getWidget(node, "clip_folder")?.value || "");
     const modelSource = getWidget(node, "model_source")?.value || "Friendly";
     const clipSource = getWidget(node, "clip_source")?.value || "Friendly";
 
+    const exactModelName = detectionSnapshot?.exact_model_name || basenameWithoutKnownExtension(SAMPLE_MODEL) || "model";
+    const exactTextEncoderName = detectionSnapshot?.exact_text_encoder_name
+        || basenameWithoutKnownExtension(SAMPLE_CLIP)
+        || "text-encoder";
+    const friendlyModelName = detectionSnapshot?.friendly_model_name || humanizeDisplayName(SAMPLE_MODEL, "model");
+    const friendlyTextEncoderName = detectionSnapshot?.friendly_text_encoder_name
+        || humanizeDisplayName(SAMPLE_CLIP, "text_encoder");
+
     const variables = {
         TOP_FOLDER: topFolder.trim() ? sanitizePathPart(topFolder) : "",
-        EXACT_MODEL_NAME: basenameWithoutKnownExtension(SAMPLE_MODEL) || "model",
-        EXACT_TEXT_ENCODER_NAME: basenameWithoutKnownExtension(SAMPLE_CLIP) || "text-encoder",
-        FRIENDLY_MODEL_NAME: humanizeDisplayName(SAMPLE_MODEL, "model"),
-        FRIENDLY_TEXT_ENCODER_NAME: humanizeDisplayName(SAMPLE_CLIP, "text_encoder"),
+        EXACT_MODEL_NAME: sanitizePathPart(exactModelName),
+        EXACT_TEXT_ENCODER_NAME: sanitizePathPart(exactTextEncoderName),
+        FRIENDLY_MODEL_NAME: sanitizePathPart(friendlyModelName),
+        FRIENDLY_TEXT_ENCODER_NAME: sanitizePathPart(friendlyTextEncoderName),
         CUSTOM_MODEL_NAME: customModelName,
         CUSTOM_TEXT_ENCODER_NAME: customTextEncoderName,
-        WIDTH: "1024",
-        HEIGHT: "1024",
-        SEED: "123456789",
-        BATCH_INDEX: "1",
+        WIDTH: String(detectionSnapshot?.width || "1024"),
+        HEIGHT: String(detectionSnapshot?.height || "1024"),
+        SEED: String(detectionSnapshot?.seed || "123456789"),
+        BATCH_INDEX: String(detectionSnapshot?.batch_index || "1"),
         FILENAME: buildFilenameValue(node, now),
     };
 
@@ -678,6 +686,17 @@ function createHelpPanelWidget(node) {
 
     const outputValueEl = createPreviewValue();
 
+    const detailsTitleEl = document.createElement("div");
+    detailsTitleEl.style.cssText = [
+        "display:none",
+        "font-size:10px",
+        "font-weight:600",
+        "letter-spacing:0.03em",
+        "text-transform:uppercase",
+        "color:#9d9d9d",
+        "margin-top:2px",
+    ].join(";");
+
     const detailsEl = document.createElement("div");
     detailsEl.style.cssText = [
         "display:none",
@@ -694,12 +713,14 @@ function createHelpPanelWidget(node) {
     container.appendChild(titleEl);
     container.appendChild(noteEl);
     container.appendChild(outputValueEl);
+    container.appendChild(detailsTitleEl);
     container.appendChild(detailsEl);
 
     node.__saveImageCleanHelpRefs = {
         titleEl,
         noteEl,
         outputValueEl,
+        detailsTitleEl,
         detailsEl,
     };
     node.__saveImageCleanHelpWidget = node.addDOMWidget("save_image_clean_help", "custom", container, {
@@ -717,19 +738,58 @@ function clearLastRunState(node) {
     delete node.__saveImageCleanLastRunInfo;
 }
 
+function markLastRunStateStale(node) {
+    if (node.__saveImageCleanLastRunInfo) {
+        node.__saveImageCleanLastRunInfo.stale = true;
+    }
+}
+
+function getStructuredUiPayload(message) {
+    const payload = Array.isArray(message?.save_image_clean)
+        ? message.save_image_clean[0]
+        : message?.save_image_clean;
+    return payload && typeof payload === "object" ? payload : null;
+}
+
 function setLastRunStateFromMessage(node, message) {
     const textItems = Array.isArray(message?.text)
         ? message.text.filter((item) => typeof item === "string" && item.trim())
         : [];
-    if (!textItems.length) {
+    const payload = getStructuredUiPayload(message);
+    if (!textItems.length && !payload) {
         clearLastRunState(node);
         return;
     }
 
     node.__saveImageCleanLastRunInfo = {
-        path: textItems[0],
-        details: textItems.slice(1),
+        path: payload?.preview || textItems[0] || "",
+        details: Array.isArray(payload?.detection_lines) ? payload.detection_lines : textItems.slice(1),
+        detection: payload,
+        stale: false,
     };
+}
+
+function formatDetectionSourceLabel(source, value) {
+    if (source === "workflow") {
+        return `workflow loader -> ${value || "(empty)"}`;
+    }
+    if (source === "custom_fallback") {
+        return `custom fallback -> ${value || "(empty)"}`;
+    }
+    return "default placeholder";
+}
+
+function buildDetectionSnapshotLines(snapshot) {
+    if (!snapshot) {
+        return [];
+    }
+
+    return [
+        `Model detection: ${formatDetectionSourceLabel(snapshot.model_detection_source, snapshot.detected_model_name)}`,
+        `Model output: ${snapshot.selected_model_source} -> ${snapshot.selected_model_name}`,
+        `Text encoder detection: ${formatDetectionSourceLabel(snapshot.text_encoder_detection_source, snapshot.detected_text_encoder_name)}`,
+        `Text encoder output: ${snapshot.selected_text_encoder_source} -> ${snapshot.selected_text_encoder_name}`,
+    ];
 }
 
 function updateHelp(node) {
@@ -740,35 +800,58 @@ function updateHelp(node) {
 
     const now = new Date();
     const saveLayout = String(getWidget(node, "path_template")?.value || "").trim();
-    const variables = buildVariables(node, now);
-    const useLegacyOrder = saveLayout === "";
     const defaultNote = "Preview uses sample detected names until the workflow runs.";
     const lastRunInfo = node.__saveImageCleanLastRunInfo;
+    const detectionSnapshot = lastRunInfo?.detection || null;
+    const useLegacyOrder = saveLayout === "";
+    const variables = buildVariables(node, now, detectionSnapshot);
 
     ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
 
-    if (lastRunInfo) {
+    if (lastRunInfo && !lastRunInfo.stale) {
         refs.outputValueEl.textContent = lastRunInfo.path;
         refs.noteEl.textContent = "Last run used real detected values.";
         refs.noteEl.style.color = "#8eb7ff";
         refs.outputValueEl.style.borderColor = "rgba(142, 183, 255, 0.3)";
-        refs.detailsEl.textContent = lastRunInfo.details.join("\n");
-        refs.detailsEl.style.display = lastRunInfo.details.length ? "block" : "none";
     } else if (useLegacyOrder) {
         refs.outputValueEl.textContent = buildLegacyExample(node, variables);
-        refs.noteEl.textContent = defaultNote;
-        refs.noteEl.style.color = "#a9a9a9";
-        refs.outputValueEl.style.borderColor = "transparent";
-        refs.detailsEl.textContent = "";
-        refs.detailsEl.style.display = "none";
+        refs.noteEl.textContent = detectionSnapshot
+            ? "Preview uses the last detected values from a previous run."
+            : defaultNote;
+        refs.noteEl.style.color = detectionSnapshot ? "#f0be47" : "#a9a9a9";
+        refs.outputValueEl.style.borderColor = detectionSnapshot ? "rgba(240, 190, 71, 0.35)" : "transparent";
     } else {
         const preview = buildLayoutExample(node, variables, now);
         const warning = preview.notes.find((note) => note.tone === "warning");
+        const staleMessage = detectionSnapshot
+            ? "Preview uses the last detected values from a previous run. Run again to refresh."
+            : "";
         refs.outputValueEl.textContent = preview.path;
-        refs.noteEl.textContent = warning?.message || preview.notes[0]?.message || defaultNote;
-        refs.noteEl.style.color = warning ? "#f0be47" : "#a9a9a9";
-        refs.outputValueEl.style.borderColor = warning ? "rgba(240, 190, 71, 0.35)" : "transparent";
+        refs.noteEl.textContent = warning?.message || staleMessage || preview.notes[0]?.message || defaultNote;
+        refs.noteEl.style.color = warning ? "#f0be47" : detectionSnapshot ? "#f0be47" : "#a9a9a9";
+        refs.outputValueEl.style.borderColor = warning
+            ? "rgba(240, 190, 71, 0.35)"
+            : detectionSnapshot
+                ? "rgba(240, 190, 71, 0.28)"
+                : "transparent";
+    }
+
+    const snapshotLines = buildDetectionSnapshotLines(detectionSnapshot);
+    const detailLines = snapshotLines.length ? snapshotLines : lastRunInfo?.details || [];
+    if (detailLines.length) {
+        refs.detailsTitleEl.textContent = lastRunInfo?.stale ? "Last Detection Snapshot" : "Detection Snapshot";
+        refs.detailsTitleEl.style.display = "block";
+        refs.detailsEl.textContent = detailLines.join("\n");
+        refs.detailsEl.style.display = "block";
+    } else if (useLegacyOrder) {
+        refs.detailsTitleEl.textContent = "";
+        refs.detailsTitleEl.style.display = "none";
+        refs.detailsEl.textContent = "";
+        refs.detailsEl.style.display = "none";
+    } else {
+        refs.detailsTitleEl.textContent = "";
+        refs.detailsTitleEl.style.display = "none";
         refs.detailsEl.textContent = "";
         refs.detailsEl.style.display = "none";
     }
@@ -803,18 +886,18 @@ function hookWidgetUpdates(node) {
         const originalCallback = widget.callback;
         widget.callback = function () {
             const result = originalCallback?.apply(this, arguments);
-            clearLastRunState(node);
+            markLastRunStateStale(node);
             updateHelp(node);
             return result;
         };
 
         if (widget.inputEl) {
             widget.inputEl.addEventListener("input", () => {
-                clearLastRunState(node);
+                markLastRunStateStale(node);
                 updateHelp(node);
             });
             widget.inputEl.addEventListener("change", () => {
-                clearLastRunState(node);
+                markLastRunStateStale(node);
                 updateHelp(node);
             });
         }

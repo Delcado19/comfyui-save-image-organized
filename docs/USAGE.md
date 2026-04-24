@@ -204,7 +204,7 @@ Examples:
 
 Before the first run, the helper preview shows these as `{node.widget}` because the real values only exist when the workflow executes.
 
-After a successful run, the helper panel switches to the real resolved save path from the last execution and can show the latest detection summary details.
+After a successful run, the helper panel keeps a detection snapshot from the last execution. If you change layout-related widgets afterwards, the preview can still reuse those last detected model/text-encoder values until the next run refreshes them.
 
 ## Date And Time
 

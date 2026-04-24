@@ -1453,6 +1453,36 @@ class SaveImageClean:
 
         return lines
 
+    def _build_detection_ui_payload(
+        self,
+        *,
+        preview: str,
+        detection_state: dict[str, str],
+        detection_lines: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "preview": preview,
+            "detection_lines": list(detection_lines),
+            "model_detection_source": detection_state["MODEL_DETECTION_SOURCE"],
+            "text_encoder_detection_source": detection_state["TEXT_ENCODER_DETECTION_SOURCE"],
+            "detected_model_name": detection_state["DETECTED_MODEL_NAME"],
+            "detected_text_encoder_name": detection_state["DETECTED_TEXT_ENCODER_NAME"],
+            "selected_model_source": detection_state["SELECTED_MODEL_SOURCE"],
+            "selected_text_encoder_source": detection_state["SELECTED_TEXT_ENCODER_SOURCE"],
+            "selected_model_name": detection_state["SELECTED_MODEL_NAME"],
+            "selected_text_encoder_name": detection_state["SELECTED_TEXT_ENCODER_NAME"],
+            "exact_model_name": detection_state["EXACT_MODEL_NAME"],
+            "exact_text_encoder_name": detection_state["EXACT_TEXT_ENCODER_NAME"],
+            "friendly_model_name": detection_state["FRIENDLY_MODEL_NAME"],
+            "friendly_text_encoder_name": detection_state["FRIENDLY_TEXT_ENCODER_NAME"],
+            "custom_model_name": detection_state["CUSTOM_MODEL_NAME"],
+            "custom_text_encoder_name": detection_state["CUSTOM_TEXT_ENCODER_NAME"],
+            "width": detection_state["WIDTH"],
+            "height": detection_state["HEIGHT"],
+            "seed": detection_state["SEED"],
+            "batch_index": detection_state["BATCH_INDEX"],
+        }
+
     def _resolve_relative_output_path(
         self,
         *,
@@ -1469,7 +1499,7 @@ class SaveImageClean:
         path_template: str,
         prompt: Any,
         unique_id: Any,
-    ) -> tuple[Path, str, list[str]]:
+    ) -> tuple[Path, str, list[str], dict[str, str]]:
         now = datetime.now()
         variables, detection_state = self._build_template_variables(
             prompt=prompt,
@@ -1490,7 +1520,7 @@ class SaveImageClean:
         if path_template and path_template.strip():
             rendered = _render_path_template(path_template.strip(), variables, now, prompt)
             relative_path = _normalize_template_file_path(rendered)
-            return relative_path, rendered, detection_lines
+            return relative_path, rendered, detection_lines, detection_state
 
         clean_model = _sanitize_path_component(variables["MODEL_NAME"])
         clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
@@ -1501,7 +1531,7 @@ class SaveImageClean:
         if clean_subfolder:
             relative_path = Path(clean_subfolder) / relative_path
         preview = str(relative_path.with_suffix(""))
-        return relative_path, preview, detection_lines
+        return relative_path, preview, detection_lines, detection_state
 
     def _resolve_target_path(
         self,
@@ -1559,10 +1589,11 @@ class SaveImageClean:
         saved = []
         preview = ""
         detection_lines: list[str] = []
+        detection_ui_payload: dict[str, Any] | None = None
         for batch_index, image in enumerate(images, start=1):
             array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             image_height, image_width = array.shape[:2]
-            relative_path, current_preview, current_detection_lines = self._resolve_relative_output_path(
+            relative_path, current_preview, current_detection_lines, current_detection_state = self._resolve_relative_output_path(
                 model_folder=model_folder,
                 clip_folder=clip_folder,
                 filename_datetime=filename_datetime,
@@ -1580,6 +1611,11 @@ class SaveImageClean:
             if not preview:
                 preview = current_preview
                 detection_lines = current_detection_lines
+                detection_ui_payload = self._build_detection_ui_payload(
+                    preview=current_preview,
+                    detection_state=current_detection_state,
+                    detection_lines=current_detection_lines,
+                )
 
             target_path = self._resolve_target_path(
                 output_root=output_root,
@@ -1598,7 +1634,10 @@ class SaveImageClean:
                 }
             )
 
-        return {"ui": {"images": saved, "text": [preview, *detection_lines]}}
+        ui = {"images": saved, "text": [preview, *detection_lines]}
+        if detection_ui_payload is not None:
+            ui["save_image_clean"] = [detection_ui_payload]
+        return {"ui": ui}
 
 
 NODE_CLASS_MAPPINGS = {
