@@ -504,6 +504,89 @@ def _extract_connected_node_id(value: Any) -> str | None:
     return None
 
 
+def _extract_bridge_labels(node: dict[str, Any]) -> list[str]:
+    labels = []
+    seen = set()
+
+    def add_candidate(value: Any):
+        if not isinstance(value, str):
+            return
+
+        cleaned = value.strip()
+        if not cleaned:
+            return
+
+        for prefix in ("get_", "set_"):
+            if cleaned.casefold().startswith(prefix):
+                cleaned = cleaned[len(prefix) :].strip()
+                break
+
+        normalized = _normalize_identifier(cleaned)
+        if not normalized or normalized in seen:
+            return
+
+        seen.add(normalized)
+        labels.append(cleaned)
+
+    inputs = node.get("inputs", {})
+    if isinstance(inputs, dict):
+        for value in inputs.values():
+            add_candidate(value)
+
+    add_candidate(node.get("title"))
+    add_candidate(node.get("name"))
+
+    for container_key in ("_meta", "meta", "properties", "extra"):
+        container = node.get(container_key)
+        if not isinstance(container, dict):
+            continue
+
+        for key in ("title", "name", "previousName", "previous_name"):
+            add_candidate(container.get(key))
+
+    return labels
+
+
+def _iter_getnode_bridge_parents(prompt: Any, node: dict[str, Any]) -> list[str]:
+    if not isinstance(prompt, dict):
+        return []
+
+    class_name = _normalize_identifier(str(node.get("class_type", "")))
+    if class_name != "getnode":
+        return []
+
+    target_labels = {_normalize_identifier(label) for label in _extract_bridge_labels(node)}
+    if not target_labels:
+        return []
+
+    parent_ids = []
+    seen = set()
+
+    for candidate_id, candidate in prompt.items():
+        if not isinstance(candidate, dict):
+            continue
+
+        candidate_class = _normalize_identifier(str(candidate.get("class_type", "")))
+        if candidate_class != "setnode":
+            continue
+
+        candidate_labels = {_normalize_identifier(label) for label in _extract_bridge_labels(candidate)}
+        if not target_labels.intersection(candidate_labels):
+            continue
+
+        candidate_inputs = candidate.get("inputs", {})
+        if not isinstance(candidate_inputs, dict):
+            continue
+
+        for value in candidate_inputs.values():
+            parent_id = _extract_connected_node_id(value)
+            if parent_id is not None and parent_id not in seen:
+                seen.add(parent_id)
+                parent_ids.append(parent_id)
+
+    return parent_ids
+
+
 def _walk_prompt_upstream(prompt: Any, start_node_id: Any):
     if not isinstance(prompt, dict):
         return
@@ -528,6 +611,9 @@ def _walk_prompt_upstream(prompt: Any, start_node_id: Any):
             parent_id = _extract_connected_node_id(input_value)
             if parent_id is not None:
                 queue.append((parent_id, distance + 1))
+
+        for parent_id in _iter_getnode_bridge_parents(prompt, node):
+            queue.append((parent_id, distance + 1))
 
 
 def _extract_string_inputs(inputs: dict[str, Any], *, exact: tuple[str, ...], prefix: tuple[str, ...] = ()) -> list[str]:

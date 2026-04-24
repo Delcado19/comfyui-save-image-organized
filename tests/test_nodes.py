@@ -270,6 +270,67 @@ def test_find_active_names_ignores_cross_contaminating_generic_loader_fields():
     }
 
 
+def test_find_active_names_resolves_getnode_setnode_bridges():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+            },
+        },
+        "3": {
+            "class_type": "GetNode",
+            "title": "Get_MODEL",
+            "inputs": {},
+        },
+        "4": {
+            "class_type": "GetNode",
+            "title": "Get_CLIP",
+            "inputs": {},
+        },
+        "5": {
+            "class_type": "SetNode",
+            "title": "Set_MODEL",
+            "inputs": {
+                "MODEL": ["6", 0],
+            },
+        },
+        "6": {
+            "class_type": "UnetLoaderGGUF",
+            "inputs": {
+                "unet_name": "z_image-Q5_K_S.gguf",
+            },
+        },
+        "7": {
+            "class_type": "SetNode",
+            "title": "Set_CLIP",
+            "inputs": {
+                "CLIP": ["8", 0],
+            },
+        },
+        "8": {
+            "class_type": "CLIPLoaderGGUF",
+            "inputs": {
+                "clip_name": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+            },
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "z_image-Q5_K_S.gguf",
+        "ACTIVE_CLIP": "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 
