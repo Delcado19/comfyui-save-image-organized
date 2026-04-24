@@ -231,6 +231,45 @@ def test_find_active_names_detects_diffusion_model_loader_variants():
     }
 
 
+def test_find_active_names_ignores_cross_contaminating_generic_loader_fields():
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+            },
+        },
+        "3": {
+            "class_type": "LoadDiffusionModelGGUF",
+            "inputs": {
+                "name": "umt5xxl-fp16.gguf",
+                "diffusion_model_name": "qwen-image-edit-2509-Q8_0.gguf",
+            },
+        },
+        "4": {
+            "class_type": "TextEncoderLoader",
+            "inputs": {
+                "model_name": "qwen-image-edit-2509-Q8_0.gguf",
+                "text_encoder_name": "umt5xxl-fp16.gguf",
+            },
+        },
+    }
+
+    active_names = nodes._find_active_names(prompt, "1")
+
+    assert active_names == {
+        "ACTIVE_UNET": "qwen-image-edit-2509-Q8_0.gguf",
+        "ACTIVE_CLIP": "umt5xxl-fp16.gguf",
+    }
+
+
 def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
     saver = nodes.SaveImageClean()
 

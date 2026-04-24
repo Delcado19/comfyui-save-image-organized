@@ -106,12 +106,12 @@ DISPLAY_WORD_RE = re.compile(r"[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z
 
 UNET_DETECTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_DETECTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
-UNET_EXTRACTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name", "model_name", "ckpt_name", "name")
+UNET_EXTRACTION_EXACT_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 UNET_EXTRACTION_PREFIX_KEYS = ("unet_name", "diffusion_model_name", "diffusion_name")
 
 CLIP_DETECTION_EXACT_KEYS = ("clip_name", "text_encoder_name", "text_encoder", "encoder_name")
 CLIP_DETECTION_PREFIX_KEYS = ("clip_name", "text_encoder_name", "encoder_name")
-CLIP_EXTRACTION_EXACT_KEYS = ("clip_name", "text_encoder_name", "text_encoder", "encoder_name", "model_name", "ckpt_name", "name")
+CLIP_EXTRACTION_EXACT_KEYS = ("clip_name", "text_encoder_name", "text_encoder", "encoder_name")
 CLIP_EXTRACTION_PREFIX_KEYS = ("clip_name", "text_encoder_name", "encoder_name")
 
 CHECKPOINT_DETECTION_EXACT_KEYS = ("ckpt_name", "checkpoint_name", "model_name", "name")
