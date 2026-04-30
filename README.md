@@ -113,8 +113,9 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%HEIGHT%`
 - `%SEED%`
 - `%BATCH_INDEX%`
+- `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves. `%BATCH_SIZE%` is the total number of images in the current save batch.
 
 ### Detection Info
 
@@ -263,6 +264,14 @@ If detection fails:
 
 - `Custom Model Name` is used as fallback
 - `Custom Text Encoder Name` is used as fallback
+
+### Troubleshooting Detection And Preview
+
+If the node still shows default names such as `model` or `text-encoder`, the current save branch probably does not expose a supported upstream loader path. This can happen when the save node only receives an image from postprocessing nodes, when the active switch branch bypasses the loader path, or when a custom loader stores model names in an unsupported widget shape.
+
+If the helper badge says `Last Detection Snapshot`, the preview is using the last known run values after a layout-related edit. Queue the workflow again to refresh the detected names and resolved path.
+
+If the ComfyUI browser still shows old helper behavior after updating the files, hard-refresh the browser page and restart ComfyUI if needed. Frontend JavaScript can be cached by the browser.
 
 ## Strip Model Extension
 

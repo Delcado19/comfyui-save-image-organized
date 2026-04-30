@@ -887,7 +887,7 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
 
     result = saver.save_images(
         images=images,
-        path_template="%WIDTH%x%HEIGHT%/%SEED%/%BATCH_INDEX%",
+        path_template="%WIDTH%x%HEIGHT%/%SEED%/%BATCH_INDEX%-of-%BATCH_SIZE%",
         collision_mode="increment",
         model_source="Friendly",
         clip_source="Friendly",
@@ -898,7 +898,7 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
     )
 
     saved_images = result["ui"]["images"]
-    assert [item["filename"] for item in saved_images] == ["1.png", "2.png"]
+    assert [item["filename"] for item in saved_images] == ["1-of-2.png", "2-of-2.png"]
     assert [item["subfolder"] for item in saved_images] == [r"4x3\321", r"4x3\321"]
-    assert (workspace_tmp_path / "4x3" / "321" / "1.png").exists()
-    assert (workspace_tmp_path / "4x3" / "321" / "2.png").exists()
+    assert (workspace_tmp_path / "4x3" / "321" / "1-of-2.png").exists()
+    assert (workspace_tmp_path / "4x3" / "321" / "2-of-2.png").exists()

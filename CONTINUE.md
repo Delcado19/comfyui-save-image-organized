@@ -66,6 +66,7 @@ The current post-`v0.2.0` work on `main` adds:
   - `%HEIGHT%`
   - `%SEED%`
   - `%BATCH_INDEX%`
+  - `%BATCH_SIZE%`
 - `Export Workflow Metadata` toggle that matches normal ComfyUI `Save Image` PNG metadata behavior
 - explicit `Primary only` design decision for multi-loader cases:
   - detection resolves to one active model name and one active text-encoder name
@@ -84,7 +85,7 @@ The current post-`v0.2.0` work on `main` adds:
 
 1. Add broader manual validation across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
 2. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
-3. Consider whether convenience-variable coverage should expand further, for example with `%BATCH_SIZE%` or similar workflow-oriented shortcuts.
+3. Consider whether convenience-variable coverage should expand further with additional workflow-oriented shortcuts.
 4. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
 5. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 

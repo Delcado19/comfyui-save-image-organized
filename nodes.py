@@ -1141,7 +1141,7 @@ class SaveImageClean:
         "- Leave Export Workflow Metadata on if you want PNG metadata like ComfyUI Save Image\n"
         "- Clear Save Layout only if you want the built-in folder order instead of a custom layout\n\n"
         "Default result example:\n"
-        "portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4b zimage V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
+        "portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
         "Open the Info tab for copy-paste templates, variable explanations, and beginner examples."
     )
     SEARCH_ALIASES = [
@@ -1323,6 +1323,7 @@ class SaveImageClean:
         image_width: int | None,
         image_height: int | None,
         batch_index: int,
+        batch_size: int,
         now: datetime,
     ) -> tuple[dict[str, str], dict[str, str]]:
         active_names = _find_active_names(prompt=prompt, unique_id=unique_id)
@@ -1361,6 +1362,7 @@ class SaveImageClean:
             "HEIGHT": height_value or "0",
             "SEED": seed_value or "",
             "BATCH_INDEX": str(batch_index),
+            "BATCH_SIZE": str(batch_size),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
             "FILENAME": _render_filename_value(filename_datetime or DEFAULT_FILENAME_PATTERN, now),
         }
@@ -1394,6 +1396,7 @@ class SaveImageClean:
             "HEIGHT": variables["HEIGHT"],
             "SEED": variables["SEED"],
             "BATCH_INDEX": variables["BATCH_INDEX"],
+            "BATCH_SIZE": variables["BATCH_SIZE"],
         }
 
         return variables, detection_state
@@ -1481,6 +1484,7 @@ class SaveImageClean:
             "height": detection_state["HEIGHT"],
             "seed": detection_state["SEED"],
             "batch_index": detection_state["BATCH_INDEX"],
+            "batch_size": detection_state["BATCH_SIZE"],
         }
 
     def _resolve_relative_output_path(
@@ -1496,6 +1500,7 @@ class SaveImageClean:
         image_width: int | None,
         image_height: int | None,
         batch_index: int,
+        batch_size: int,
         path_template: str,
         prompt: Any,
         unique_id: Any,
@@ -1513,6 +1518,7 @@ class SaveImageClean:
             image_width=image_width,
             image_height=image_height,
             batch_index=batch_index,
+            batch_size=batch_size,
             now=now,
         )
         detection_lines = self._build_detection_info_lines(detection_info, detection_state)
@@ -1590,6 +1596,7 @@ class SaveImageClean:
         preview = ""
         detection_lines: list[str] = []
         detection_ui_payload: dict[str, Any] | None = None
+        batch_size = len(images)
         for batch_index, image in enumerate(images, start=1):
             array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             image_height, image_width = array.shape[:2]
@@ -1604,6 +1611,7 @@ class SaveImageClean:
                 image_width=image_width,
                 image_height=image_height,
                 batch_index=batch_index,
+                batch_size=batch_size,
                 path_template=path_template,
                 prompt=prompt,
                 unique_id=unique_id,

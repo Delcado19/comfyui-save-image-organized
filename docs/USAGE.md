@@ -150,8 +150,9 @@ Options:
 - `%HEIGHT%`
 - `%SEED%`
 - `%BATCH_INDEX%`
+- `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
 
 ### Detailed
 
@@ -194,6 +195,12 @@ Options:
 %MODEL_NAME%/%Empty Latent Image.width%x%Empty Latent Image.height%/%FILENAME%
 ```
 
+### Include batch position and batch size
+
+```text
+%MODEL_NAME%/%BATCH_INDEX%-of-%BATCH_SIZE%/%FILENAME%
+```
+
 ## `%node.widget%`
 
 Examples:
@@ -211,6 +218,27 @@ The helper now shows an explicit status badge:
 - `Sample Preview` before the first real run
 - `Fresh Detection` right after a run with current detected values
 - `Last Detection Snapshot` after later edits, when the preview is still using the last known detection state
+
+## Troubleshooting Detection And Preview
+
+### The node shows `model` or `text-encoder`
+
+The save node could not find a supported upstream loader on the current image branch. Common causes:
+
+- the save node receives an image after a postprocessing-only chain
+- the active switch branch bypasses the loader path
+- a third-party loader stores the model or text encoder name in an unsupported widget shape
+- the workflow uses multiple loader paths and the active branch is not the one you expected
+
+Turn `Detection Info` to `Summary` or `Verbose` and queue the workflow again. If detection still fails, fill in `Custom Model Name` or `Custom Text Encoder Name`; those values are used as fallbacks.
+
+### The helper says `Last Detection Snapshot`
+
+The preview is reusing the last known detected names after a layout-related edit. Queue the workflow again to refresh the detected names, `%node.widget%` values, and resolved output path.
+
+### The browser still shows old preview behavior
+
+Hard-refresh the ComfyUI page after updating the custom node. If the old behavior stays visible, restart ComfyUI as well because frontend JavaScript can be cached.
 
 ## Date And Time
 

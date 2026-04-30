@@ -107,6 +107,7 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "HEIGHT",
     "SEED",
     "BATCH_INDEX",
+    "BATCH_SIZE",
     "FRIENDLY_MODEL_NAME",
     "EXACT_MODEL_NAME",
     "CUSTOM_MODEL_NAME",
@@ -565,6 +566,7 @@ function buildVariables(node, now, detectionSnapshot = null) {
         HEIGHT: String(detectionSnapshot?.height || "1024"),
         SEED: String(detectionSnapshot?.seed || "123456789"),
         BATCH_INDEX: String(detectionSnapshot?.batch_index || "1"),
+        BATCH_SIZE: String(detectionSnapshot?.batch_size || "1"),
         FILENAME: buildFilenameValue(node, now),
     };
 
@@ -919,7 +921,7 @@ function updateHelp(node) {
 
     const newSize = node.computeSize();
     newSize[0] = Math.max(newSize[0], node.size[0]);
-    newSize[1] = Math.max(newSize[1], 404);
+    newSize[1] = Math.max(newSize[1], node.size[1], 404);
     node.setSize?.(newSize);
     node.setDirtyCanvas?.(true, true);
 }

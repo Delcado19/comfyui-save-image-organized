@@ -11,8 +11,9 @@ All notable changes to this project will be documented in this file.
 - regression coverage for multi-image save output and preserved PNG prompt metadata
 - broader regression coverage for checkpoint loader fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or direct node id
 - GitHub Actions CI on Windows with `ruff` and `pytest`
-- convenience template variables `%WIDTH%`, `%HEIGHT%`, `%SEED%`, and `%BATCH_INDEX%`
+- convenience template variables `%WIDTH%`, `%HEIGHT%`, `%SEED%`, `%BATCH_INDEX%`, and `%BATCH_SIZE%`
 - optional `Export Workflow Metadata` switch for matching normal ComfyUI PNG metadata export or disabling it entirely
+- troubleshooting documentation for common detection and helper-preview states
 
 ### Changed
 
@@ -20,6 +21,10 @@ All notable changes to this project will be documented in this file.
 - the in-node helper preview now warns about unknown placeholders, shows `%node.widget%` values as `{node.widget}` before execution, and makes it clearer that detected names are sample values until the workflow runs
 - after execution, the helper preview now switches to the last real resolved save path and can show the latest detection details
 - PNG metadata export now matches ComfyUI's normal `Save Image` behavior by JSON-encoding prompt and workflow data
+
+### Fixed
+
+- preserve the user's manually resized node height when the helper preview refreshes, so the image preview area no longer collapses back to the minimum size
 
 ## [0.2.0] - 2026-04-23
 
