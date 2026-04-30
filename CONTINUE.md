@@ -7,8 +7,9 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- The repository already has a `v0.2.0` tag.
-- `main` now contains additional unreleased work beyond `v0.2.0`.
+- The repository has release tags through `v0.3.0`.
+- `main` currently points at the `v0.3.0` release commit.
+- There is no unreleased work on `main` at the time of this handoff.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -42,9 +43,9 @@ The following items are the core of the `v0.2.0` release:
 - direct and fallback use of custom model/text encoder names
 - removal of the old `Output Root` concept
 
-## Current Unreleased Work
+## Released In v0.3.0
 
-The current post-`v0.2.0` work on `main` adds:
+The following items are the core of the `v0.3.0` release:
 
 - clearer template error messages for unknown variables, bad `%node.widget%` references, ambiguous node matches, and unsupported widget values
 - optional `Detection Info` runtime output with `Off`, `Summary`, and `Verbose` modes
@@ -136,14 +137,15 @@ The current post-`v0.2.0` work on `main` adds:
 
 ## Release Checklist
 
-- Review and trim the `Unreleased` section in `CHANGELOG.md`.
-- Decide release version for the current feature set.
-- Run a full manual workflow pass in ComfyUI with at least:
+- `v0.3.0` was tagged and published on GitHub.
+- `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
+- GitHub Actions CI passed for the release commit.
+- Before the next release, run a full manual workflow pass in ComfyUI with at least:
   - checkpoint-based workflow
   - UNET loader workflow
   - GGUF text encoder workflow
 - Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels.
-- Create release commit and tag.
+- Create the next release commit and tag.
 
 ## Notes
 
