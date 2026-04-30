@@ -8,8 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository has release tags through `v0.3.1`.
-- `main` is currently two commits past `v0.3.1`.
-- `CHANGELOG.md` has `Unreleased` entries for maintainer workflow-validation tooling and loader-source labels in detection summaries.
+- `main` is currently three commits past `v0.3.1`.
+- `CHANGELOG.md` has `Unreleased` entries for maintainer workflow-validation tooling, release-readiness tooling, and loader-source labels in detection summaries.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -21,6 +21,7 @@ This file is for continuation context, not end-user documentation.
   - `Filename`
 - The visible node rename to `Save Image Organized` is already implemented in code and reflected in docs.
 - Maintainer workflow validation is available via `python tools/validate_local_workflows.py`.
+- Release readiness checks are available via `python tools/check_release_ready.py`.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
 
 ## Released In v0.2.0
