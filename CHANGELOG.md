@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - maintainer workflow validator for scanning local ComfyUI workflow JSON files and reporting `Save Image Organized` model/text-encoder detection results
+- detection summaries and helper snapshots now include the upstream workflow loader node label when a model or text encoder name is detected
 
 ## [0.3.1] - 2026-04-30
 

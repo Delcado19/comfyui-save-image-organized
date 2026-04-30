@@ -138,6 +138,8 @@ Options:
 
 Use this when you want to confirm which workflow loader values were detected, whether custom fallback was used, and which final names were selected.
 
+When detection comes from the workflow, the output also includes the upstream loader node label, such as `UNETLoader (node id 3)`, so you can confirm which branch produced the selected name.
+
 If the current save node only sees a postprocessing branch and no sampler or loader upstream, Detection Info will report that no workflow loader was found on that save branch. In that case the node uses the default placeholders unless you provide custom names.
 
 If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced.

@@ -760,6 +760,8 @@ def test_save_images_includes_structured_detection_snapshot_in_ui(workspace_tmp_
     payload = result["ui"]["save_image_clean"][0]
     assert payload["model_detection_source"] == "workflow"
     assert payload["text_encoder_detection_source"] == "workflow"
+    assert payload["model_detection_label"] == "UNETLoader (node id 3)"
+    assert payload["text_encoder_detection_label"] == "CLIPLoaderGGUF (node id 4)"
     assert payload["detected_model_name"] == "flux-2-klein-9b-Q5_K_M"
     assert payload["detected_text_encoder_name"] == "Lockout-Qwen3-4b-zimage-hereticV2-q8"
     assert payload["selected_model_source"] == "Friendly"

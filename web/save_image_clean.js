@@ -800,9 +800,10 @@ function setLastRunStateFromMessage(node, message) {
     };
 }
 
-function formatDetectionSourceLabel(source, value) {
+function formatDetectionSourceLabel(source, value, sourceLabel = "") {
     if (source === "workflow") {
-        return `workflow loader -> ${value || "(empty)"}`;
+        const suffix = sourceLabel ? ` (from ${sourceLabel})` : "";
+        return `workflow loader -> ${value || "(empty)"}${suffix}`;
     }
     if (source === "custom_fallback") {
         return `custom fallback -> ${value || "(empty)"}`;
@@ -816,9 +817,17 @@ function buildDetectionSnapshotLines(snapshot) {
     }
 
     return [
-        `Model detection: ${formatDetectionSourceLabel(snapshot.model_detection_source, snapshot.detected_model_name)}`,
+        `Model detection: ${formatDetectionSourceLabel(
+            snapshot.model_detection_source,
+            snapshot.detected_model_name,
+            snapshot.model_detection_label,
+        )}`,
         `Model output: ${snapshot.selected_model_source} -> ${snapshot.selected_model_name}`,
-        `Text encoder detection: ${formatDetectionSourceLabel(snapshot.text_encoder_detection_source, snapshot.detected_text_encoder_name)}`,
+        `Text encoder detection: ${formatDetectionSourceLabel(
+            snapshot.text_encoder_detection_source,
+            snapshot.detected_text_encoder_name,
+            snapshot.text_encoder_detection_label,
+        )}`,
         `Text encoder output: ${snapshot.selected_text_encoder_source} -> ${snapshot.selected_text_encoder_name}`,
     ];
 }

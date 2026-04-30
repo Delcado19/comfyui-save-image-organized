@@ -1000,16 +1000,17 @@ def _resolve_prompt_input_value(
     )
 
 
-def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
-    best_unet: tuple[int, int, int, str, str] | None = None
-    best_clip: tuple[int, int, int, str, str] | None = None
+def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, str]:
+    best_unet: tuple[int, int, int, str, str, str] | None = None
+    best_clip: tuple[int, int, int, str, str, str] | None = None
 
-    for _, node, distance in _walk_prompt_upstream(prompt, unique_id):
+    for node_id, node, distance in _walk_prompt_upstream(prompt, unique_id):
         class_type = str(node.get("class_type", ""))
         inputs = node.get("inputs", {})
         unet_priority = _get_unet_loader_priority(class_type, inputs)
         clip_priority = _get_clip_loader_priority(class_type, inputs)
         checkpoint_priority = _get_checkpoint_loader_priority(class_type, inputs)
+        loader_label = _format_match_label(node_id, node)
 
         if unet_priority is not None or checkpoint_priority is not None:
             unet_values = _extract_string_inputs_from_node(
@@ -1019,7 +1020,7 @@ def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
             )
             priority = unet_priority if unet_priority is not None else checkpoint_priority
             for value_index, value in enumerate(unet_values):
-                candidate = (priority, distance, value_index, value.casefold(), value)
+                candidate = (priority, distance, value_index, value.casefold(), value, loader_label)
                 if best_unet is None or candidate < best_unet:
                     best_unet = candidate
 
@@ -1031,13 +1032,23 @@ def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
             )
             priority = clip_priority if clip_priority is not None else checkpoint_priority
             for value_index, value in enumerate(clip_values):
-                candidate = (priority, distance, value_index, value.casefold(), value)
+                candidate = (priority, distance, value_index, value.casefold(), value, loader_label)
                 if best_clip is None or candidate < best_clip:
                     best_clip = candidate
 
     return {
         "ACTIVE_UNET": best_unet[4] if best_unet else "",
         "ACTIVE_CLIP": best_clip[4] if best_clip else "",
+        "ACTIVE_UNET_SOURCE": best_unet[5] if best_unet else "",
+        "ACTIVE_CLIP_SOURCE": best_clip[5] if best_clip else "",
+    }
+
+
+def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
+    details = _find_active_name_details(prompt, unique_id)
+    return {
+        "ACTIVE_UNET": details["ACTIVE_UNET"],
+        "ACTIVE_CLIP": details["ACTIVE_CLIP"],
     }
 
 
@@ -1333,7 +1344,7 @@ class SaveImageClean:
         batch_size: int,
         now: datetime,
     ) -> tuple[dict[str, str], dict[str, str]]:
-        active_names = _find_active_names(prompt=prompt, unique_id=unique_id)
+        active_names = _find_active_name_details(prompt=prompt, unique_id=unique_id)
         seed_value = _find_upstream_scalar_input(
             prompt,
             unique_id,
@@ -1387,6 +1398,8 @@ class SaveImageClean:
             "TEXT_ENCODER_DETECTION_SOURCE": (
                 "workflow" if active_names["ACTIVE_CLIP"] else "custom_fallback" if manual_clip else "default_placeholder"
             ),
+            "MODEL_DETECTION_LABEL": active_names["ACTIVE_UNET_SOURCE"] if active_names["ACTIVE_UNET"] else "",
+            "TEXT_ENCODER_DETECTION_LABEL": active_names["ACTIVE_CLIP_SOURCE"] if active_names["ACTIVE_CLIP"] else "",
             "MANUAL_MODEL_NAME": manual_model,
             "MANUAL_TEXT_ENCODER_NAME": manual_clip,
             "SELECTED_MODEL_SOURCE": model_source,
@@ -1412,9 +1425,16 @@ class SaveImageClean:
         if detection_info == "Off":
             return []
 
-        def format_detection_line(kind_label: str, detection_source: str, detected_value: str, manual_value: str) -> str:
+        def format_detection_line(
+            kind_label: str,
+            detection_source: str,
+            detected_value: str,
+            manual_value: str,
+            detection_label: str,
+        ) -> str:
             if detection_source == "workflow":
-                return f"{kind_label} detection: workflow loader -> {detected_value}"
+                source_suffix = f" (from {detection_label})" if detection_label else ""
+                return f"{kind_label} detection: workflow loader -> {detected_value}{source_suffix}"
             if detection_source == "custom_fallback":
                 return f"{kind_label} detection: custom fallback -> {manual_value}"
             return f"{kind_label} detection: no workflow loader found on this save branch, using default placeholder"
@@ -1426,6 +1446,7 @@ class SaveImageClean:
                 detection_state["MODEL_DETECTION_SOURCE"],
                 detection_state["DETECTED_MODEL_NAME"],
                 detection_state["MANUAL_MODEL_NAME"],
+                detection_state["MODEL_DETECTION_LABEL"],
             ),
             (
                 f"Model output: {detection_state['SELECTED_MODEL_SOURCE']} -> "
@@ -1436,6 +1457,7 @@ class SaveImageClean:
                 detection_state["TEXT_ENCODER_DETECTION_SOURCE"],
                 detection_state["DETECTED_TEXT_ENCODER_NAME"],
                 detection_state["MANUAL_TEXT_ENCODER_NAME"],
+                detection_state["TEXT_ENCODER_DETECTION_LABEL"],
             ),
             (
                 f"Text encoder output: {detection_state['SELECTED_TEXT_ENCODER_SOURCE']} -> "
@@ -1475,6 +1497,8 @@ class SaveImageClean:
             "detection_lines": list(detection_lines),
             "model_detection_source": detection_state["MODEL_DETECTION_SOURCE"],
             "text_encoder_detection_source": detection_state["TEXT_ENCODER_DETECTION_SOURCE"],
+            "model_detection_label": detection_state["MODEL_DETECTION_LABEL"],
+            "text_encoder_detection_label": detection_state["TEXT_ENCODER_DETECTION_LABEL"],
             "detected_model_name": detection_state["DETECTED_MODEL_NAME"],
             "detected_text_encoder_name": detection_state["DETECTED_TEXT_ENCODER_NAME"],
             "selected_model_source": detection_state["SELECTED_MODEL_SOURCE"],
