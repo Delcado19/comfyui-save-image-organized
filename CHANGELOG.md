@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-04-30
+
 ### Fixed
 
 - detect checkpoint loader names from widget-only custom loaders that store the selected file in an object value such as `{content: "..."}`

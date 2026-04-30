@@ -7,9 +7,9 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- The repository has release tags through `v0.3.0`.
-- `main` is currently two commits past `v0.3.0`.
-- `CHANGELOG.md` has an `Unreleased` fix for custom checkpoint loaders that store widget values as objects.
+- The repository has release tags through `v0.3.1`.
+- `main` currently points at the `v0.3.1` release commit.
+- There is no unreleased work on `main` at the time of this handoff.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -75,7 +75,7 @@ The following items are the core of the `v0.3.0` release:
 
 ## Known Gaps
 
-- The latest checkpoint widget-object fix is covered by automated regression tests, but it still needs a manual ComfyUI workflow pass before cutting the next release.
+- The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
 - The automated test suite is still modest, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, bridge/switch traversal, widget-only loaders, postprocessing-only save branches, and prompt references via `Node name for S&R` or node id.
 - Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior, but it still does not mirror a broad library of publicly tracked real exported workflows from multiple ComfyUI installations.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
@@ -85,12 +85,11 @@ The following items are the core of the `v0.3.0` release:
 
 ## Next Priorities
 
-1. Run a manual ComfyUI workflow pass for the checkpoint widget-object fix.
-2. Add broader manual validation across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
-3. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
-4. Consider whether convenience-variable coverage should expand further with additional workflow-oriented shortcuts.
-5. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
-6. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
+1. Add broader manual validation across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
+2. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
+3. Consider whether convenience-variable coverage should expand further with additional workflow-oriented shortcuts.
+4. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
+5. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 
 ## Deferred Ideas
 
@@ -139,9 +138,12 @@ The following items are the core of the `v0.3.0` release:
 
 ## Release Checklist
 
+- `v0.3.1` was tagged and published on GitHub.
+- `CHANGELOG.md` has a `0.3.1` section dated `2026-04-30`.
+- GitHub Actions CI passed for the release commit.
 - `v0.3.0` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
-- GitHub Actions CI passed for the release commit.
+- GitHub Actions CI passed for the `v0.3.0` release commit.
 - Before the next release, run a full manual workflow pass in ComfyUI with at least:
   - checkpoint-based workflow
   - UNET loader workflow
