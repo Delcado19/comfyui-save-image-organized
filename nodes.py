@@ -724,6 +724,13 @@ def _extract_widget_string_inputs(
     if isinstance(candidate, str):
         cleaned = candidate.strip()
         return [cleaned] if cleaned else []
+    if isinstance(candidate, dict):
+        for key in ("content", "value", "text", "name", "filename"):
+            value = candidate.get(key)
+            if isinstance(value, str):
+                cleaned = value.strip()
+                if cleaned:
+                    return [cleaned]
     return []
 
 

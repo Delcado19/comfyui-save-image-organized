@@ -48,6 +48,15 @@ def test_detection_fixture_supports_checkpoint_loaders(load_prompt_fixture):
     }
 
 
+def test_detection_fixture_supports_checkpoint_widget_object_values(load_prompt_fixture):
+    prompt = load_prompt_fixture("detection_checkpoint_widget_object.json")
+
+    assert nodes._find_active_names(prompt, "1") == {
+        "ACTIVE_UNET": "SDXL/Anubis XL_v1.safetensors",
+        "ACTIVE_CLIP": "SDXL/Anubis XL_v1.safetensors",
+    }
+
+
 def test_detection_fixture_traverses_lora_passthrough_nodes(load_prompt_fixture):
     prompt = load_prompt_fixture("detection_lora_passthrough.json")
 
