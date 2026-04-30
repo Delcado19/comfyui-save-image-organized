@@ -4,15 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-30
+
 ### Added
 
-- isolated `uv`-based `pytest` setup with initial regression coverage for naming, template rendering, loader detection, and collision handling
 - optional `Detection Info` runtime output with `Off`, `Summary`, and `Verbose` modes for model and text encoder resolution
-- regression coverage for multi-image save output and preserved PNG prompt metadata
-- broader regression coverage for checkpoint loader fallback, diffusion-model loader variants, and prompt references via `Node name for S&R` or direct node id
-- GitHub Actions CI on Windows with `ruff` and `pytest`
 - convenience template variables `%WIDTH%`, `%HEIGHT%`, `%SEED%`, `%BATCH_INDEX%`, and `%BATCH_SIZE%`
 - optional `Export Workflow Metadata` switch for matching normal ComfyUI PNG metadata export or disabling it entirely
+- persistent helper detection snapshots, including `Fresh Detection` and `Last Detection Snapshot` states
+- public synthetic workflow fixtures for checkpoint loaders, bridge nodes, switch branches, widget-only loaders, and LoRA pass-through paths
+- GitHub Actions CI on Windows with `ruff` and `pytest`
+- isolated `uv`-based local `pytest` setup for repo maintenance
+- regression coverage for template errors, save output, collision handling, PNG metadata, loader detection, detection-info output, helper state, and convenience variables
 - troubleshooting documentation for common detection and helper-preview states
 
 ### Changed
@@ -21,9 +24,12 @@ All notable changes to this project will be documented in this file.
 - the in-node helper preview now warns about unknown placeholders, shows `%node.widget%` values as `{node.widget}` before execution, and makes it clearer that detected names are sample values until the workflow runs
 - after execution, the helper preview now switches to the last real resolved save path and can show the latest detection details
 - PNG metadata export now matches ComfyUI's normal `Save Image` behavior by JSON-encoding prompt and workflow data
+- loader detection now avoids cross-contaminating generic fields, follows `GetNode`/`SetNode` bridge paths, respects active `ComfySwitchNode` branches, and supports widget-only loader values from exported workflows
+- multi-loader cases are documented and maintained as `Primary only`, resolving to one active model name and one active text-encoder name for stable output paths
 
 ### Fixed
 
+- the UI label for workflow metadata export now matches the backend behavior
 - preserve the user's manually resized node height when the helper preview refreshes, so the image preview area no longer collapses back to the minimum size
 
 ## [0.2.0] - 2026-04-23
