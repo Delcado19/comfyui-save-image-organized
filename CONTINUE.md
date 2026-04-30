@@ -8,8 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository has release tags through `v0.3.1`.
-- `main` currently points at the `v0.3.1` release commit.
-- There is no unreleased work on `main` at the time of this handoff.
+- `main` is currently one commit past `v0.3.1`.
+- `CHANGELOG.md` has an `Unreleased` entry for maintainer workflow-validation tooling.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -20,6 +20,7 @@ This file is for continuation context, not end-user documentation.
   - `Text Encoder Name`
   - `Filename`
 - The visible node rename to `Save Image Organized` is already implemented in code and reflected in docs.
+- Maintainer workflow validation is available via `python tools/validate_local_workflows.py`.
 
 ## Released In v0.2.0
 
@@ -77,7 +78,7 @@ The following items are the core of the `v0.3.0` release:
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
 - The automated test suite is still modest, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, bridge/switch traversal, widget-only loaders, postprocessing-only save branches, and prompt references via `Node name for S&R` or node id.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior, but it still does not mirror a broad library of publicly tracked real exported workflows from multiple ComfyUI installations.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior. The maintainer workflow validator can sample local exported workflows, but it still does not mirror a broad library of publicly tracked real exported workflows from multiple ComfyUI installations.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, bridge nodes, and switch nodes, but third-party custom-node ecosystems remain the most likely place for future edge cases.
 - Some save or preview nodes in real workflows legitimately resolve to empty detection because their current branch only contains postprocessing or utility nodes and no sampler/loader path. That behavior is expected and should not be treated as a detection bug by itself.
@@ -85,7 +86,7 @@ The following items are the core of the `v0.3.0` release:
 
 ## Next Priorities
 
-1. Add broader manual validation across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
+1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
 2. Decide whether detection details should also be persisted more explicitly in the UI beyond the last-run helper state.
 3. Consider whether convenience-variable coverage should expand further with additional workflow-oriented shortcuts.
 4. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.

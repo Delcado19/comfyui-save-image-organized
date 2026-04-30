@@ -23,6 +23,7 @@ Before opening a pull request, verify at least the following:
 6. Saved PNG files still contain prompt metadata.
 7. `ruff check .` passes in a local development environment with the dev dependencies installed.
 8. `python -m pytest` passes in a local development environment with the dev dependencies installed.
+9. For loader-detection changes, run `python tools/validate_local_workflows.py` against a local ComfyUI workflow folder when available.
 
 ## Coding Guidelines
 
