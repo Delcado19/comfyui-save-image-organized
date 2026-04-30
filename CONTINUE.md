@@ -8,8 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository has release tags through `v0.3.1`.
-- `main` is currently three commits past `v0.3.1`.
-- `CHANGELOG.md` has `Unreleased` entries for maintainer workflow-validation tooling, release-readiness tooling, and loader-source labels in detection summaries.
+- `main` is currently four commits past `v0.3.1`.
+- `CHANGELOG.md` has `Unreleased` entries for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -23,6 +23,7 @@ This file is for continuation context, not end-user documentation.
 - Maintainer workflow validation is available via `python tools/validate_local_workflows.py`.
 - Release readiness checks are available via `python tools/check_release_ready.py`.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
+- Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 
 ## Released In v0.2.0
 
@@ -89,9 +90,8 @@ The following items are the core of the `v0.3.0` release:
 ## Next Priorities
 
 1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
-2. Consider whether convenience-variable coverage should expand further with additional workflow-oriented shortcuts.
-3. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
-4. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
+2. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
+3. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 
 ## Deferred Ideas
 

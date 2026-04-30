@@ -168,10 +168,15 @@ Options:
 - `%WIDTH%`
 - `%HEIGHT%`
 - `%SEED%`
+- `%STEPS%`
+- `%CFG%`
+- `%SAMPLER%`
+- `%SCHEDULER%`
+- `%DENOISE%`
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
 
 ### Optional detailed variables
 

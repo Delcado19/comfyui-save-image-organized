@@ -883,13 +883,21 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
             "class_type": "KSampler",
             "inputs": {
                 "seed": 321,
+                "steps": 30,
+                "cfg": 4.5,
+                "sampler_name": "dpmpp_2m",
+                "scheduler": "karras",
+                "denoise": 0.75,
             },
         },
     }
 
     result = saver.save_images(
         images=images,
-        path_template="%WIDTH%x%HEIGHT%/%SEED%/%BATCH_INDEX%-of-%BATCH_SIZE%",
+        path_template=(
+            "%WIDTH%x%HEIGHT%/%SEED%/%STEPS%steps-cfg%CFG%/"
+            "%SAMPLER%-%SCHEDULER%-d%DENOISE%/%BATCH_INDEX%-of-%BATCH_SIZE%"
+        ),
         collision_mode="increment",
         model_source="Friendly",
         clip_source="Friendly",
@@ -901,6 +909,19 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
 
     saved_images = result["ui"]["images"]
     assert [item["filename"] for item in saved_images] == ["1-of-2.png", "2-of-2.png"]
-    assert [item["subfolder"] for item in saved_images] == [r"4x3\321", r"4x3\321"]
-    assert (workspace_tmp_path / "4x3" / "321" / "1-of-2.png").exists()
-    assert (workspace_tmp_path / "4x3" / "321" / "2-of-2.png").exists()
+    expected_subfolder = r"4x3\321\30steps-cfg4.5\dpmpp_2m-karras-d0.75"
+    assert [item["subfolder"] for item in saved_images] == [expected_subfolder, expected_subfolder]
+    assert (
+        workspace_tmp_path / "4x3" / "321" / "30steps-cfg4.5" / "dpmpp_2m-karras-d0.75" / "1-of-2.png"
+    ).exists()
+    assert (
+        workspace_tmp_path / "4x3" / "321" / "30steps-cfg4.5" / "dpmpp_2m-karras-d0.75" / "2-of-2.png"
+    ).exists()
+
+    payload = result["ui"]["save_image_clean"][0]
+    assert payload["seed"] == "321"
+    assert payload["steps"] == "30"
+    assert payload["cfg"] == "4.5"
+    assert payload["sampler"] == "dpmpp_2m"
+    assert payload["scheduler"] == "karras"
+    assert payload["denoise"] == "0.75"

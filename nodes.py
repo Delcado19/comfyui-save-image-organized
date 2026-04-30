@@ -1351,6 +1351,31 @@ class SaveImageClean:
             exact=("seed", "noise_seed"),
             prefix=("seed", "noise_seed"),
         )
+        steps_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("steps",),
+        )
+        cfg_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("cfg",),
+        )
+        sampler_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("sampler_name", "sampler"),
+        )
+        scheduler_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("scheduler",),
+        )
+        denoise_value = _find_upstream_scalar_input(
+            prompt,
+            unique_id,
+            exact=("denoise",),
+        )
         width_value = str(image_width) if image_width is not None else _find_upstream_scalar_input(
             prompt,
             unique_id,
@@ -1379,6 +1404,11 @@ class SaveImageClean:
             "WIDTH": width_value or "0",
             "HEIGHT": height_value or "0",
             "SEED": seed_value or "",
+            "STEPS": steps_value or "",
+            "CFG": cfg_value or "",
+            "SAMPLER": sampler_value or "",
+            "SCHEDULER": scheduler_value or "",
+            "DENOISE": denoise_value or "",
             "BATCH_INDEX": str(batch_index),
             "BATCH_SIZE": str(batch_size),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
@@ -1415,6 +1445,11 @@ class SaveImageClean:
             "WIDTH": variables["WIDTH"],
             "HEIGHT": variables["HEIGHT"],
             "SEED": variables["SEED"],
+            "STEPS": variables["STEPS"],
+            "CFG": variables["CFG"],
+            "SAMPLER": variables["SAMPLER"],
+            "SCHEDULER": variables["SCHEDULER"],
+            "DENOISE": variables["DENOISE"],
             "BATCH_INDEX": variables["BATCH_INDEX"],
             "BATCH_SIZE": variables["BATCH_SIZE"],
         }
@@ -1514,6 +1549,11 @@ class SaveImageClean:
             "width": detection_state["WIDTH"],
             "height": detection_state["HEIGHT"],
             "seed": detection_state["SEED"],
+            "steps": detection_state["STEPS"],
+            "cfg": detection_state["CFG"],
+            "sampler": detection_state["SAMPLER"],
+            "scheduler": detection_state["SCHEDULER"],
+            "denoise": detection_state["DENOISE"],
             "batch_index": detection_state["BATCH_INDEX"],
             "batch_size": detection_state["BATCH_SIZE"],
         }

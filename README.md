@@ -112,10 +112,15 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%WIDTH%`
 - `%HEIGHT%`
 - `%SEED%`
+- `%STEPS%`
+- `%CFG%`
+- `%SAMPLER%`
+- `%SCHEDULER%`
+- `%DENOISE%`
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%` uses the nearest upstream seed-like widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves. `%BATCH_SIZE%` is the total number of images in the current save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves. `%BATCH_SIZE%` is the total number of images in the current save batch.
 
 ### Detection Info
 
