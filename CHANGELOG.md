@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.4.0] - 2026-05-01
+
 ### Added
 
 - maintainer workflow validator for scanning local ComfyUI workflow JSON files and reporting `Save Image Organized` model/text-encoder detection results
