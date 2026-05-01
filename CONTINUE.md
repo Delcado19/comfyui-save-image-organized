@@ -7,7 +7,8 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- The repository is prepared for release tag `v0.4.0`.
+- The repository is released at tag `v0.4.0`.
+- `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
@@ -162,18 +163,19 @@ The following items are the core of the `v0.4.0` release:
 - `v0.3.1` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.3.1` section dated `2026-04-30`.
 - GitHub Actions CI passed for the release commit.
-- `v0.4.0` release files are prepared for the release commit and tag.
+- `v0.4.0` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01`.
 - Local release readiness checks passed with `pytest`, `ruff`, Python compile, frontend syntax check, and workflow validation.
+- GitHub Actions CI passed for the `v0.4.0` release commit.
 - `v0.3.0` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
 - GitHub Actions CI passed for the `v0.3.0` release commit.
-- Before publishing the GitHub release, run a full manual workflow pass in ComfyUI with at least:
+- For the next release, keep a full manual workflow pass in ComfyUI with at least:
   - checkpoint-based workflow
   - UNET loader workflow
   - GGUF text encoder workflow
 - Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels.
-- Push the `v0.4.0` release commit and tag, then publish the GitHub release.
+- Use `tools/check_release_ready.py --tag <tag> --github --workflows` as the final release gate.
 
 ## Notes
 
