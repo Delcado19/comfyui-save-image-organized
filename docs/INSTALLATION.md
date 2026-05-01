@@ -1,5 +1,21 @@
 # Installation
 
+## Comfy Registry
+
+Recommended install:
+
+```bash
+comfy node install save-image-organized
+```
+
+The package is published in the Comfy Registry under:
+
+- Publisher: `delcado`
+- Node ID: `save-image-organized`
+- Display name: `Save Image Organized`
+
+After installation, restart ComfyUI if the node list does not refresh automatically.
+
 ## Manual Installation
 
 1. Open your ComfyUI installation.
@@ -7,7 +23,7 @@
 3. Clone this repository into that directory:
 
 ```bash
-git clone <repo-url> comfyui-save-image-organized
+git clone https://github.com/Delcado19/comfyui-save-image-organized.git comfyui-save-image-organized
 ```
 
 4. Install the dependencies in the Python environment used by ComfyUI:

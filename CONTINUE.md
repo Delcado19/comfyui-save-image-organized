@@ -7,8 +7,10 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- The repository is prepared for release at tag `v0.5.0`.
-- `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
+- The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
+- The current registry version is `0.5.0`.
+- `v0.5.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions runs.
+- `main` includes post-`v0.5.0` documentation updates for Registry installation and the GitHub Actions publishing workflow.
 - `main` includes post-`v0.4.0` maintainer updates for handoff status, repository Git policy, workflow validation diagnostics, stricter release gates, full workflow release scans, and the optional `Friendly Clean` name sources.
 - `CHANGELOG.md` has a `0.5.0` section dated `2026-05-01` for the `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, stricter unresolved-detection release gate, full workflow release scans, and `Friendly Clean` name sources.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
@@ -32,6 +34,7 @@ This file is for continuation context, not end-user documentation.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
+- Registry publishing is configured in `pyproject.toml` and automated by `.github/workflows/publish_action.yml` with the `REGISTRY_ACCESS_TOKEN` repository secret.
 
 ## Released In v0.2.0
 
@@ -130,7 +133,7 @@ The following items are the core of the `v0.5.0` release:
 1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
 2. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
 3. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
-4. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
+4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
 
 ## Deferred Ideas
 
@@ -183,7 +186,8 @@ The following items are the core of the `v0.5.0` release:
 - Local release readiness checks passed with `pytest`, `ruff`, Python compile, frontend syntax check, and workflow validation.
 - GitHub Actions CI passed for the `v0.4.0` release commit.
 - `v0.5.0` is prepared with a `CHANGELOG.md` section dated `2026-05-01`.
-- For the final `v0.5.0` release gate, use `tools/check_release_ready.py --tag v0.5.0 --github --workflows --fail-on-unresolved-detection`.
+- `v0.5.0` was published to the Comfy Registry as `save-image-organized`.
+- For the final release gate, use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection`.
 - `v0.3.0` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
 - GitHub Actions CI passed for the `v0.3.0` release commit.
@@ -193,6 +197,7 @@ The following items are the core of the `v0.5.0` release:
   - GGUF text encoder workflow
 - Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels.
 - Use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection` as the final release gate.
+- Verify `Publish to Comfy Registry` succeeds after pushing a `pyproject.toml` version change.
 
 ## Notes
 

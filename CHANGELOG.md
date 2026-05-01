@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+### Added
+
+- documentation for Comfy Registry installation and the GitHub Actions publishing workflow
 
 ## [0.5.0] - 2026-05-01
 

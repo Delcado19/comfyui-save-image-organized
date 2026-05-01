@@ -33,6 +33,24 @@ Before opening a pull request, verify at least the following:
 - Prefer explicit behavior over hidden magic.
 - Update `README.md`, `docs/INSTALLATION.md` or `docs/USAGE.md` when user-facing behavior changes.
 
+## Publishing
+
+The Comfy Registry package is configured in `pyproject.toml`:
+
+- Publisher: `delcado`
+- Node ID: `save-image-organized`
+- Display name: `Save Image Organized`
+
+Publishing is handled by `.github/workflows/publish_action.yml` and requires the repository secret `REGISTRY_ACCESS_TOKEN`. The workflow can be started manually from GitHub Actions and also runs on pushes to `main` that change `pyproject.toml`.
+
+For a new registry release:
+
+1. Update the semantic version in `pyproject.toml`.
+2. Update `CHANGELOG.md`.
+3. Run the release-readiness checks.
+4. Commit and push to `main`.
+5. Verify the `Publish to Comfy Registry` workflow and CI run.
+
 ## Pull Requests
 
 Include the following in your PR description:

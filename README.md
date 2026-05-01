@@ -23,6 +23,14 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 
 ## Quick Start
 
+Recommended install:
+
+```bash
+comfy node install save-image-organized
+```
+
+Manual install:
+
 1. Put the repository into `ComfyUI/custom_nodes/comfyui-save-image-organized`
 2. Install the packages from `requirements.txt` in the Python environment used by ComfyUI
 3. Restart ComfyUI
