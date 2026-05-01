@@ -7,11 +7,11 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
-- The repository is released at tag `v0.4.0`.
+- The repository is prepared for release at tag `v0.5.0`.
 - `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
-- `main` is ahead of `v0.4.0` with post-release maintainer updates for handoff status, repository Git policy, and workflow validation diagnostics.
+- `main` includes post-`v0.4.0` maintainer updates for handoff status, repository Git policy, workflow validation diagnostics, stricter release gates, full workflow release scans, and the optional `Friendly Clean` name sources.
+- `CHANGELOG.md` has a `0.5.0` section dated `2026-05-01` for the `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, stricter unresolved-detection release gate, full workflow release scans, and `Friendly Clean` name sources.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
-- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, a stricter unresolved-detection release gate, full workflow release scans, and the optional `Friendly Clean` name sources under `Unreleased`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
@@ -105,6 +105,16 @@ The following items are the core of the `v0.4.0` release:
   - `%SCHEDULER%`
   - `%DENOISE%`
 
+## Released In v0.5.0
+
+The following items are the core of the `v0.5.0` release:
+
+- repository `AGENTS.md` policy for autonomous Git operations, release checks, and CI verification
+- maintainer workflow validation follows unnamed Reroute inputs and reports a `REASON` column plus JSON `reason` field
+- release-readiness checks can fail on unresolved reachable-loader detection problems while allowing expected no-loader Save branches
+- release-readiness workflow checks scan all workflows by default, with `--workflow-limit` kept for explicit sampling
+- `Friendly Clean` model and text-encoder name sources remove known releaser or publisher prefixes while preserving `Friendly`, `Exact`, and raw detection behavior
+
 ## Known Gaps
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
@@ -118,16 +128,12 @@ The following items are the core of the `v0.4.0` release:
 ## Next Priorities
 
 1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
-2. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
-3. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
-4. If the post-release maintainer policy remains useful after a few runs, include it in the next patch release notes.
+2. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
+3. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
+4. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
 
 ## Deferred Ideas
 
-- Optional releaser/publisher cleanup for friendly names:
-  - add a switch that removes releaser or publisher tags from friendly model names for users who want cleaner save paths
-  - keep `Exact` names unchanged
-  - preserve the full detected source names for debugging and traceability
 - Small UI diagnostics such as which loader path produced the active names
 - Expanded collision strategies:
   - millisecond timestamp option
@@ -153,7 +159,7 @@ The following items are the core of the `v0.4.0` release:
 ## Manual Test Checklist
 
 - Verify default save layout produces `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%`.
-- Verify `Friendly`, `Exact`, and `Custom` selection for both model and text encoder.
+- Verify `Friendly`, `Friendly Clean`, `Exact`, and `Custom` selection for both model and text encoder.
 - Verify custom names are used as fallback when detection fails.
 - Verify `%date:...%` tokens render correctly for both multi-letter and single-letter tokens.
 - Verify supported `%strftime:...%` directives render and unsupported directives fail clearly.
@@ -176,6 +182,8 @@ The following items are the core of the `v0.4.0` release:
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01`.
 - Local release readiness checks passed with `pytest`, `ruff`, Python compile, frontend syntax check, and workflow validation.
 - GitHub Actions CI passed for the `v0.4.0` release commit.
+- `v0.5.0` is prepared with a `CHANGELOG.md` section dated `2026-05-01`.
+- For the final `v0.5.0` release gate, use `tools/check_release_ready.py --tag v0.5.0 --github --workflows --fail-on-unresolved-detection`.
 - `v0.3.0` was tagged and published on GitHub.
 - `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
 - GitHub Actions CI passed for the `v0.3.0` release commit.
