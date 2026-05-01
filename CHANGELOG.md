@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 
 - repository `AGENTS.md` policy for Git operations, release checks, and CI verification
 
+### Fixed
+
+- maintainer workflow validation now follows UI workflow links through unnamed Reroute inputs
+
 ## [0.4.0] - 2026-05-01
 
 ### Added

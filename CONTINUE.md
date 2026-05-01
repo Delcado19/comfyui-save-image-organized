@@ -11,8 +11,10 @@ This file is for continuation context, not end-user documentation.
 - `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
 - `main` is currently two commits past `v0.4.0`; the post-release changes update handoff status and add the repository `AGENTS.md` Git Operations Agent policy.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
-- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy under `Unreleased`.
+- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy and unnamed Reroute input validation fix under `Unreleased`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
+- Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
+- The current local workflow validator summary is `22` Save nodes, `19 OK`, `0 PARTIAL`, `3 MISS`, and `0 errors`; the remaining MISS cases are Save nodes connected only to LoadImage/Upscale branches with no reachable model or text-encoder loader.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
   - `Strip Model Extension`
@@ -106,7 +108,7 @@ The following items are the core of the `v0.4.0` release:
 - Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior. The maintainer workflow validator can sample local exported workflows, but it still does not mirror a broad library of publicly tracked real exported workflows from multiple ComfyUI installations.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, bridge nodes, and switch nodes, but third-party custom-node ecosystems remain the most likely place for future edge cases.
-- Some save or preview nodes in real workflows legitimately resolve to empty detection because their current branch only contains postprocessing or utility nodes and no sampler/loader path. That behavior is expected and should not be treated as a detection bug by itself.
+- Some save or preview nodes in real workflows legitimately resolve to empty detection because their current branch only contains input-image, postprocessing, or utility nodes and no sampler/loader path. That behavior is expected and should not be treated as a detection bug by itself.
 - Multi-loader cases currently collapse to one best active match rather than a combined display. That is intentional for path stability and shorter save names, but it should stay documented so users do not expect all CLIP/model names to appear.
 
 ## Next Priorities

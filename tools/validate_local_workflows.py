@@ -103,12 +103,14 @@ def _ui_workflow_to_prompt(workflow: dict[str, Any]) -> dict[str, dict[str, Any]
         node_id = str(node.get("id"))
         inputs = _widget_values_by_name(node)
 
-        for input_def in node.get("inputs") or []:
+        for input_index, input_def in enumerate(node.get("inputs") or []):
             if not isinstance(input_def, dict):
                 continue
             input_name = input_def.get("name")
             link_id = input_def.get("link")
-            if input_name and link_id in sources:
+            if link_id in sources:
+                if not isinstance(input_name, str) or not input_name:
+                    input_name = f"__linked_input_{input_index}"
                 inputs[input_name] = sources[link_id]
 
         prompt_node: dict[str, Any] = {
