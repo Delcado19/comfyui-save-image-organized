@@ -56,6 +56,7 @@ Meaning:
 Options:
 
 - `Friendly`
+- `Friendly Clean`
 - `Exact`
 - `Custom`
 
@@ -70,8 +71,11 @@ Example for a detected model `flux-2-klein-9b-Q5_K_M.gguf`:
 Options:
 
 - `Friendly`
+- `Friendly Clean`
 - `Exact`
 - `Custom`
+
+`Friendly Clean` keeps the readable `Friendly` formatting but removes known releaser or publisher prefixes such as `mradermacher - ` or `Goekdeniz-Guelmez_` when they are only packaging labels. Use `Friendly` when you want those prefixes preserved, and `Exact` when you want the detected filename stem unchanged.
 
 Example for a detected text encoder `Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf`:
 
@@ -181,9 +185,11 @@ Options:
 ### Optional detailed variables
 
 - `%FRIENDLY_MODEL_NAME%`
+- `%CLEAN_FRIENDLY_MODEL_NAME%`
 - `%EXACT_MODEL_NAME%`
 - `%CUSTOM_MODEL_NAME%`
 - `%FRIENDLY_TEXT_ENCODER_NAME%`
+- `%CLEAN_FRIENDLY_TEXT_ENCODER_NAME%`
 - `%EXACT_TEXT_ENCODER_NAME%`
 - `%CUSTOM_TEXT_ENCODER_NAME%`
 

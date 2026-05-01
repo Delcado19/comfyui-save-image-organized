@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 - maintainer workflow validation now reports a `reason` for each Save node in table and JSON output
 - release-readiness checks can fail only on unresolved reachable-loader detection problems while allowing expected no-loader save branches
 - release-readiness workflow checks now scan all workflows by default, with `--workflow-limit` kept for explicit sampling
+- `Friendly Clean` model and text-encoder name sources that keep Friendly formatting while removing known releaser or publisher prefixes
 
 ### Fixed
 

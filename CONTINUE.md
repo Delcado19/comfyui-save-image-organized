@@ -11,7 +11,7 @@ This file is for continuation context, not end-user documentation.
 - `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
 - `main` is ahead of `v0.4.0` with post-release maintainer updates for handoff status, repository Git policy, and workflow validation diagnostics.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
-- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, and a stricter unresolved-detection release gate under `Unreleased`.
+- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, a stricter unresolved-detection release gate, full workflow release scans, and the optional `Friendly Clean` name sources under `Unreleased`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
@@ -31,6 +31,7 @@ This file is for continuation context, not end-user documentation.
 - Release readiness checks are available via `python tools/check_release_ready.py`.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
+- `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
 
 ## Released In v0.2.0
 

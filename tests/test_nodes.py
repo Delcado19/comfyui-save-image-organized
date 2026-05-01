@@ -21,6 +21,15 @@ def test_humanize_display_name_normalizes_known_model_alias_and_quant():
     assert value == "FLUX.2 Klein 9B [5K-M]"
 
 
+def test_humanize_clean_display_name_removes_known_releaser_prefix():
+    value = nodes._humanize_clean_display_name(
+        "Goekdeniz-Guelmez_Josiefied-Qwen3-8B-abliterated-v1-Q4_K_M.gguf",
+        kind="text_encoder",
+    )
+
+    assert value == "Josiefied Qwen3 8B V1 [Ablt][4K-M]"
+
+
 def test_render_date_format_supports_single_letter_tokens():
     now = datetime(2026, 4, 22, 21, 7, 5)
     rendered = nodes._render_date_format("yyyy-M-d_h-m-s", now)
@@ -768,10 +777,68 @@ def test_save_images_includes_structured_detection_snapshot_in_ui(workspace_tmp_
     assert payload["selected_text_encoder_source"] == "Exact"
     assert payload["selected_model_name"] == "FLUX.2 Klein 9B [5K-M]"
     assert payload["selected_text_encoder_name"] == "Lockout-Qwen3-4b-zimage-hereticV2-q8"
+    assert payload["clean_friendly_model_name"] == "FLUX.2 Klein 9B [5K-M]"
+    assert payload["clean_friendly_text_encoder_name"] == "Lockout Qwen3 4B zimage V2 [Her][Q8]"
     assert payload["seed"] == "321"
     assert payload["width"] == "2"
     assert payload["height"] == "2"
     assert payload["detection_lines"] == []
+
+
+def test_save_images_uses_clean_friendly_source_without_changing_exact(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["4", 0],
+            },
+        },
+        "3": {
+            "class_type": "UNETLoader",
+            "inputs": {
+                "unet_name": "Flux\\flux-2-klein-9b-Q5_K_M.gguf",
+            },
+        },
+        "4": {
+            "class_type": "CLIPLoaderGGUF",
+            "inputs": {
+                "clip_name": "Goekdeniz-Guelmez_Josiefied-Qwen3-8B-abliterated-v1-Q4_K_M.gguf",
+            },
+        },
+    }
+
+    result = saver.save_images(
+        images=[image],
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Exact",
+        clip_source="Friendly Clean",
+        detection_info="Verbose",
+        export_workflow_metadata=True,
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    payload = result["ui"]["save_image_clean"][0]
+    assert payload["exact_text_encoder_name"] == "Goekdeniz-Guelmez_Josiefied-Qwen3-8B-abliterated-v1-Q4_K_M"
+    assert payload["friendly_text_encoder_name"] == "Goekdeniz Guelmez Josiefied Qwen3 8B V1 [Ablt][4K-M]"
+    assert payload["clean_friendly_text_encoder_name"] == "Josiefied Qwen3 8B V1 [Ablt][4K-M]"
+    assert payload["selected_text_encoder_source"] == "Friendly Clean"
+    assert payload["selected_text_encoder_name"] == "Josiefied Qwen3 8B V1 [Ablt][4K-M]"
+    assert any(
+        "Text encoder output: Friendly Clean -> Josiefied Qwen3 8B V1 [Ablt][4K-M]" in line
+        for line in result["ui"]["text"]
+    )
 
 
 def test_save_images_increments_across_multiple_images_and_creates_files(workspace_tmp_path):

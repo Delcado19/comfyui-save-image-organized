@@ -72,9 +72,10 @@ If `Top Folder` is empty, no extra folder is added.
 
 ### Model Name And Text Encoder
 
-Both dropdowns use the same three choices:
+Both dropdowns use the same four choices:
 
 - `Friendly`
+- `Friendly Clean`
 - `Exact`
 - `Custom`
 
@@ -84,6 +85,8 @@ Examples:
 - `Exact` model name: `flux-2-klein-9b-Q5_K_M`
 - `Friendly` text encoder: `Lockout Qwen3 4B zimage V2 [Her][Q8]`
 - `Exact` text encoder: `Lockout-Qwen3-4b-zimage-hereticV2-q8`
+
+`Friendly Clean` uses the same readable formatting as `Friendly`, but removes known releaser or publisher prefixes such as `mradermacher - ` or `Goekdeniz-Guelmez_` when they are only packaging labels. `Friendly`, `Exact`, and the raw detected names stay unchanged.
 
 Common descriptor words in `Friendly` names are shortened into bracket tags:
 
@@ -153,9 +156,11 @@ Options:
 ### Detailed Variables
 
 - `%FRIENDLY_MODEL_NAME%`
+- `%CLEAN_FRIENDLY_MODEL_NAME%`
 - `%EXACT_MODEL_NAME%`
 - `%CUSTOM_MODEL_NAME%`
 - `%FRIENDLY_TEXT_ENCODER_NAME%`
+- `%CLEAN_FRIENDLY_TEXT_ENCODER_NAME%`
 - `%EXACT_TEXT_ENCODER_NAME%`
 - `%CUSTOM_TEXT_ENCODER_NAME%`
 

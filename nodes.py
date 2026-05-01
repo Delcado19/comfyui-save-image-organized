@@ -33,6 +33,10 @@ STRFTIME_DIRECTIVE_RE = re.compile(r"%(?:[%YymdHMSf]|[A-Za-z])")
 IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
 DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
+KNOWN_RELEASER_PREFIX_RE = re.compile(
+    r"(?i)^(?:goekdeniz[-_]?guelmez|mradermacher)\s*(?:[-_]+\s*|\s+-\s+)(?P<name>.+)$"
+)
+SPACED_RELEASER_PREFIX_RE = re.compile(r"^\s*[^\\/]{2,40}\s+-\s+(?P<name>.+)$")
 SCALED_FP8_SUFFIX_RE = re.compile(
     r"(?i)^(?P<base>.*?)(?:[ ._-]+)?FP8[ ._-]*(?P<format>E4M3FN|E5M2)[ ._-]*SCALED$"
 )
@@ -120,11 +124,13 @@ CHECKPOINT_DETECTION_PREFIX_KEYS = ("ckpt_name", "checkpoint_name")
 
 MODEL_SOURCE_LABEL_TO_KEY = {
     "Friendly": "FRIENDLY_MODEL_NAME",
+    "Friendly Clean": "CLEAN_FRIENDLY_MODEL_NAME",
     "Exact": "EXACT_MODEL_NAME",
     "Custom": "CUSTOM",
 }
 CLIP_SOURCE_LABEL_TO_KEY = {
     "Friendly": "FRIENDLY_TEXT_ENCODER_NAME",
+    "Friendly Clean": "CLEAN_FRIENDLY_TEXT_ENCODER_NAME",
     "Exact": "EXACT_TEXT_ENCODER_NAME",
     "Custom": "CUSTOM",
 }
@@ -391,6 +397,23 @@ def _humanize_display_name(value: str, *, kind: str = "generic") -> str:
 
     base_display = _humanize_display_name_generic(base_value)
     return _join_display_parts([base_display, *extra_parts, quant_display])
+
+
+def _strip_releaser_prefix(value: str) -> str:
+    base_value = _basename_without_known_extension(value)
+    known_match = KNOWN_RELEASER_PREFIX_RE.match(base_value)
+    if known_match:
+        return known_match.group("name").strip()
+
+    spaced_match = SPACED_RELEASER_PREFIX_RE.match(base_value)
+    if spaced_match:
+        return spaced_match.group("name").strip()
+
+    return value
+
+
+def _humanize_clean_display_name(value: str, *, kind: str = "generic") -> str:
+    return _humanize_display_name(_strip_releaser_prefix(value), kind=kind)
 
 
 def _normalize_template_file_path(value: str) -> Path:
@@ -1399,6 +1422,8 @@ class SaveImageClean:
             "EXACT_TEXT_ENCODER_NAME": active_clip,
             "FRIENDLY_MODEL_NAME": _humanize_display_name(raw_active_unet, kind="model"),
             "FRIENDLY_TEXT_ENCODER_NAME": _humanize_display_name(raw_active_clip, kind="text_encoder"),
+            "CLEAN_FRIENDLY_MODEL_NAME": _humanize_clean_display_name(raw_active_unet, kind="model"),
+            "CLEAN_FRIENDLY_TEXT_ENCODER_NAME": _humanize_clean_display_name(raw_active_clip, kind="text_encoder"),
             "CUSTOM_MODEL_NAME": manual_model or "",
             "CUSTOM_TEXT_ENCODER_NAME": manual_clip or "",
             "WIDTH": width_value or "0",
@@ -1440,6 +1465,8 @@ class SaveImageClean:
             "EXACT_TEXT_ENCODER_NAME": variables["EXACT_TEXT_ENCODER_NAME"],
             "FRIENDLY_MODEL_NAME": variables["FRIENDLY_MODEL_NAME"],
             "FRIENDLY_TEXT_ENCODER_NAME": variables["FRIENDLY_TEXT_ENCODER_NAME"],
+            "CLEAN_FRIENDLY_MODEL_NAME": variables["CLEAN_FRIENDLY_MODEL_NAME"],
+            "CLEAN_FRIENDLY_TEXT_ENCODER_NAME": variables["CLEAN_FRIENDLY_TEXT_ENCODER_NAME"],
             "CUSTOM_MODEL_NAME": variables["CUSTOM_MODEL_NAME"],
             "CUSTOM_TEXT_ENCODER_NAME": variables["CUSTOM_TEXT_ENCODER_NAME"],
             "WIDTH": variables["WIDTH"],
@@ -1506,12 +1533,14 @@ class SaveImageClean:
                     (
                         "Model variants: "
                         f"Friendly={detection_state['FRIENDLY_MODEL_NAME']} | "
+                        f"Friendly Clean={detection_state['CLEAN_FRIENDLY_MODEL_NAME']} | "
                         f"Exact={detection_state['EXACT_MODEL_NAME']} | "
                         f"Custom={detection_state['CUSTOM_MODEL_NAME'] or '(empty)'}"
                     ),
                     (
                         "Text encoder variants: "
                         f"Friendly={detection_state['FRIENDLY_TEXT_ENCODER_NAME']} | "
+                        f"Friendly Clean={detection_state['CLEAN_FRIENDLY_TEXT_ENCODER_NAME']} | "
                         f"Exact={detection_state['EXACT_TEXT_ENCODER_NAME']} | "
                         f"Custom={detection_state['CUSTOM_TEXT_ENCODER_NAME'] or '(empty)'}"
                     ),
@@ -1544,6 +1573,8 @@ class SaveImageClean:
             "exact_text_encoder_name": detection_state["EXACT_TEXT_ENCODER_NAME"],
             "friendly_model_name": detection_state["FRIENDLY_MODEL_NAME"],
             "friendly_text_encoder_name": detection_state["FRIENDLY_TEXT_ENCODER_NAME"],
+            "clean_friendly_model_name": detection_state["CLEAN_FRIENDLY_MODEL_NAME"],
+            "clean_friendly_text_encoder_name": detection_state["CLEAN_FRIENDLY_TEXT_ENCODER_NAME"],
             "custom_model_name": detection_state["CUSTOM_MODEL_NAME"],
             "custom_text_encoder_name": detection_state["CUSTOM_TEXT_ENCODER_NAME"],
             "width": detection_state["WIDTH"],

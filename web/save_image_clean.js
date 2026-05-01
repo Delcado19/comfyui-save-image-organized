@@ -1,8 +1,8 @@
 import { app } from "../../scripts/app.js";
 
 const NODE_NAME = "SaveImageClean";
-const MODEL_OPTIONS = ["Friendly", "Exact", "Custom"];
-const CLIP_OPTIONS = ["Friendly", "Exact", "Custom"];
+const MODEL_OPTIONS = ["Friendly", "Friendly Clean", "Exact", "Custom"];
+const CLIP_OPTIONS = ["Friendly", "Friendly Clean", "Exact", "Custom"];
 
 const LABELS = {
     path_template: "Save Layout",
@@ -34,6 +34,8 @@ const COMMON_EXTENSIONS = [
     ".onnx",
 ];
 const DATE_TOKEN_RE = /yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s/g;
+const KNOWN_RELEASER_PREFIX_RE = /^(?:goekdeniz[-_]?guelmez|mradermacher)\s*(?:[-_]+\s*|\s+-\s+)(.+)$/i;
+const SPACED_RELEASER_PREFIX_RE = /^\s*[^\\/]{2,40}\s+-\s+(.+)$/;
 const SCALED_FP8_RE = /^(.*?)(?:[ ._-]+)?FP8[ ._-]*(E4M3FN|E5M2)[ ._-]*SCALED$/i;
 const QUANT_RE = /^(.*?)(?:[ ._-]+)?(Q\d+_K_[MS]|Q\d+_K|Q\d+_0|Q\d+|IQ\d+_[A-Z]+|FP8_e4m3fn|FP8_e5m2|BF16|FP16|F16|FP32)$/i;
 const DISPLAY_TAG_ABBREVIATIONS = {
@@ -114,9 +116,11 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "BATCH_INDEX",
     "BATCH_SIZE",
     "FRIENDLY_MODEL_NAME",
+    "CLEAN_FRIENDLY_MODEL_NAME",
     "EXACT_MODEL_NAME",
     "CUSTOM_MODEL_NAME",
     "FRIENDLY_TEXT_ENCODER_NAME",
+    "CLEAN_FRIENDLY_TEXT_ENCODER_NAME",
     "EXACT_TEXT_ENCODER_NAME",
     "CUSTOM_TEXT_ENCODER_NAME",
 ]);
@@ -452,6 +456,25 @@ function humanizeDisplayName(value, kind = "generic") {
     return joinDisplayParts([baseDisplay, ...extraParts, quantDisplay]);
 }
 
+function stripReleaserPrefix(value) {
+    const baseValue = basenameWithoutKnownExtension(value);
+    const knownMatch = baseValue.match(KNOWN_RELEASER_PREFIX_RE);
+    if (knownMatch) {
+        return knownMatch[1].trim();
+    }
+
+    const spacedMatch = baseValue.match(SPACED_RELEASER_PREFIX_RE);
+    if (spacedMatch) {
+        return spacedMatch[1].trim();
+    }
+
+    return value;
+}
+
+function humanizeCleanDisplayName(value, kind = "generic") {
+    return humanizeDisplayName(stripReleaserPrefix(value), kind);
+}
+
 function sanitizePathPart(value) {
     let text = String(value || "").trim();
     for (const char of '<>:"/\\\\|?*') {
@@ -532,11 +555,13 @@ function resolveSelectedValue(sourceLabel, variables, kind) {
     const sourceMap = kind === "model"
         ? {
             Friendly: "FRIENDLY_MODEL_NAME",
+            "Friendly Clean": "CLEAN_FRIENDLY_MODEL_NAME",
             Exact: "EXACT_MODEL_NAME",
             Custom: "CUSTOM_MODEL_NAME",
         }
         : {
             Friendly: "FRIENDLY_TEXT_ENCODER_NAME",
+            "Friendly Clean": "CLEAN_FRIENDLY_TEXT_ENCODER_NAME",
             Exact: "EXACT_TEXT_ENCODER_NAME",
             Custom: "CUSTOM_TEXT_ENCODER_NAME",
         };
@@ -558,6 +583,10 @@ function buildVariables(node, now, detectionSnapshot = null) {
     const friendlyModelName = detectionSnapshot?.friendly_model_name || humanizeDisplayName(SAMPLE_MODEL, "model");
     const friendlyTextEncoderName = detectionSnapshot?.friendly_text_encoder_name
         || humanizeDisplayName(SAMPLE_CLIP, "text_encoder");
+    const cleanFriendlyModelName = detectionSnapshot?.clean_friendly_model_name
+        || humanizeCleanDisplayName(SAMPLE_MODEL, "model");
+    const cleanFriendlyTextEncoderName = detectionSnapshot?.clean_friendly_text_encoder_name
+        || humanizeCleanDisplayName(SAMPLE_CLIP, "text_encoder");
 
     const variables = {
         TOP_FOLDER: topFolder.trim() ? sanitizePathPart(topFolder) : "",
@@ -565,6 +594,8 @@ function buildVariables(node, now, detectionSnapshot = null) {
         EXACT_TEXT_ENCODER_NAME: sanitizePathPart(exactTextEncoderName),
         FRIENDLY_MODEL_NAME: sanitizePathPart(friendlyModelName),
         FRIENDLY_TEXT_ENCODER_NAME: sanitizePathPart(friendlyTextEncoderName),
+        CLEAN_FRIENDLY_MODEL_NAME: sanitizePathPart(cleanFriendlyModelName),
+        CLEAN_FRIENDLY_TEXT_ENCODER_NAME: sanitizePathPart(cleanFriendlyTextEncoderName),
         CUSTOM_MODEL_NAME: customModelName,
         CUSTOM_TEXT_ENCODER_NAME: customTextEncoderName,
         WIDTH: String(detectionSnapshot?.width || "1024"),

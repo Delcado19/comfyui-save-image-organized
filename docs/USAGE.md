@@ -25,8 +25,8 @@ The default filename is:
 
 1. Add the node
 2. Leave `Save Layout` unchanged
-3. Pick `Friendly`, `Exact`, or `Custom` for `Model Name`
-4. Pick `Friendly`, `Exact`, or `Custom` for `Text Encoder Name`
+3. Pick `Friendly`, `Friendly Clean`, `Exact`, or `Custom` for `Model Name`
+4. Pick `Friendly`, `Friendly Clean`, `Exact`, or `Custom` for `Text Encoder Name`
 5. Leave `Filename` unchanged unless you want a different timestamp
 6. Queue the workflow
 
@@ -55,6 +55,7 @@ Controls what `%MODEL_NAME%` becomes.
 Options:
 
 - `Friendly`
+- `Friendly Clean`
 - `Exact`
 - `Custom`
 
@@ -65,8 +66,11 @@ Controls what `%TEXT_ENCODER_NAME%` becomes.
 Options:
 
 - `Friendly`
+- `Friendly Clean`
 - `Exact`
 - `Custom`
+
+`Friendly Clean` keeps the readable `Friendly` formatting but removes known releaser or publisher prefixes such as `mradermacher - ` or `Goekdeniz-Guelmez_` when they are only packaging labels. Use `Friendly` when you want those prefixes preserved, and `Exact` when you want the detected filename stem unchanged.
 
 Common descriptor words in `Friendly` names are shortened into bracket tags:
 
@@ -164,9 +168,11 @@ Options:
 ### Detailed
 
 - `%FRIENDLY_MODEL_NAME%`
+- `%CLEAN_FRIENDLY_MODEL_NAME%`
 - `%EXACT_MODEL_NAME%`
 - `%CUSTOM_MODEL_NAME%`
 - `%FRIENDLY_TEXT_ENCODER_NAME%`
+- `%CLEAN_FRIENDLY_TEXT_ENCODER_NAME%`
 - `%EXACT_TEXT_ENCODER_NAME%`
 - `%CUSTOM_TEXT_ENCODER_NAME%`
 
