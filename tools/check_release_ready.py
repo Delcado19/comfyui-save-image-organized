@@ -213,7 +213,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run the local workflow detection validator.",
     )
-    parser.add_argument("--workflow-limit", type=int, default=12, help="Limit workflow validator rows.")
+    parser.add_argument(
+        "--workflow-limit",
+        type=int,
+        default=None,
+        help="Limit workflow validator rows. By default, all workflows are scanned.",
+    )
     parser.add_argument(
         "--fail-on-detection-miss",
         action="store_true",

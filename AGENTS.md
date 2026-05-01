@@ -43,6 +43,5 @@ Use this role for all Git operations in this repository.
 For release verification, prefer:
 
 ```powershell
-H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag <tag> --github --workflows
+H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection
 ```
-

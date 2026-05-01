@@ -24,7 +24,7 @@ Before opening a pull request, verify at least the following:
 7. `ruff check .` passes in a local development environment with the dev dependencies installed.
 8. `python -m pytest` passes in a local development environment with the dev dependencies installed.
 9. For loader-detection changes, run `python tools/validate_local_workflows.py` against a local ComfyUI workflow folder when available.
-10. Before tagging a release, run `python tools/check_release_ready.py --workflows`; after publishing the tag and GitHub release, run it again with `--tag <version> --github`.
+10. Before tagging a release, run `python tools/check_release_ready.py --workflows --fail-on-unresolved-detection`; after publishing the tag and GitHub release, run it again with `--tag <version> --github --workflows --fail-on-unresolved-detection`.
 
 ## Coding Guidelines
 

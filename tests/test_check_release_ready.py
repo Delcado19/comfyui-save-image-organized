@@ -115,7 +115,7 @@ def test_build_checks_can_fail_only_on_unresolved_detection(monkeypatch):
         github=False,
         python=Path("python"),
         tag=None,
-        workflow_limit=12,
+        workflow_limit=None,
         workflows=True,
     )
 
@@ -123,5 +123,37 @@ def test_build_checks_can_fail_only_on_unresolved_detection(monkeypatch):
 
     assert all(check.ok for check in checks)
     assert workflow_commands == [
-        ["python", "tools/validate_local_workflows.py", "--limit", "12", "--fail-on-unresolved"]
+        ["python", "tools/validate_local_workflows.py", "--fail-on-unresolved"]
     ]
+
+
+def test_build_checks_can_limit_workflow_scan(monkeypatch):
+    workflow_commands = []
+
+    monkeypatch.setattr(
+        check_release_ready,
+        "check_branch_tracking",
+        lambda: check_release_ready.CheckResult("branch tracking", True, "ok"),
+    )
+
+    def fake_command_result(name, command, *, timeout=120):
+        if name == "workflow validator":
+            workflow_commands.append(command)
+        return check_release_ready.CheckResult(name, True, "ok")
+
+    monkeypatch.setattr(check_release_ready, "command_result", fake_command_result)
+
+    args = argparse.Namespace(
+        allow_dirty=True,
+        fail_on_detection_miss=False,
+        fail_on_unresolved_detection=False,
+        github=False,
+        python=Path("python"),
+        tag=None,
+        workflow_limit=12,
+        workflows=True,
+    )
+
+    check_release_ready.build_checks(args)
+
+    assert workflow_commands == [["python", "tools/validate_local_workflows.py", "--limit", "12"]]

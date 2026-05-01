@@ -17,6 +17,7 @@ This file is for continuation context, not end-user documentation.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
 - The current local workflow validator summary is `22` Save nodes, `19 OK`, `0 PARTIAL`, `3 MISS`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable` because those Save nodes are connected only to LoadImage/Upscale branches.
 - The release-readiness checker now has `--fail-on-unresolved-detection`, which is stricter than the default workflow scan but does not fail on expected no-loader Save branches.
+- Release-readiness workflow checks now scan all workflows by default; use `--workflow-limit <n>` only for explicit sampling during development.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
   - `Strip Model Extension`
