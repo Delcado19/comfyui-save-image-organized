@@ -28,8 +28,44 @@ build/
 dist/
 *.egg-info/
 
-output/
-input/
-temp/
-user/
-private-workflows/
+# Local ComfyUI data and exports
+/output/
+/input/
+/temp/
+/user/
+/workflows/
+/workflow_notes/
+/private-workflows/
+*.workflow.json
+*.workflow-api.json
+*.comfy.json
+
+# Workflow exports are usually plain JSON. Keep repo fixtures explicit.
+*.json
+!tests/
+!tests/fixtures/
+!tests/fixtures/*.json
+
+# Generated media and model files
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.mp4
+*.mov
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.gguf
+*.onnx
+*.bin
+!assets/
+!assets/**
+
+# Logs and local scratch files
+*.log
+*.tmp
+*.bak
+*.orig
