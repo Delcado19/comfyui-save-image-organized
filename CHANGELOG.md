@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - repository `AGENTS.md` policy for Git operations, release checks, and CI verification
 - maintainer workflow validation now reports a `reason` for each Save node in table and JSON output
+- release-readiness checks can fail only on unresolved reachable-loader detection problems while allowing expected no-loader save branches
 
 ### Fixed
 

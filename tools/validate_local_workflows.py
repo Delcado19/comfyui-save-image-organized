@@ -256,6 +256,7 @@ def _summary(rows: list[DetectionRow], errors: list[str]) -> dict[str, int]:
         "ok": sum(1 for row in rows if row.status == "OK"),
         "partial": sum(1 for row in rows if row.status == "PARTIAL"),
         "miss": sum(1 for row in rows if row.status == "MISS"),
+        "unresolved": sum(1 for row in rows if "no name resolved" in row.reason),
         "errors": len(errors),
     }
 
@@ -282,6 +283,11 @@ def parse_args() -> argparse.Namespace:
         "--fail-on-miss",
         action="store_true",
         help="Exit non-zero if any SaveImageClean node has no model or text encoder detection.",
+    )
+    parser.add_argument(
+        "--fail-on-unresolved",
+        action="store_true",
+        help="Exit non-zero if a reachable loader exists but its name cannot be resolved.",
     )
     return parser.parse_args()
 
@@ -316,6 +322,8 @@ def main() -> int:
     if errors:
         return 1
     if args.fail_on_miss and (summary["partial"] or summary["miss"]):
+        return 1
+    if args.fail_on_unresolved and summary["unresolved"]:
         return 1
     return 0
 

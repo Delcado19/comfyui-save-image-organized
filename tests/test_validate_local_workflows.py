@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 
-from tools.validate_local_workflows import scan_workflows, workflow_to_prompt
+from tools.validate_local_workflows import (
+    DetectionRow,
+    _summary,
+    scan_workflows,
+    workflow_to_prompt,
+)
 
 
 def _ui_workflow():
@@ -165,3 +170,38 @@ def test_scan_workflows_explains_missing_loader_branch(workspace_tmp_path):
     assert rows[0].reason == "no model/text encoder loader reachable"
     assert rows[0].model == ""
     assert rows[0].text_encoder == ""
+
+
+def test_summary_counts_unresolved_loader_names():
+    rows = [
+        DetectionRow(
+            workflow="ok.json",
+            save_id="1",
+            model="model.safetensors",
+            text_encoder="clip.safetensors",
+            reason="detected",
+        ),
+        DetectionRow(
+            workflow="expected-miss.json",
+            save_id="2",
+            model="",
+            text_encoder="",
+            reason="no model/text encoder loader reachable",
+        ),
+        DetectionRow(
+            workflow="broken-loader.json",
+            save_id="3",
+            model="",
+            text_encoder="clip.safetensors",
+            reason="model loader reachable but no name resolved",
+        ),
+    ]
+
+    assert _summary(rows, []) == {
+        "save_nodes": 3,
+        "ok": 1,
+        "partial": 1,
+        "miss": 1,
+        "unresolved": 1,
+        "errors": 0,
+    }

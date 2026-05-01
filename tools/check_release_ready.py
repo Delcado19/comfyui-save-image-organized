@@ -180,6 +180,8 @@ def build_checks(args: argparse.Namespace) -> list[CheckResult]:
             workflow_command.extend(["--limit", str(args.workflow_limit)])
         if args.fail_on_detection_miss:
             workflow_command.append("--fail-on-miss")
+        if args.fail_on_unresolved_detection:
+            workflow_command.append("--fail-on-unresolved")
         checks.append(command_result("workflow validator", workflow_command))
 
     if args.tag:
@@ -216,6 +218,11 @@ def parse_args() -> argparse.Namespace:
         "--fail-on-detection-miss",
         action="store_true",
         help="Make workflow validation fail on PARTIAL or MISS rows.",
+    )
+    parser.add_argument(
+        "--fail-on-unresolved-detection",
+        action="store_true",
+        help="Make workflow validation fail only when a reachable loader has no resolved name.",
     )
     parser.add_argument(
         "--allow-dirty",
