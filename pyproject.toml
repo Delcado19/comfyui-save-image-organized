@@ -1,3 +1,27 @@
+[project]
+name = "save-image-organized"
+version = "0.5.0"
+description = "Organized image saving for ComfyUI with model-aware folders and template variables."
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "Pillow",
+]
+classifiers = [
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/Delcado19/comfyui-save-image-organized"
+Documentation = "https://github.com/Delcado19/comfyui-save-image-organized#readme"
+"Bug Tracker" = "https://github.com/Delcado19/comfyui-save-image-organized/issues"
+
+[tool.comfy]
+PublisherId = "delcado"
+DisplayName = "Save Image Organized"
+Banner = "https://raw.githubusercontent.com/Delcado19/comfyui-save-image-organized/main/assets/github-social-preview.png"
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
