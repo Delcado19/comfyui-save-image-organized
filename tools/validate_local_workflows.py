@@ -18,6 +18,7 @@ class DetectionRow:
     save_id: str
     model: str
     text_encoder: str
+    reason: str
 
     @property
     def status(self) -> str:
@@ -26,6 +27,46 @@ class DetectionRow:
         if self.model or self.text_encoder:
             return "PARTIAL"
         return "MISS"
+
+
+def _detection_reason(prompt: Any, save_id: str, active_names: dict[str, str], nodes_module: Any) -> str:
+    model = active_names["ACTIVE_UNET"]
+    text_encoder = active_names["ACTIVE_CLIP"]
+    if model and text_encoder:
+        return "detected"
+
+    has_model_loader = False
+    has_text_encoder_loader = False
+    for _, node, _ in nodes_module._walk_prompt_upstream(prompt, save_id):
+        class_type = str(node.get("class_type", ""))
+        inputs = node.get("inputs", {})
+        if not isinstance(inputs, dict):
+            inputs = {}
+
+        has_model_loader = has_model_loader or nodes_module._get_unet_loader_priority(
+            class_type,
+            inputs,
+        ) is not None
+        has_text_encoder_loader = has_text_encoder_loader or nodes_module._get_clip_loader_priority(
+            class_type,
+            inputs,
+        ) is not None
+        checkpoint_loader_priority = nodes_module._get_checkpoint_loader_priority(class_type, inputs)
+        if checkpoint_loader_priority is not None:
+            has_model_loader = True
+            has_text_encoder_loader = True
+
+    if not has_model_loader and not has_text_encoder_loader:
+        return "no model/text encoder loader reachable"
+    if not model and not has_model_loader:
+        return "no model loader reachable"
+    if not text_encoder and not has_text_encoder_loader:
+        return "no text encoder loader reachable"
+    if not model:
+        return "model loader reachable but no name resolved"
+    if not text_encoder:
+        return "text encoder loader reachable but no name resolved"
+    return "detected"
 
 
 def _ensure_repo_imports() -> None:
@@ -183,6 +224,7 @@ def scan_workflows(workflow_root: Path, *, limit: int | None = None) -> tuple[li
                     save_id=save_id,
                     model=active_names["ACTIVE_UNET"],
                     text_encoder=active_names["ACTIVE_CLIP"],
+                    reason=_detection_reason(prompt, save_id, active_names, nodes),
                 )
             )
             if limit is not None and len(rows) >= limit:
@@ -195,12 +237,12 @@ def _print_table(rows: list[DetectionRow], errors: list[str]) -> None:
     if not rows:
         print("No SaveImageClean nodes found.")
     else:
-        header = f"{'STATUS':8} {'SAVE':>5} {'WORKFLOW':60} MODEL / TEXT ENCODER"
+        header = f"{'STATUS':8} {'SAVE':>5} {'REASON':38} {'WORKFLOW':60} MODEL / TEXT ENCODER"
         print(header)
         print("-" * len(header))
         for row in rows:
             names = f"{row.model or '<none>'} / {row.text_encoder or '<none>'}"
-            print(f"{row.status:8} {row.save_id:>5} {row.workflow[:60]:60} {names}")
+            print(f"{row.status:8} {row.save_id:>5} {row.reason:38} {row.workflow[:60]:60} {names}")
 
     if errors:
         print("\nErrors:")

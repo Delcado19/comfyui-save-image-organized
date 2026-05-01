@@ -9,12 +9,13 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is released at tag `v0.4.0`.
 - `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
-- `main` is currently two commits past `v0.4.0`; the post-release changes update handoff status and add the repository `AGENTS.md` Git Operations Agent policy.
+- `main` is ahead of `v0.4.0` with post-release maintainer updates for handoff status, repository Git policy, and workflow validation diagnostics.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
-- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy and unnamed Reroute input validation fix under `Unreleased`.
+- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy, unnamed Reroute input validation fix, and workflow-validation reason reporting under `Unreleased`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
-- The current local workflow validator summary is `22` Save nodes, `19 OK`, `0 PARTIAL`, `3 MISS`, and `0 errors`; the remaining MISS cases are Save nodes connected only to LoadImage/Upscale branches with no reachable model or text-encoder loader.
+- Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
+- The current local workflow validator summary is `22` Save nodes, `19 OK`, `0 PARTIAL`, `3 MISS`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable` because those Save nodes are connected only to LoadImage/Upscale branches.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
   - `Strip Model Extension`

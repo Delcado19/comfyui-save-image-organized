@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - repository `AGENTS.md` policy for Git operations, release checks, and CI verification
+- maintainer workflow validation now reports a `reason` for each Save node in table and JSON output
 
 ### Fixed
 

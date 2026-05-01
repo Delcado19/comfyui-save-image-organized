@@ -81,6 +81,29 @@ def _ui_workflow_with_unnamed_reroute():
     }
 
 
+def _ui_workflow_without_reachable_loader():
+    return {
+        "nodes": [
+            {
+                "id": 1,
+                "type": "SaveImageClean",
+                "inputs": [{"name": "images", "type": "IMAGE", "link": 12}],
+            },
+            {
+                "id": 2,
+                "type": "LoadImage",
+                "inputs": [
+                    {"name": "image", "type": "COMBO", "widget": {"name": "image"}},
+                ],
+                "widgets_values": ["input.png"],
+            },
+        ],
+        "links": [
+            [12, 2, 0, 1, 0, "IMAGE"],
+        ],
+    }
+
+
 def test_workflow_to_prompt_converts_ui_links_and_widgets():
     prompt = workflow_to_prompt(_ui_workflow())
 
@@ -107,6 +130,7 @@ def test_scan_workflows_detects_saved_ui_workflow(workspace_tmp_path):
     assert errors == []
     assert len(rows) == 1
     assert rows[0].status == "OK"
+    assert rows[0].reason == "detected"
     assert rows[0].model == "SDXL/Anubis XL_v1.safetensors"
     assert rows[0].text_encoder == "SDXL/Anubis XL_v1.safetensors"
 
@@ -122,5 +146,22 @@ def test_scan_workflows_follows_unnamed_reroute_inputs(workspace_tmp_path):
     assert errors == []
     assert len(rows) == 1
     assert rows[0].status == "OK"
+    assert rows[0].reason == "detected"
     assert rows[0].model == "SDXL/Anubis XL_v1.safetensors"
     assert rows[0].text_encoder == "SDXL/Anubis XL_v1.safetensors"
+
+
+def test_scan_workflows_explains_missing_loader_branch(workspace_tmp_path):
+    (workspace_tmp_path / "workflow.json").write_text(
+        json.dumps(_ui_workflow_without_reachable_loader()),
+        encoding="utf-8",
+    )
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert errors == []
+    assert len(rows) == 1
+    assert rows[0].status == "MISS"
+    assert rows[0].reason == "no model/text encoder loader reachable"
+    assert rows[0].model == ""
+    assert rows[0].text_encoder == ""
