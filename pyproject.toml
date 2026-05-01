@@ -1,6 +1,6 @@
 [project]
 name = "save-image-organized"
-version = "0.5.0"
+version = "0.5.1"
 description = "Organized image saving for ComfyUI with model-aware folders and template variables."
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -20,6 +20,7 @@ Documentation = "https://github.com/Delcado19/comfyui-save-image-organized#readm
 [tool.comfy]
 PublisherId = "delcado"
 DisplayName = "Save Image Organized"
+Icon = "https://raw.githubusercontent.com/Delcado19/comfyui-save-image-organized/main/assets/registry-icon.svg"
 Banner = "https://raw.githubusercontent.com/Delcado19/comfyui-save-image-organized/main/assets/github-social-preview.png"
 
 [tool.ruff]

@@ -8,7 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.5.0`.
+- The current registry version is `0.5.1`.
+- `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
 - `v0.5.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions runs.
 - `main` includes post-`v0.5.0` documentation updates for Registry installation and the GitHub Actions publishing workflow.
 - `main` includes post-`v0.4.0` maintainer updates for handoff status, repository Git policy, workflow validation diagnostics, stricter release gates, full workflow release scans, and the optional `Friendly Clean` name sources.
@@ -35,6 +36,7 @@ This file is for continuation context, not end-user documentation.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
 - Registry publishing is configured in `pyproject.toml` and automated by `.github/workflows/publish_action.yml` with the `REGISTRY_ACCESS_TOKEN` repository secret.
+- Registry icon metadata points at `assets/registry-icon.svg`; keep it square and within the Comfy Registry icon requirements.
 
 ## Released In v0.2.0
 
@@ -117,6 +119,14 @@ The following items are the core of the `v0.5.0` release:
 - release-readiness checks can fail on unresolved reachable-loader detection problems while allowing expected no-loader Save branches
 - release-readiness workflow checks scan all workflows by default, with `--workflow-limit` kept for explicit sampling
 - `Friendly Clean` model and text-encoder name sources remove known releaser or publisher prefixes while preserving `Friendly`, `Exact`, and raw detection behavior
+
+## Released In v0.5.1
+
+The following items are the core of the `v0.5.1` release:
+
+- dedicated square Comfy Registry icon asset
+- `Icon` metadata in `pyproject.toml`
+- Comfy Registry installation and publishing documentation updates
 
 ## Known Gaps
 

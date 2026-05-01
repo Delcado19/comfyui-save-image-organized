@@ -4,8 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.5.1] - 2026-05-01
+
 ### Added
 
+- Comfy Registry icon metadata and a dedicated square registry icon asset
 - documentation for Comfy Registry installation and the GitHub Actions publishing workflow
 
 ## [0.5.0] - 2026-05-01
