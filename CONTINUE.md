@@ -9,7 +9,9 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is released at tag `v0.4.0`.
 - `v0.4.0` is tagged locally, present on `origin`, published as a GitHub Release, and verified by a passing GitHub Actions run.
+- `main` is currently two commits past `v0.4.0`; the post-release changes update handoff status and add the repository `AGENTS.md` Git Operations Agent policy.
 - `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
+- `CHANGELOG.md` now tracks the post-release `AGENTS.md` policy under `Unreleased`.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - The repo currently exposes two nodes:
   - `Save Image Organized`
@@ -112,6 +114,7 @@ The following items are the core of the `v0.4.0` release:
 1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
 2. Evaluate an optional releaser/publisher cleanup toggle for friendly names without changing `Exact` names.
 3. Keep `CHANGELOG.md` moving from the current `Unreleased` section into the next tagged release.
+4. If the post-release maintainer policy remains useful after a few runs, include it in the next patch release notes.
 
 ## Deferred Ideas
 

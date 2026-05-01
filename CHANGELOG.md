@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- repository `AGENTS.md` policy for Git operations, release checks, and CI verification
 
 ## [0.4.0] - 2026-05-01
 
