@@ -13,7 +13,7 @@ This file is for continuation context, not end-user documentation.
 - `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.
 - The latest full release gate passed with `H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag v0.5.3 --github --workflows --fail-on-unresolved-detection`.
 - The latest verified GitHub Actions release runs are `25248828655` for CI and `25248828645` for `Publish to Comfy Registry`, both successful.
-- The latest verified GitHub Actions CI run for `main` is `25251347108` for commit `53b60b7` (`Refine registry icon artwork`), successful.
+- Post-`v0.5.3` maintainer commits on `main` have passed GitHub Actions CI; verify the latest run with `gh run list --limit 5` before release work.
 - The local live ComfyUI custom-node install at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\comfyui-save-image-organized` has been refreshed from `v0.5.0` to current `main`; installed `nodes.py` imports successfully and exposes `SaveImageClean` as `Save Image Organized`.
 - `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
