@@ -9,7 +9,10 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.5.3`.
+- `v0.5.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.
+- The latest full release gate passed with `H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag v0.5.3 --github --workflows --fail-on-unresolved-detection`.
+- The latest verified GitHub Actions runs are `25248828655` for CI and `25248828645` for `Publish to Comfy Registry`, both successful.
 - `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
 - `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
@@ -40,7 +43,7 @@ This file is for continuation context, not end-user documentation.
 - Maintainer workflow validation is available via `python tools/validate_local_workflows.py`.
 - Maintainer workflow migration is available via `python tools/migrate_save_image_nodes.py`; it dry-runs by default, writes only with `--write`, and can fail verification with `--verify-no-standard`.
 - Release readiness checks are available via `python tools/check_release_ready.py`.
-- Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
+- Detection summaries and helper snapshots include upstream loader node labels and upstream link distance when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
 - A local `private-workflows` Friendly Clean audit found only the already-covered packager prefixes `Goekdeniz-Guelmez`, `Goekdeniz_Guelmez`, and `mradermacher`; no new prefix stripping rule was added. Regression tests preserve creator/producer-style prefixes such as `Huihui` and `Lockout`.
