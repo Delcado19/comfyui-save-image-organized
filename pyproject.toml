@@ -1,6 +1,6 @@
 [project]
 name = "save-image-organized"
-version = "0.5.3"
+version = "0.6.0"
 description = "Organized image saving for ComfyUI with model-aware folders and template variables."
 license = { file = "LICENSE" }
 requires-python = ">=3.10"

@@ -8,11 +8,11 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.5.3`.
+- The current registry version is `0.6.0`.
+- `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
 - `v0.5.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.
-- The latest full release gate passed with `H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag v0.5.3 --github --workflows --fail-on-unresolved-detection`.
-- The latest verified GitHub Actions release runs are `25248828655` for CI and `25248828645` for `Publish to Comfy Registry`, both successful.
+- Post-`v0.6.0` release gate: run `H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag v0.6.0 --github --workflows --fail-on-unresolved-detection` after tagging and publishing.
 - Post-`v0.5.3` maintainer commits on `main` have passed GitHub Actions CI; verify the latest run with `gh run list --limit 5` before release work.
 - The local live ComfyUI custom-node install at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\comfyui-save-image-organized` has been refreshed from `v0.5.0` to current `main`; installed `nodes.py` imports successfully and exposes `SaveImageClean` as `Save Image Organized`.
 - `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
