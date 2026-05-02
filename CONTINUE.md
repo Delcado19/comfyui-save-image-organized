@@ -21,6 +21,7 @@ This file is for continuation context, not end-user documentation.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
 - The current local `private-workflows` validator summary is `103` Save Image Organized nodes, `70 OK`, `0 PARTIAL`, `33 MISS`, `0 unresolved`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable`.
+- The `33` private-workflow MISS nodes have been classified as expected image-only or postprocessing branches: `21` VTON variants are fed by `LoadImage` sources through anonymized subgraph/composite nodes, `8` are `FastFilmGrain`/`FastLaplacianSharpen` branches from `LoadImage`, and `4` are image upscale branches using `UpscaleModelLoader` rather than a generation model loader.
 - The ignored local `private-workflows` folder has been migrated from standard `SaveImage` nodes to `SaveImageClean` nodes: `60` workflow files changed locally, `80` standard `SaveImage` nodes replaced, and `0` standard `SaveImage` nodes remain.
 - During the local private-workflow migration, node `id`, `pos`, `size`, `flags`, `order`, `mode`, `title`, image input links, and global link IDs were preserved. Existing `filename_prefix` values were carried into the new `Save Layout` as `<old prefix>/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%`.
 - One pre-existing private workflow link-table inconsistency remains outside Save nodes: `private-workflows/VTON/Codex/Flux2 klein 9b Virtual Try-On 6.0.2 (Codex).json` has link `176` targeting input slot `0` on `List of strings [Crystools]`, while the node stores that link on `string_2`.
@@ -145,7 +146,7 @@ The following items are the core of the `v0.5.2` release:
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
 - The automated test suite is still modest, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, bridge/switch traversal, widget-only loaders, postprocessing-only save branches, and prompt references via `Node name for S&R` or node id.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior. The ignored `private-workflows` folder provides a larger local workflow corpus, but it is not public test coverage and should not replace tracked regression fixtures.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, basic save/metadata behavior, migration tooling, and expected image-only workflow MISS branches. The ignored `private-workflows` folder provides a larger local workflow corpus, but it is not public test coverage and should not replace tracked regression fixtures.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, bridge nodes, and switch nodes, but third-party custom-node ecosystems remain the most likely place for future edge cases.
 - Some save or preview nodes in real workflows legitimately resolve to empty detection because their current branch only contains input-image, postprocessing, or utility nodes and no sampler/loader path. That behavior is expected and should not be treated as a detection bug by itself.
@@ -153,9 +154,9 @@ The following items are the core of the `v0.5.2` release:
 
 ## Next Priorities
 
-1. Keep using `private-workflows` as a local migration and detection regression corpus, especially the `33` expected no-loader MISS branches and mixed GGUF/safetensors workflows.
-2. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
-3. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
+1. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
+2. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
+3. Keep `private-workflows` as a local migration and detection regression corpus, especially mixed GGUF/safetensors workflows and future custom-node branches.
 4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
 5. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.
 

@@ -109,6 +109,76 @@ def _ui_workflow_without_reachable_loader():
     }
 
 
+def _ui_workflow_with_image_only_postprocess():
+    return {
+        "nodes": [
+            {
+                "id": 1,
+                "type": "SaveImageClean",
+                "inputs": [{"name": "images", "type": "IMAGE", "link": 12}],
+            },
+            {
+                "id": 2,
+                "type": "FastFilmGrain",
+                "inputs": [{"name": "image", "type": "IMAGE", "link": 11}],
+            },
+            {
+                "id": 3,
+                "type": "LoadImage",
+                "inputs": [
+                    {"name": "image", "type": "COMBO", "widget": {"name": "image"}},
+                ],
+                "widgets_values": ["input.png"],
+            },
+        ],
+        "links": [
+            [11, 3, 0, 2, 0, "IMAGE"],
+            [12, 2, 0, 1, 0, "IMAGE"],
+        ],
+    }
+
+
+def _ui_workflow_with_upscale_model_only():
+    return {
+        "nodes": [
+            {
+                "id": 1,
+                "type": "SaveImageClean",
+                "inputs": [{"name": "images", "type": "IMAGE", "link": 12}],
+            },
+            {
+                "id": 2,
+                "type": "Upscale by Factor with Model (WLSH)",
+                "inputs": [
+                    {"name": "image", "type": "IMAGE", "link": 10},
+                    {"name": "upscale_model", "type": "UPSCALE_MODEL", "link": 11},
+                ],
+            },
+            {
+                "id": 3,
+                "type": "LoadImage",
+                "inputs": [
+                    {"name": "image", "type": "COMBO", "widget": {"name": "image"}},
+                ],
+                "widgets_values": ["input.png"],
+            },
+            {
+                "id": 4,
+                "type": "UpscaleModelLoader",
+                "inputs": [
+                    {"name": "model_name", "type": "COMBO", "widget": {"name": "model_name"}},
+                ],
+                "widgets_values": ["upscaler.pth"],
+            },
+        ],
+        "links": [
+            [10, 3, 0, 2, 0, "IMAGE"],
+            [11, 4, 0, 2, 1, "UPSCALE_MODEL"],
+            [12, 2, 0, 1, 0, "IMAGE"],
+        ],
+    }
+
+
 def test_workflow_to_prompt_converts_ui_links_and_widgets():
     prompt = workflow_to_prompt(_ui_workflow())
 
@@ -170,6 +240,34 @@ def test_scan_workflows_explains_missing_loader_branch(workspace_tmp_path):
     assert rows[0].reason == "no model/text encoder loader reachable"
     assert rows[0].model == ""
     assert rows[0].text_encoder == ""
+
+
+def test_scan_workflows_treats_image_only_postprocess_as_expected_miss(workspace_tmp_path):
+    (workspace_tmp_path / "workflow.json").write_text(
+        json.dumps(_ui_workflow_with_image_only_postprocess()),
+        encoding="utf-8",
+    )
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert errors == []
+    assert len(rows) == 1
+    assert rows[0].status == "MISS"
+    assert rows[0].reason == "no model/text encoder loader reachable"
+
+
+def test_scan_workflows_does_not_treat_upscale_model_as_generation_model(workspace_tmp_path):
+    (workspace_tmp_path / "workflow.json").write_text(
+        json.dumps(_ui_workflow_with_upscale_model_only()),
+        encoding="utf-8",
+    )
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert errors == []
+    assert len(rows) == 1
+    assert rows[0].status == "MISS"
+    assert rows[0].reason == "no model/text encoder loader reachable"
 
 
 def test_summary_counts_unresolved_loader_names():

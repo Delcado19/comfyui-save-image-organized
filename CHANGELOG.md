@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - maintainer helper for dry-run verification and in-place migration from standard ComfyUI `SaveImage` workflow nodes to `SaveImageClean`
+- regression coverage for expected image-only private workflow MISS branches, including postprocessing and upscale-model-only save paths
 
 ## [0.5.2] - 2026-05-02
 
