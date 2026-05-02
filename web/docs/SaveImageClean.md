@@ -66,6 +66,7 @@ Options:
 Example for a detected model `flux-2-klein-9b-Q5_K_M.gguf`:
 
 - `Friendly` -> `FLUX.2 Klein 9B [5K-M]`
+- `Friendly Clean` -> `FLUX.2 Klein 9B [5K-M]` (no packager prefix in this filename)
 - `Exact` -> `flux-2-klein-9b-Q5_K_M`
 - `Custom` -> uses `Custom Model Name`
 
@@ -83,8 +84,15 @@ Options:
 Example for a detected text encoder `Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf`:
 
 - `Friendly` -> `Lockout Qwen3 4B zimage V2 [Her][Q8]`
+- `Friendly Clean` -> `Lockout Qwen3 4B zimage V2 [Her][Q8]` (no packager prefix — `Lockout` is a creator name)
 - `Exact` -> `Lockout-Qwen3-4b-zimage-hereticV2-q8`
 - `Custom` -> uses `Custom Text Encoder Name`
+
+Example with a packager prefix (`mradermacher - Lockout-Qwen3-4b-q8.gguf`):
+
+- `Friendly` -> `Mradermacher Lockout Qwen3 4B [Q8]`
+- `Friendly Clean` -> `Lockout Qwen3 4B [Q8]` (packager prefix removed)
+- `Exact` -> `mradermacher - Lockout-Qwen3-4b-q8`
 
 Common descriptor words in `Friendly` names are shortened into bracket tags:
 

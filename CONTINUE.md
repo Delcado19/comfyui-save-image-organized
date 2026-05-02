@@ -210,6 +210,7 @@ The following items are the core of the `v0.6.1` release:
 
 - Verify default save layout produces `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%`.
 - Verify `Friendly`, `Friendly Clean`, `Exact`, and `Custom` selection for both model and text encoder.
+- Verify `Friendly Clean` removes known packager prefixes such as `mradermacher -` and `Goekdeniz-Guelmez_` while preserving creator/producer names like `Lockout` and `Huihui`.
 - Verify custom names are used as fallback when detection fails.
 - Verify `%date:...%` tokens render correctly for both multi-letter and single-letter tokens.
 - Verify supported `%strftime:...%` directives render and unsupported directives fail clearly.

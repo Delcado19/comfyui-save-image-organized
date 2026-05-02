@@ -92,8 +92,10 @@ Both dropdowns use the same four choices:
 Examples:
 
 - `Friendly` model name: `FLUX.2 Klein 9B [5K-M]`
+- `Friendly Clean` model name: `FLUX.2 Klein 9B [5K-M]` (same — no packager prefix in this filename)
 - `Exact` model name: `flux-2-klein-9b-Q5_K_M`
 - `Friendly` text encoder: `Lockout Qwen3 4B zimage V2 [Her][Q8]`
+- `Friendly Clean` text encoder: `Lockout Qwen3 4B zimage V2 [Her][Q8]` (same — `Lockout` is a creator, not a packager)
 - `Exact` text encoder: `Lockout-Qwen3-4b-zimage-hereticV2-q8`
 
 `Friendly Clean` uses the same readable formatting as `Friendly`, but removes known releaser or publisher prefixes such as `mradermacher - ` or `Goekdeniz-Guelmez_` when they are only packaging labels. `Friendly`, `Exact`, and the raw detected names stay unchanged.
