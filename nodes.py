@@ -1225,7 +1225,7 @@ class StripModelExtension:
 class SaveImageClean:
     """Save images into a readable folder layout with template support."""
 
-    DEFAULT_TEMPLATE = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%"
+    DEFAULT_TEMPLATE = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%"
     DESCRIPTION = (
         "Save images into a clean, readable folder structure.\n\n"
         "Quick start:\n"
@@ -1235,6 +1235,7 @@ class SaveImageClean:
         "- Clear Save Layout only if you want the built-in folder order instead of a custom layout\n\n"
         "Default result example:\n"
         "portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22_15-30-10.png\n\n"
+        "For multi-image batches, %BATCH% automatically adds _1-of-4, _2-of-4, and so on.\n\n"
         "Open the Info tab for copy-paste templates, variable explanations, and beginner examples."
     )
     SEARCH_ALIASES = [
@@ -1264,7 +1265,8 @@ class SaveImageClean:
                         "default": cls.DEFAULT_TEMPLATE,
                         "tooltip": (
                             "Main save layout. The default layout is Top Folder / Model Name / "
-                            "Text Encoder Name / Filename. Clear it only if you want the built-in order."
+                            "Text Encoder Name / Filename plus an automatic batch suffix for multi-image saves. "
+                            "Clear it only if you want the built-in order."
                         ),
                     },
                 ),
@@ -1486,6 +1488,7 @@ class SaveImageClean:
             "SAMPLER": sampler_value or "",
             "SCHEDULER": scheduler_value or "",
             "DENOISE": denoise_value or "",
+            "BATCH": f"_{batch_index}-of-{batch_size}" if batch_size > 1 else "",
             "BATCH_INDEX": str(batch_index),
             "BATCH_SIZE": str(batch_size),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
@@ -1533,6 +1536,7 @@ class SaveImageClean:
             "SAMPLER": variables["SAMPLER"],
             "SCHEDULER": variables["SCHEDULER"],
             "DENOISE": variables["DENOISE"],
+            "BATCH": variables["BATCH"],
             "BATCH_INDEX": variables["BATCH_INDEX"],
             "BATCH_SIZE": variables["BATCH_SIZE"],
         }
@@ -1647,6 +1651,7 @@ class SaveImageClean:
             "sampler": detection_state["SAMPLER"],
             "scheduler": detection_state["SCHEDULER"],
             "denoise": detection_state["DENOISE"],
+            "batch": detection_state["BATCH"],
             "batch_index": detection_state["BATCH_INDEX"],
             "batch_size": detection_state["BATCH_SIZE"],
         }
@@ -1695,7 +1700,7 @@ class SaveImageClean:
         clean_model = _sanitize_path_component(variables["MODEL_NAME"])
         clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
         clean_subfolder = _sanitize_path_component(subfolder) if subfolder.strip() else ""
-        base_name = variables["FILENAME"]
+        base_name = f"{variables['FILENAME']}{variables['BATCH']}"
 
         relative_path = Path(clean_model) / clean_clip / f"{base_name}.png"
         if clean_subfolder:

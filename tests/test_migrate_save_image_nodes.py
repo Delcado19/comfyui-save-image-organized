@@ -92,7 +92,7 @@ def test_migrate_workflow_preserves_ui_geometry_and_links(workspace_tmp_path):
     ]
     assert save_node["widgets_values"] == [
         "",
-        "renders/test/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%",
+        "renders/test/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%",
         "Friendly",
         "Friendly",
         "",
@@ -147,7 +147,7 @@ def test_migrate_workflow_updates_api_prompt_inputs(workspace_tmp_path):
         "class_type": ORGANIZED_NODE_TYPE,
         "inputs": {
             "images": ["2", 0],
-            "path_template": "ComfyUI/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%",
+            "path_template": "ComfyUI/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%",
             "model_source": "Friendly",
             "clip_source": "Friendly",
             "filename_datetime": DEFAULT_FILENAME_PATTERN,

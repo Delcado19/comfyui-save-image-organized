@@ -61,7 +61,7 @@ The node is built around four plain concepts:
 Default save layout:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 Default filename:
@@ -75,6 +75,8 @@ Example result:
 ```text
 portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
 ```
+
+For multi-image batches, `%BATCH%` automatically adds `_1-of-4`, `_2-of-4`, and so on. For single-image saves, `%BATCH%` is empty.
 
 If `Top Folder` is empty, no extra folder is added.
 
@@ -117,6 +119,7 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%MODEL_NAME%`
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
+- `%BATCH%`
 
 ### Convenience Variables
 
@@ -131,7 +134,7 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves. `%BATCH_SIZE%` is the total number of images in the current save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH%` is empty for single-image saves and becomes a filename-safe suffix such as `_1-of-4` for multi-image saves. `%BATCH_INDEX%` is `1`, `2`, `3`, and so on for multi-image saves. `%BATCH_SIZE%` is the total number of images in the current save batch.
 
 ### Detection Info
 
@@ -177,7 +180,7 @@ Options:
 Default:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 Model only:

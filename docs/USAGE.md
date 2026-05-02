@@ -12,7 +12,7 @@
 The default layout is:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 The default filename is:
@@ -36,6 +36,8 @@ Example result:
 portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22_15-30-10.png
 ```
 
+For multi-image batches, `%BATCH%` automatically adds `_1-of-4`, `_2-of-4`, and so on. For single-image saves, `%BATCH%` is empty.
+
 ## Main Inputs
 
 ### Save Layout
@@ -45,7 +47,7 @@ Main folder layout for the saved image.
 Default:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 ### Model Name
@@ -149,6 +151,7 @@ Options:
 - `%MODEL_NAME%`
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
+- `%BATCH%`
 
 ### Convenience
 
@@ -163,7 +166,7 @@ Options:
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH%` is empty for single-image saves and becomes a filename-safe suffix such as `_1-of-4` for multi-image saves. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
 
 ### Detailed
 
@@ -181,7 +184,7 @@ Options:
 ### Default
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 ### No top folder
@@ -211,7 +214,7 @@ Options:
 ### Include batch position and batch size
 
 ```text
-%MODEL_NAME%/%BATCH_INDEX%-of-%BATCH_SIZE%/%FILENAME%
+%MODEL_NAME%/%FILENAME%_%BATCH_INDEX%-of-%BATCH_SIZE%
 ```
 
 ## `%node.widget%`

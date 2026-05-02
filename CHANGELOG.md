@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - path template filters `lower`, `upper`, and `slug` for variables and `%node.widget%` placeholders
+- `%BATCH%` template variable, which is empty for single-image saves and expands to `_1-of-N` for multi-image batches
+
+### Changed
+
+- default Save Layout now appends `%BATCH%` to `%FILENAME%` so multi-image batch saves avoid same-second filename collisions by default
+- workflow migration helper now appends `%BATCH%` when converting standard ComfyUI `SaveImage` filename prefixes
 
 ## [0.5.3] - 2026-05-02
 

@@ -15,7 +15,7 @@ The easiest setup is:
 Default save layout:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 Default filename:
@@ -32,6 +32,8 @@ portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22
 
 If `Top Folder` is empty, no extra folder is added.
 
+For multi-image batches, `%BATCH%` automatically adds `_1-of-4`, `_2-of-4`, and so on. For single-image saves, `%BATCH%` is empty.
+
 ## What The Main Fields Mean
 
 ### Save Layout
@@ -41,7 +43,7 @@ This controls the folder structure.
 Default:
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 Meaning:
@@ -50,6 +52,7 @@ Meaning:
 - `%MODEL_NAME%` = the current result of the `Model Name` dropdown
 - `%TEXT_ENCODER_NAME%` = the current result of the `Text Encoder Name` dropdown
 - `%FILENAME%` = the current result of the `Filename` field
+- `%BATCH%` = empty for one image, or `_1-of-4`, `_2-of-4`, and so on for multi-image batches
 
 ### Model Name
 
@@ -166,6 +169,7 @@ Options:
 - `%MODEL_NAME%`
 - `%TEXT_ENCODER_NAME%`
 - `%FILENAME%`
+- `%BATCH%`
 
 ### Convenience variables
 
@@ -180,7 +184,7 @@ Options:
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH%` is empty for single-image saves and becomes a filename-safe suffix such as `_1-of-4` for multi-image saves. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
 
 ### Optional detailed variables
 
@@ -212,7 +216,7 @@ portraits/flux-2-klein-9b-Q5_K_M/2026-04-22_15-30-10.png
 ### Default
 
 ```text
-%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%
+%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%
 ```
 
 ### Model only
@@ -236,7 +240,7 @@ portraits/flux-2-klein-9b-Q5_K_M/2026-04-22_15-30-10.png
 ### Batch position + batch size
 
 ```text
-%MODEL_NAME%/%BATCH_INDEX%-of-%BATCH_SIZE%/%FILENAME%
+%MODEL_NAME%/%FILENAME%_%BATCH_INDEX%-of-%BATCH_SIZE%
 ```
 
 ## `%node.widget%` Placeholders

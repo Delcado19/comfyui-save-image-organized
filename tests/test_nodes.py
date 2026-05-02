@@ -955,6 +955,42 @@ def test_save_images_increments_across_multiple_images_and_creates_files(workspa
     assert second_file.exists()
 
 
+def test_default_layout_adds_batch_suffix_for_multi_image_saves(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="error",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        filename_datetime="sample-output",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert [item["filename"] for item in saved_images] == [
+        "sample-output_1-of-2.png",
+        "sample-output_2-of-2.png",
+    ]
+    assert all(item["subfolder"] == r"model\text encoder" for item in saved_images)
+    assert (workspace_tmp_path / "model" / "text encoder" / "sample-output_1-of-2.png").exists()
+    assert (workspace_tmp_path / "model" / "text encoder" / "sample-output_2-of-2.png").exists()
+
+    payload = result["ui"]["save_image_clean"][0]
+    assert payload["batch"] == "_1-of-2"
+    assert payload["batch_index"] == "1"
+    assert payload["batch_size"] == "2"
+
+
 def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

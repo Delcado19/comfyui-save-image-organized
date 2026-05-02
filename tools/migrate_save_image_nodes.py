@@ -11,7 +11,7 @@ DEFAULT_WORKFLOW_ROOT = Path("private-workflows")
 STANDARD_NODE_TYPE = "SaveImage"
 ORGANIZED_NODE_TYPE = "SaveImageClean"
 DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
-PATH_SUFFIX = "%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%"
+PATH_SUFFIX = "%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%"
 ORGANIZED_AUX_ID = "Delcado19/comfyui-save-image-organized"
 
 

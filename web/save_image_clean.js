@@ -19,7 +19,7 @@ const LABELS = {
 
 const SAMPLE_MODEL = "flux-2-klein-9b-Q5_K_M.gguf";
 const SAMPLE_CLIP = "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf";
-const DEFAULT_LAYOUT = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%";
+const DEFAULT_LAYOUT = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%";
 const DEFAULT_FILENAME = "%date:yyyy-MM-dd_hh-mm-ss%";
 const VARIABLE_TOKEN_RE = /%([A-Z0-9_]+)((?::[a-z]+)*)%/g;
 const NODE_WIDGET_TOKEN_RE = /%([^%./\\]+)\.([^%./\\:]+)((?::[a-z]+)*)%/g;
@@ -113,6 +113,7 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "SAMPLER",
     "SCHEDULER",
     "DENOISE",
+    "BATCH",
     "BATCH_INDEX",
     "BATCH_SIZE",
     "FRIENDLY_MODEL_NAME",
@@ -611,6 +612,7 @@ function buildVariables(node, now, detectionSnapshot = null) {
         BATCH_SIZE: String(detectionSnapshot?.batch_size || "1"),
         FILENAME: buildFilenameValue(node, now),
     };
+    variables.BATCH = Number(variables.BATCH_SIZE) > 1 ? `_${variables.BATCH_INDEX}-of-${variables.BATCH_SIZE}` : "";
 
     variables.MODEL_NAME = resolveSelectedValue(modelSource, variables, "model");
     variables.TEXT_ENCODER_NAME = resolveSelectedValue(clipSource, variables, "clip");
