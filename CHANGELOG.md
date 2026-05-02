@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Added
+
+- maintainer helper for dry-run verification and in-place migration from standard ComfyUI `SaveImage` workflow nodes to `SaveImageClean`
 
 ## [0.5.2] - 2026-05-02
 

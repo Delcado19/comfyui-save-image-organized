@@ -36,6 +36,7 @@ This file is for continuation context, not end-user documentation.
   - `Filename`
 - The visible node rename to `Save Image Organized` is already implemented in code and reflected in docs.
 - Maintainer workflow validation is available via `python tools/validate_local_workflows.py`.
+- Maintainer workflow migration is available via `python tools/migrate_save_image_nodes.py`; it dry-runs by default, writes only with `--write`, and can fail verification with `--verify-no-standard`.
 - Release readiness checks are available via `python tools/check_release_ready.py`.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
@@ -156,7 +157,7 @@ The following items are the core of the `v0.5.2` release:
 2. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
 3. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
 4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
-5. If private workflow migration becomes recurring, add a small tracked migration/verification helper instead of relying on one-off scripts.
+5. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.
 
 ## Deferred Ideas
 
@@ -199,6 +200,7 @@ The following items are the core of the `v0.5.2` release:
 - Verify PNG prompt metadata is preserved in saved files.
 - Verify the frontend helper panel updates when relevant widgets change.
 - For ignored `private-workflows`, verify standard `SaveImage` node count stays `0` after migrations and rerun `tools/validate_local_workflows.py private-workflows --json`.
+- For repeat migrations, run `tools/migrate_save_image_nodes.py private-workflows --verify-no-standard` after any `--write` pass.
 
 ## Release Checklist
 
