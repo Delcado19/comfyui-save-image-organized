@@ -30,6 +30,33 @@ def test_humanize_clean_display_name_removes_known_releaser_prefix():
     assert value == "Josiefied Qwen3 8B V1 [Ablt][4K-M]"
 
 
+def test_humanize_clean_display_name_removes_spaced_releaser_prefix():
+    value = nodes._humanize_clean_display_name(
+        "mradermacher - Josiefied-Qwen3-4B-abliterated-v2.Q8_0.gguf",
+        kind="text_encoder",
+    )
+
+    assert value == "Josiefied Qwen3 4B V2 [Ablt][Q8]"
+
+
+@pytest.mark.parametrize(
+    ("raw_name", "expected"),
+    [
+        (
+            "Huihui-Qwen3-4B-abliterated-v2.Q6_K.gguf",
+            "Huihui Qwen3 4B V2 [Ablt][6K]",
+        ),
+        (
+            "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf",
+            "Lockout Qwen3 4B zimage V2 [Her][Q8]",
+        ),
+    ],
+)
+def test_humanize_clean_display_name_preserves_creator_prefixes(raw_name, expected):
+    assert nodes._humanize_display_name(raw_name, kind="text_encoder") == expected
+    assert nodes._humanize_clean_display_name(raw_name, kind="text_encoder") == expected
+
+
 def test_render_date_format_supports_single_letter_tokens():
     now = datetime(2026, 4, 22, 21, 7, 5)
     rendered = nodes._render_date_format("yyyy-M-d_h-m-s", now)

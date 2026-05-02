@@ -42,6 +42,7 @@ This file is for continuation context, not end-user documentation.
 - Detection summaries and helper snapshots include upstream loader node labels when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
+- A local `private-workflows` Friendly Clean audit found only the already-covered packager prefixes `Goekdeniz-Guelmez`, `Goekdeniz_Guelmez`, and `mradermacher`; no new prefix stripping rule was added. Regression tests preserve creator/producer-style prefixes such as `Huihui` and `Lockout`.
 - Registry publishing is configured in `pyproject.toml` and automated by `.github/workflows/publish_action.yml` with the `REGISTRY_ACCESS_TOKEN` repository secret.
 - Registry icon metadata points at `assets/registry-icon.svg`; keep it square and within the Comfy Registry icon requirements.
 
@@ -154,8 +155,8 @@ The following items are the core of the `v0.5.2` release:
 
 ## Next Priorities
 
-1. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
-2. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
+1. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
+2. Keep watching `Friendly Clean` prefix rules against new real filenames, but add new stripping rules only when the prefix is clearly a packager label rather than a creator or producer.
 3. Keep `private-workflows` as a local migration and detection regression corpus, especially mixed GGUF/safetensors workflows and future custom-node branches.
 4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
 5. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.

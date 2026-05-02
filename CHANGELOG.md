@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - maintainer helper for dry-run verification and in-place migration from standard ComfyUI `SaveImage` workflow nodes to `SaveImageClean`
 - regression coverage for expected image-only private workflow MISS branches, including postprocessing and upscale-model-only save paths
+- regression coverage that keeps `Friendly Clean` conservative: known packager prefixes are removed while creator or producer prefixes remain intact
 
 ## [0.5.2] - 2026-05-02
 
