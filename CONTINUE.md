@@ -8,7 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.5.1`.
+- The current registry version is `0.5.2`.
+- `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
 - `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
 - `v0.5.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions runs.
 - `main` includes post-`v0.5.0` documentation updates for Registry installation and the GitHub Actions publishing workflow.
@@ -127,6 +128,13 @@ The following items are the core of the `v0.5.1` release:
 - dedicated square Comfy Registry icon asset
 - `Icon` metadata in `pyproject.toml`
 - Comfy Registry installation and publishing documentation updates
+
+## Released In v0.5.2
+
+The following items are the core of the `v0.5.2` release:
+
+- preserved the Inkscape-authored Comfy Registry icon design
+- updated SVG title, description, ARIA labeling, and document-name metadata for the registry icon asset
 
 ## Known Gaps
 

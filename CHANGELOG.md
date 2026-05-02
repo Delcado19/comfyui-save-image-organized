@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 No unreleased changes yet.
 
+## [0.5.2] - 2026-05-02
+
+### Changed
+
+- Updated the Comfy Registry icon source metadata while preserving the existing Inkscape-authored design
+
 ## [0.5.1] - 2026-05-01
 
 ### Added
