@@ -8,7 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.6.0`.
+- The current registry version is `0.6.1`.
+- `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
 - `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
 - `v0.5.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.

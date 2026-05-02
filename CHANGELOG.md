@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-05-02
+
 ### Added
 
 - runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout
