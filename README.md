@@ -145,7 +145,7 @@ Options:
 
 Use it when you want to see which model and text encoder names were detected, whether custom fallback was used, and which visible output names were finally selected.
 
-When detection comes from the workflow, the output also includes the upstream loader node label, such as `UNETLoader (node id 3)`, so you can confirm which branch produced the selected name.
+When detection comes from the workflow, the output also includes the upstream loader node label and link distance, such as `UNETLoader (node id 3), 2 upstream links`, so you can confirm which branch produced the selected name.
 
 If a save node sits on a postprocessing-only branch with no sampler or loader upstream, Detection Info will say that no workflow loader was found on that save branch. In that case the node falls back to the default placeholders unless you provide custom names.
 

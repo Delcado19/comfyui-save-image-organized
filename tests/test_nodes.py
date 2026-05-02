@@ -668,7 +668,12 @@ def test_save_images_includes_detection_summary_in_ui_text(workspace_tmp_path):
 
     assert result["ui"]["text"][0].endswith(".png") is False
     assert "Detection Summary" in result["ui"]["text"]
-    assert any("Model detection: workflow loader -> flux-2-klein-9b-Q5_K_M" in line for line in result["ui"]["text"])
+    assert any(
+        "Model detection: workflow loader -> flux-2-klein-9b-Q5_K_M "
+        "(from UNETLoader (node id 3), 2 upstream links)"
+        in line
+        for line in result["ui"]["text"]
+    )
     assert any("Model output: Friendly -> FLUX.2 Klein 9B [5K-M]" in line for line in result["ui"]["text"])
     assert any(
         "Text encoder output: Exact -> Lockout-Qwen3-4b-zimage-hereticV2-q8" in line
@@ -798,6 +803,8 @@ def test_save_images_includes_structured_detection_snapshot_in_ui(workspace_tmp_
     assert payload["text_encoder_detection_source"] == "workflow"
     assert payload["model_detection_label"] == "UNETLoader (node id 3)"
     assert payload["text_encoder_detection_label"] == "CLIPLoaderGGUF (node id 4)"
+    assert payload["model_detection_distance"] == 2
+    assert payload["text_encoder_detection_distance"] == 2
     assert payload["detected_model_name"] == "flux-2-klein-9b-Q5_K_M"
     assert payload["detected_text_encoder_name"] == "Lockout-Qwen3-4b-zimage-hereticV2-q8"
     assert payload["selected_model_source"] == "Friendly"

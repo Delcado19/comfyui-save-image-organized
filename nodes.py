@@ -1023,7 +1023,7 @@ def _resolve_prompt_input_value(
     )
 
 
-def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, str]:
+def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
     best_unet: tuple[int, int, int, str, str, str] | None = None
     best_clip: tuple[int, int, int, str, str, str] | None = None
 
@@ -1064,6 +1064,8 @@ def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, str]:
         "ACTIVE_CLIP": best_clip[4] if best_clip else "",
         "ACTIVE_UNET_SOURCE": best_unet[5] if best_unet else "",
         "ACTIVE_CLIP_SOURCE": best_clip[5] if best_clip else "",
+        "ACTIVE_UNET_DISTANCE": best_unet[1] if best_unet else None,
+        "ACTIVE_CLIP_DISTANCE": best_clip[1] if best_clip else None,
     }
 
 
@@ -1073,6 +1075,16 @@ def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
         "ACTIVE_UNET": details["ACTIVE_UNET"],
         "ACTIVE_CLIP": details["ACTIVE_CLIP"],
     }
+
+
+def _format_detection_loader_source(label: str, distance: int | None) -> str:
+    if not label:
+        return ""
+    if not isinstance(distance, int):
+        return label
+
+    link_label = "upstream link" if distance == 1 else "upstream links"
+    return f"{label}, {distance} {link_label}"
 
 
 def _render_path_template(template: str, variables: dict[str, str], now: datetime, prompt: Any) -> str:
@@ -1455,6 +1467,10 @@ class SaveImageClean:
             ),
             "MODEL_DETECTION_LABEL": active_names["ACTIVE_UNET_SOURCE"] if active_names["ACTIVE_UNET"] else "",
             "TEXT_ENCODER_DETECTION_LABEL": active_names["ACTIVE_CLIP_SOURCE"] if active_names["ACTIVE_CLIP"] else "",
+            "MODEL_DETECTION_DISTANCE": active_names["ACTIVE_UNET_DISTANCE"] if active_names["ACTIVE_UNET"] else None,
+            "TEXT_ENCODER_DETECTION_DISTANCE": active_names["ACTIVE_CLIP_DISTANCE"]
+            if active_names["ACTIVE_CLIP"]
+            else None,
             "MANUAL_MODEL_NAME": manual_model,
             "MANUAL_TEXT_ENCODER_NAME": manual_clip,
             "SELECTED_MODEL_SOURCE": model_source,
@@ -1483,7 +1499,7 @@ class SaveImageClean:
 
         return variables, detection_state
 
-    def _build_detection_info_lines(self, detection_info: str, detection_state: dict[str, str]) -> list[str]:
+    def _build_detection_info_lines(self, detection_info: str, detection_state: dict[str, Any]) -> list[str]:
         if detection_info == "Off":
             return []
 
@@ -1493,9 +1509,11 @@ class SaveImageClean:
             detected_value: str,
             manual_value: str,
             detection_label: str,
+            detection_distance: int | None,
         ) -> str:
             if detection_source == "workflow":
-                source_suffix = f" (from {detection_label})" if detection_label else ""
+                source_detail = _format_detection_loader_source(detection_label, detection_distance)
+                source_suffix = f" (from {source_detail})" if source_detail else ""
                 return f"{kind_label} detection: workflow loader -> {detected_value}{source_suffix}"
             if detection_source == "custom_fallback":
                 return f"{kind_label} detection: custom fallback -> {manual_value}"
@@ -1509,6 +1527,7 @@ class SaveImageClean:
                 detection_state["DETECTED_MODEL_NAME"],
                 detection_state["MANUAL_MODEL_NAME"],
                 detection_state["MODEL_DETECTION_LABEL"],
+                detection_state["MODEL_DETECTION_DISTANCE"],
             ),
             (
                 f"Model output: {detection_state['SELECTED_MODEL_SOURCE']} -> "
@@ -1520,6 +1539,7 @@ class SaveImageClean:
                 detection_state["DETECTED_TEXT_ENCODER_NAME"],
                 detection_state["MANUAL_TEXT_ENCODER_NAME"],
                 detection_state["TEXT_ENCODER_DETECTION_LABEL"],
+                detection_state["TEXT_ENCODER_DETECTION_DISTANCE"],
             ),
             (
                 f"Text encoder output: {detection_state['SELECTED_TEXT_ENCODER_SOURCE']} -> "
@@ -1553,7 +1573,7 @@ class SaveImageClean:
         self,
         *,
         preview: str,
-        detection_state: dict[str, str],
+        detection_state: dict[str, Any],
         detection_lines: list[str],
     ) -> dict[str, Any]:
         return {
@@ -1563,6 +1583,8 @@ class SaveImageClean:
             "text_encoder_detection_source": detection_state["TEXT_ENCODER_DETECTION_SOURCE"],
             "model_detection_label": detection_state["MODEL_DETECTION_LABEL"],
             "text_encoder_detection_label": detection_state["TEXT_ENCODER_DETECTION_LABEL"],
+            "model_detection_distance": detection_state["MODEL_DETECTION_DISTANCE"],
+            "text_encoder_detection_distance": detection_state["TEXT_ENCODER_DETECTION_DISTANCE"],
             "detected_model_name": detection_state["DETECTED_MODEL_NAME"],
             "detected_text_encoder_name": detection_state["DETECTED_TEXT_ENCODER_NAME"],
             "selected_model_source": detection_state["SELECTED_MODEL_SOURCE"],

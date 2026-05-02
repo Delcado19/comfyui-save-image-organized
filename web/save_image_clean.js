@@ -841,9 +841,14 @@ function setLastRunStateFromMessage(node, message) {
     };
 }
 
-function formatDetectionSourceLabel(source, value, sourceLabel = "") {
+function formatDetectionSourceLabel(source, value, sourceLabel = "", sourceDistance = null) {
     if (source === "workflow") {
-        const suffix = sourceLabel ? ` (from ${sourceLabel})` : "";
+        const parsedDistance = Number(sourceDistance);
+        const distanceLabel = Number.isInteger(parsedDistance)
+            ? `${parsedDistance} upstream link${parsedDistance === 1 ? "" : "s"}`
+            : "";
+        const sourceDetail = [sourceLabel, distanceLabel].filter(Boolean).join(", ");
+        const suffix = sourceDetail ? ` (from ${sourceDetail})` : "";
         return `workflow loader -> ${value || "(empty)"}${suffix}`;
     }
     if (source === "custom_fallback") {
@@ -862,12 +867,14 @@ function buildDetectionSnapshotLines(snapshot) {
             snapshot.model_detection_source,
             snapshot.detected_model_name,
             snapshot.model_detection_label,
+            snapshot.model_detection_distance,
         )}`,
         `Model output: ${snapshot.selected_model_source} -> ${snapshot.selected_model_name}`,
         `Text encoder detection: ${formatDetectionSourceLabel(
             snapshot.text_encoder_detection_source,
             snapshot.detected_text_encoder_name,
             snapshot.text_encoder_detection_label,
+            snapshot.text_encoder_detection_distance,
         )}`,
         `Text encoder output: ${snapshot.selected_text_encoder_source} -> ${snapshot.selected_text_encoder_name}`,
     ];

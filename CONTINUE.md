@@ -155,15 +155,14 @@ The following items are the core of the `v0.5.2` release:
 
 ## Next Priorities
 
-1. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
-2. Keep watching `Friendly Clean` prefix rules against new real filenames, but add new stripping rules only when the prefix is clearly a packager label rather than a creator or producer.
-3. Keep `private-workflows` as a local migration and detection regression corpus, especially mixed GGUF/safetensors workflows and future custom-node branches.
-4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
-5. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.
+1. Keep watching `Friendly Clean` prefix rules against new real filenames, but add new stripping rules only when the prefix is clearly a packager label rather than a creator or producer.
+2. Keep `private-workflows` as a local migration and detection regression corpus, especially mixed GGUF/safetensors workflows and future custom-node branches.
+3. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
+4. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.
 
 ## Deferred Ideas
 
-- Small UI diagnostics such as which loader path produced the active names
+- More detailed UI diagnostics beyond the selected loader label and upstream link distance, if real workflows need them
 - Expanded collision strategies:
   - millisecond timestamp option
   - hash-based suffix option
