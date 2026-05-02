@@ -8,7 +8,8 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.5.2`.
+- The current registry version is `0.5.3`.
+- `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.
 - `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
 - `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
@@ -142,6 +143,15 @@ The following items are the core of the `v0.5.2` release:
 
 - preserved the Inkscape-authored Comfy Registry icon design
 - updated SVG title, description, ARIA labeling, and document-name metadata for the registry icon asset
+
+## Released In v0.5.3
+
+The following items are the core of the `v0.5.3` release:
+
+- maintainer helper for dry-run verification and in-place migration from standard ComfyUI `SaveImage` workflow nodes to `SaveImageClean`
+- regression coverage for expected image-only private workflow MISS branches, including postprocessing and upscale-model-only save paths
+- regression coverage that keeps `Friendly Clean` conservative: known packager prefixes are removed while creator or producer prefixes remain intact
+- detection diagnostics now include the selected loader node's upstream link distance in UI text and structured helper payloads
 
 ## Known Gaps
 
