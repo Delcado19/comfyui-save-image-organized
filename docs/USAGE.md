@@ -272,6 +272,20 @@ The preview is reusing the last known detected names after a layout-related edit
 
 Hard-refresh the ComfyUI page after updating the custom node. If the old behavior stays visible, restart ComfyUI as well because frontend JavaScript can be cached.
 
+### Batch images are overwritten or produce an error with a custom layout
+
+If you use `collision_mode=overwrite` or `collision_mode=error` with a custom Save Layout and save more than one image at a time, all images in the batch resolve to the same path. The node will warn you in its text output when this condition is detected.
+
+To fix it, add `%BATCH%` to your Save Layout:
+
+```text
+%MODEL_NAME%/%FILENAME%%BATCH%
+```
+
+This makes each image in the batch get a unique name such as `frame_1-of-3.png`, `frame_2-of-3.png`, and `frame_3-of-3.png`. For single-image saves, `%BATCH%` is empty and nothing changes.
+
+Alternatively, switch `If File Exists` to `increment`, which handles the collision automatically.
+
 ## Date And Time
 
 You can choose between:

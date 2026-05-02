@@ -991,6 +991,108 @@ def test_default_layout_adds_batch_suffix_for_multi_image_saves(workspace_tmp_pa
     assert payload["batch_size"] == "2"
 
 
+def test_batch_collision_warning_in_error_mode_appears_in_exception_message(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    with pytest.raises(FileExistsError, match="Warning.*collision_mode='error'"):
+        saver.save_images(
+            images=images,
+            path_template="%TOP_FOLDER%/%FILENAME%",
+            collision_mode="error",
+            model_source="Friendly",
+            clip_source="Friendly",
+            detection_info="Off",
+            export_workflow_metadata=True,
+            subfolder="warn-test",
+            filename_datetime="img",
+            prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+            unique_id="1",
+        )
+
+
+def test_batch_collision_warning_emitted_for_overwrite_mode_without_batch_variable(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="overwrite",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="warn-test-overwrite",
+        filename_datetime="img",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    text = result["ui"]["text"]
+    assert any("Warning" in line and "collision_mode='overwrite'" in line for line in text)
+
+
+def test_no_batch_collision_warning_when_batch_variable_present(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%%BATCH%",
+        collision_mode="error",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="no-warn-test",
+        filename_datetime="img",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    text = result["ui"]["text"]
+    assert not any("Warning" in line for line in text)
+
+
+def test_no_batch_collision_warning_for_increment_mode(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="no-warn-increment",
+        filename_datetime="img",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    text = result["ui"]["text"]
+    assert not any("Warning" in line for line in text)
+
+
 def test_batch_variable_is_empty_for_single_image_save(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

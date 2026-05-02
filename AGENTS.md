@@ -45,3 +45,58 @@ For release verification, prefer:
 ```powershell
 H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection
 ```
+
+## Release Pipeline Agent
+
+Use this role to prepare and publish a complete release.
+
+### Steps
+
+1. Read `CONTINUE.md` and `CHANGELOG.md [Unreleased]` to confirm what changed.
+2. Determine the next version: patch for fixes only, minor for any new user-visible feature.
+3. Run all checks in order:
+   ```powershell
+   node --check web\save_image_clean.js
+   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m py_compile nodes.py
+   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m pytest
+   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m ruff check .
+   H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --workflows
+   ```
+4. Update `CHANGELOG.md`: move `[Unreleased]` entries to `[X.Y.Z] - YYYY-MM-DD`.
+5. Update `version` in `pyproject.toml`.
+6. Update `CONTINUE.md` current state section.
+7. Commit: `Release vX.Y.Z: <one-line summary>`.
+8. Push and verify CI passes.
+9. Tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+10. Create GitHub Release with the new `CHANGELOG.md` section as notes.
+11. Run the final gate:
+    ```powershell
+    H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag vX.Y.Z --github --workflows --fail-on-unresolved-detection
+    ```
+
+### Autonomy
+
+Follows the same Git autonomy rules as the Git Operations Agent. No confirmation needed for any step unless the final gate fails.
+
+## Docs Sync Checker Agent
+
+Use this role after any code change that touches naming, detection, helper preview, template variables, or visible UI to verify all sync files are consistent.
+
+### Sync Files
+
+Check that each of these files reflects the current behavior:
+
+- `nodes.py`
+- `web/save_image_clean.js`
+- `README.md`
+- `docs/USAGE.md`
+- `web/docs/SaveImageClean.md`
+- `CHANGELOG.md`
+- `CONTINUE.md`
+
+### Steps
+
+1. Read the changed source files to understand what behavior changed.
+2. Read each sync file and check whether it still accurately describes that behavior.
+3. Report which files are out of date and what specifically needs updating.
+4. Apply the updates and verify consistency across all seven files before committing.

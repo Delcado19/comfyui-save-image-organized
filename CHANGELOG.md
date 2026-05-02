@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout
+- `Release Pipeline` and `Docs Sync Checker` agent definitions in `AGENTS.md`
+
 ## [0.6.0] - 2026-05-02
 
 ### Added

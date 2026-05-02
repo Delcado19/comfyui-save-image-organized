@@ -418,6 +418,13 @@ def _humanize_clean_display_name(value: str, *, kind: str = "generic") -> str:
     return _humanize_display_name(_strip_releaser_prefix(value), kind=kind)
 
 
+_BATCH_DIFFERENTIATORS = frozenset({"%BATCH%", "%BATCH_INDEX%", "%BATCH_SIZE%"})
+
+
+def _has_batch_differentiator(template: str) -> bool:
+    return any(var in template for var in _BATCH_DIFFERENTIATORS)
+
+
 def _normalize_template_file_path(value: str) -> Path:
     relative_path = _sanitize_relative_path(value)
     if relative_path.suffix.lower() == ".png":
@@ -1766,6 +1773,19 @@ class SaveImageClean:
         detection_lines: list[str] = []
         detection_ui_payload: dict[str, Any] | None = None
         batch_size = len(images)
+        batch_collision_warning: str | None = None
+        if (
+            batch_size > 1
+            and collision_mode in ("error", "overwrite")
+            and path_template
+            and not _has_batch_differentiator(path_template)
+        ):
+            batch_collision_warning = (
+                f"Warning: saving {batch_size} images with collision_mode={collision_mode!r} "
+                "but the Save Layout contains no batch variable. "
+                "Add %BATCH% after %FILENAME% to give each image a unique name, "
+                "or switch to collision_mode='increment'."
+            )
         for batch_index, image in enumerate(images, start=1):
             array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             image_height, image_width = array.shape[:2]
@@ -1794,11 +1814,16 @@ class SaveImageClean:
                     detection_lines=current_detection_lines,
                 )
 
-            target_path = self._resolve_target_path(
-                output_root=output_root,
-                relative_path=relative_path,
-                collision_mode=collision_mode,
-            )
+            try:
+                target_path = self._resolve_target_path(
+                    output_root=output_root,
+                    relative_path=relative_path,
+                    collision_mode=collision_mode,
+                )
+            except FileExistsError as exc:
+                if batch_collision_warning:
+                    raise FileExistsError(f"{exc}\n{batch_collision_warning}") from exc
+                raise
 
             pil_image = Image.fromarray(array)
             pil_image.save(target_path, pnginfo=metadata, compress_level=self.compress_level)
@@ -1811,7 +1836,10 @@ class SaveImageClean:
                 }
             )
 
-        ui = {"images": saved, "text": [preview, *detection_lines]}
+        text_output = [preview, *detection_lines]
+        if batch_collision_warning:
+            text_output.append(batch_collision_warning)
+        ui = {"images": saved, "text": text_output}
         if detection_ui_payload is not None:
             ui["save_image_clean"] = [detection_ui_payload]
         return {"ui": ui}

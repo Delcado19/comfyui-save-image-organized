@@ -298,6 +298,14 @@ If detection fails:
 - `Custom Model Name` is used as fallback
 - `Custom Text Encoder Name` is used as fallback
 
+### Batch Collision Warning
+
+If you use a custom Save Layout without `%BATCH%`, `%BATCH_INDEX%`, or `%BATCH_SIZE%` and save more than one image at a time with `If File Exists` set to `error` or `overwrite`, all images in the batch resolve to the same filename. The node detects this and outputs a warning.
+
+Fix: add `%BATCH%` after `%FILENAME%` in your layout, or switch `If File Exists` to `increment`.
+
+The default layout already includes `%BATCH%` and is safe for all collision modes.
+
 ### Troubleshooting Detection And Preview
 
 If the node still shows default names such as `model` or `text-encoder`, the current save branch probably does not expose a supported upstream loader path. This can happen when the save node only receives an image from postprocessing nodes, when the active switch branch bypasses the loader path, or when a custom loader stores model names in an unsupported widget shape.
