@@ -91,6 +91,54 @@ def test_render_path_template_resolves_variables_and_widget_placeholders():
     assert rendered == "portraits/FLUX.2 Klein 9B [5K-M]/42/2026-04-22_21-22-05"
 
 
+def test_render_path_template_applies_variable_filters():
+    rendered = nodes._render_path_template(
+        "%MODEL_NAME:slug%/%TEXT_ENCODER_NAME:lower%/%FILENAME:upper%",
+        {
+            "MODEL_NAME": "FLUX.2 Klein 9B [5K-M]",
+            "TEXT_ENCODER_NAME": "Lockout Qwen3 4B zimage V2 [Her][Q8]",
+            "FILENAME": "preview_name",
+        },
+        datetime(2026, 4, 22, 21, 22, 5),
+        {},
+    )
+
+    assert rendered == "flux-2-klein-9b-5k-m/lockout qwen3 4b zimage v2 [her][q8]/PREVIEW_NAME"
+
+
+def test_render_path_template_applies_widget_filters():
+    rendered = nodes._render_path_template(
+        "%KSampler.sampler_name:upper%/%KSampler.scheduler:slug%",
+        {},
+        datetime(2026, 4, 22, 21, 22, 5),
+        {
+            "10": {
+                "class_type": "KSampler",
+                "inputs": {
+                    "sampler_name": "dpmpp_2m",
+                    "scheduler": "Karras scheduler",
+                },
+                "title": "KSampler",
+            }
+        },
+    )
+
+    assert rendered == "DPMPP_2M/karras-scheduler"
+
+
+def test_render_path_template_rejects_unknown_filters():
+    with pytest.raises(
+        ValueError,
+        match=r"Unknown template filter 'title' in placeholder '%MODEL_NAME:title%'. Supported filters: lower, upper, slug.",
+    ):
+        nodes._render_path_template(
+            "%MODEL_NAME:title%",
+            {"MODEL_NAME": "model"},
+            datetime(2026, 4, 22, 21, 22, 5),
+            {},
+        )
+
+
 def test_render_path_template_rejects_unknown_variables():
     with pytest.raises(ValueError, match=r"Unknown path template variables: MODLE_NAME \(did you mean MODEL_NAME\?\)"):
         nodes._render_path_template(

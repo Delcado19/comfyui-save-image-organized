@@ -255,6 +255,22 @@ Example:
 %MODEL_NAME%/%KSampler.seed%/%FILENAME%
 ```
 
+## Template Filters
+
+Append a small text filter to template variables or `%node.widget%` placeholders:
+
+```text
+%MODEL_NAME:slug%/%TEXT_ENCODER_NAME:slug%/%KSampler.seed%/%FILENAME%
+```
+
+Available filters:
+
+- `lower` lowercases the value
+- `upper` uppercases the value
+- `slug` converts text to lowercase path-friendly words separated by hyphens
+
+Filters can be chained from left to right, for example `%MODEL_NAME:lower:slug%`.
+
 ## Date And Time
 
 You can format dates and times in two ways:

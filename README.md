@@ -10,7 +10,7 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 
 - cleaner `Save Image` behavior for ComfyUI outputs
 - readable folder names for models and text encoders
-- filename templates with `%date:...%`, `%strftime:...%`, and `%node.widget%`
+- filename templates with `%date:...%`, `%strftime:...%`, `%node.widget%`, and small text filters
 - automatic model and text encoder detection from the active workflow
 - PNG workflow metadata export that matches ComfyUI's normal `Save Image` behavior
 - optional switch to disable embedded workflow metadata export entirely
@@ -199,6 +199,16 @@ Examples:
 - `%KSampler.seed%`
 - `%Empty Latent Image.width%`
 - `%Empty Latent Image.height%`
+
+### Template Filters
+
+Append `:lower`, `:upper`, or `:slug` to template variables or `%node.widget%` placeholders:
+
+```text
+%MODEL_NAME:slug%/%TEXT_ENCODER_NAME:slug%/%KSampler.seed%/%FILENAME%
+```
+
+Filters can be chained, for example `%MODEL_NAME:lower:slug%`. `slug` converts text to lowercase path-friendly words separated by hyphens.
 
 ### Date Formatting
 

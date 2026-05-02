@@ -25,12 +25,13 @@ COMMON_EXTENSIONS = (
 WINDOWS_RESERVED_CHARS = '<>:"/\\|?*'
 PATH_SPLIT_RE = re.compile(r"[\\/]+")
 DATE_TOKEN_RE = re.compile(r"%date:([^%]+)%")
-VARIABLE_TOKEN_RE = re.compile(r"%([A-Z0-9_]+)%")
-SEARCH_REPLACE_TOKEN_RE = re.compile(r"%([^%./\\]+)\.([^%./\\]+)%")
+VARIABLE_TOKEN_RE = re.compile(r"%([A-Z0-9_]+)((?::[a-z]+)*)%")
+SEARCH_REPLACE_TOKEN_RE = re.compile(r"%([^%./\\]+)\.([^%./\\:]+)((?::[a-z]+)*)%")
 UNKNOWN_TOKEN_RE = re.compile(r"%([^%]+)%")
 DATE_FORMAT_TOKEN_RE = re.compile(r"yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s")
 STRFTIME_DIRECTIVE_RE = re.compile(r"%(?:[%YymdHMSf]|[A-Za-z])")
 IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
+SLUG_SEPARATOR_RE = re.compile(r"[^a-z0-9]+")
 DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
 KNOWN_RELEASER_PREFIX_RE = re.compile(
@@ -62,6 +63,7 @@ DISPLAY_TAG_ABBREVIATIONS = {
     "turbo": "[Tbo]",
 }
 DISPLAY_DROP_WORDS = {"gguf", "gptq", "awq"}
+TEMPLATE_FILTERS = ("lower", "upper", "slug")
 KNOWN_IMAGE_MODEL_DISPLAY_ALIASES = (
     ("flux2klein9b", "FLUX.2 Klein 9B"),
     ("flux2klein4b", "FLUX.2 Klein 4B"),
@@ -923,6 +925,34 @@ def _coerce_template_value(value: Any) -> str | None:
     return None
 
 
+def _parse_template_filters(filter_text: str, placeholder: str) -> list[str]:
+    filters = [item for item in (filter_text or "").split(":") if item]
+    unknown = [item for item in filters if item not in TEMPLATE_FILTERS]
+    if unknown:
+        raise ValueError(
+            f"Unknown template filter '{unknown[0]}' in placeholder '{placeholder}'. "
+            f"Supported filters: {', '.join(TEMPLATE_FILTERS)}."
+        )
+    return filters
+
+
+def _slugify_template_value(value: str) -> str:
+    slug = SLUG_SEPARATOR_RE.sub("-", (value or "").casefold()).strip("-")
+    return slug or "unnamed"
+
+
+def _apply_template_filters(value: str, filters: list[str]) -> str:
+    rendered = value
+    for filter_name in filters:
+        if filter_name == "lower":
+            rendered = rendered.lower()
+        elif filter_name == "upper":
+            rendered = rendered.upper()
+        elif filter_name == "slug":
+            rendered = _slugify_template_value(rendered)
+    return rendered
+
+
 def _format_preview_list(values: list[str], *, limit: int = 5) -> str:
     items = [value for value in values if value]
     if not items:
@@ -982,6 +1012,7 @@ def _resolve_prompt_input_value(
     widget_name: str,
     *,
     placeholder: str | None = None,
+    filters: list[str] | None = None,
 ) -> str:
     node_id, node = _find_prompt_node(prompt, node_name, placeholder=placeholder)
     inputs = node.get("inputs", {})
@@ -1013,7 +1044,7 @@ def _resolve_prompt_input_value(
 
     coerced = _coerce_template_value(value)
     if coerced is not None:
-        return coerced
+        return _apply_template_filters(coerced, filters or [])
 
     raise ValueError(
         f"Template reference '{node_name}.{widget_name}'"
@@ -1093,15 +1124,17 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
 
     rendered = DATE_TOKEN_RE.sub(replace_date, template or "")
     rendered = _replace_strftime_tokens(rendered, now)
-    rendered = SEARCH_REPLACE_TOKEN_RE.sub(
-        lambda match: _resolve_prompt_input_value(
+    def replace_prompt_value(match: re.Match[str]) -> str:
+        placeholder = match.group(0)
+        return _resolve_prompt_input_value(
             prompt,
             match.group(1),
             match.group(2),
-            placeholder=match.group(0),
-        ),
-        rendered,
-    )
+            placeholder=placeholder,
+            filters=_parse_template_filters(match.group(3), placeholder),
+        )
+
+    rendered = SEARCH_REPLACE_TOKEN_RE.sub(replace_prompt_value, rendered)
 
     unknown_tokens = sorted(
         {
@@ -1126,14 +1159,21 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
             + ", ".join(known_variables)
         )
 
-    rendered = VARIABLE_TOKEN_RE.sub(lambda match: variables[match.group(1)], rendered)
+    def replace_variable(match: re.Match[str]) -> str:
+        placeholder = match.group(0)
+        value = variables[match.group(1)]
+        filters = _parse_template_filters(match.group(2), placeholder)
+        return _apply_template_filters(value, filters)
+
+    rendered = VARIABLE_TOKEN_RE.sub(replace_variable, rendered)
 
     remaining_tokens = sorted({match.group(1) for match in UNKNOWN_TOKEN_RE.finditer(rendered)})
     if remaining_tokens:
         raise ValueError(
             "Unknown path template placeholders: "
             + ", ".join(remaining_tokens)
-            + ". Supported forms are %VARIABLE%, %node.widget%, %date:...%, and %strftime:...%."
+            + ". Supported forms are %VARIABLE%, %VARIABLE:filter%, %node.widget%, "
+            "%node.widget:filter%, %date:...%, and %strftime:...%."
         )
 
     return rendered

@@ -226,6 +226,22 @@ Before the first run, the helper preview shows these as `{node.widget}` because 
 
 After a successful run, the helper panel keeps a detection snapshot from the last execution. If you change layout-related widgets afterwards, the preview can still reuse those last detected model/text-encoder values until the next run refreshes them.
 
+## Template Filters
+
+Append a small text filter to template variables or `%node.widget%` placeholders:
+
+```text
+%MODEL_NAME:slug%/%TEXT_ENCODER_NAME:slug%/%KSampler.seed%/%FILENAME%
+```
+
+Available filters:
+
+- `lower` lowercases the value
+- `upper` uppercases the value
+- `slug` converts text to lowercase path-friendly words separated by hyphens
+
+Filters can be chained from left to right, for example `%MODEL_NAME:lower:slug%`.
+
 The helper now shows an explicit status badge:
 
 - `Sample Preview` before the first real run

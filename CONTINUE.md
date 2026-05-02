@@ -47,6 +47,7 @@ This file is for continuation context, not end-user documentation.
 - Release readiness checks are available via `python tools/check_release_ready.py`.
 - Detection summaries and helper snapshots include upstream loader node labels and upstream link distance when detection comes from the workflow.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
+- Save templates support small text filters on variables and `%node.widget%` placeholders: `lower`, `upper`, and `slug`.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
 - A local `private-workflows` Friendly Clean audit found only the already-covered packager prefixes `Goekdeniz-Guelmez`, `Goekdeniz_Guelmez`, and `mradermacher`; no new prefix stripping rule was added. Regression tests preserve creator/producer-style prefixes such as `Huihui` and `Lockout`.
 - Registry publishing is configured in `pyproject.toml` and automated by `.github/workflows/publish_action.yml` with the `REGISTRY_ACCESS_TOKEN` repository secret.
@@ -186,10 +187,6 @@ The following items are the core of the `v0.5.3` release:
   - toggle PNG metadata writing
   - optional prompt-only metadata mode
   - clearer handling for extra PNG info
-- Small text filters for templates:
-  - `lower`
-  - `upper`
-  - `slug`
 - Optional additional export formats such as JPEG or WebP
 
 ## Out Of Scope For Now

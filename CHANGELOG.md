@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- path template filters `lower`, `upper`, and `slug` for variables and `%node.widget%` placeholders
+
 ## [0.5.3] - 2026-05-02
 
 ### Added

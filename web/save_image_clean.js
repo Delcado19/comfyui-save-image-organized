@@ -21,8 +21,8 @@ const SAMPLE_MODEL = "flux-2-klein-9b-Q5_K_M.gguf";
 const SAMPLE_CLIP = "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf";
 const DEFAULT_LAYOUT = "%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%";
 const DEFAULT_FILENAME = "%date:yyyy-MM-dd_hh-mm-ss%";
-const VARIABLE_TOKEN_RE = /%([A-Z0-9_]+)%/g;
-const NODE_WIDGET_TOKEN_RE = /%([^%./\\]+)\.([^%./\\]+)%/g;
+const VARIABLE_TOKEN_RE = /%([A-Z0-9_]+)((?::[a-z]+)*)%/g;
+const NODE_WIDGET_TOKEN_RE = /%([^%./\\]+)\.([^%./\\:]+)((?::[a-z]+)*)%/g;
 const UNKNOWN_TOKEN_RE = /%([^%]+)%/g;
 const COMMON_EXTENSIONS = [
     ".safetensors",
@@ -124,6 +124,7 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "EXACT_TEXT_ENCODER_NAME",
     "CUSTOM_TEXT_ENCODER_NAME",
 ]);
+const TEMPLATE_FILTERS = new Set(["lower", "upper", "slug"]);
 const DISPLAY_WORD_RE = /[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?/g;
 
 function getWidget(node, name) {
@@ -627,6 +628,38 @@ function buildLegacyExample(node, variables) {
     return parts.join("/");
 }
 
+function slugifyTemplateValue(value) {
+    const slug = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return slug || "unnamed";
+}
+
+function parseTemplateFilters(filterText, placeholder, notes) {
+    const filters = String(filterText || "").split(":").filter(Boolean);
+    const unknown = filters.find((filterName) => !TEMPLATE_FILTERS.has(filterName));
+    if (unknown) {
+        notes.push(formatPreviewNote(
+            `Preview warning: unknown template filter ${unknown} in ${placeholder}`,
+            "warning",
+        ));
+    }
+    return filters.filter((filterName) => TEMPLATE_FILTERS.has(filterName));
+}
+
+function applyTemplateFilters(value, filters) {
+    return filters.reduce((rendered, filterName) => {
+        if (filterName === "lower") {
+            return rendered.toLowerCase();
+        }
+        if (filterName === "upper") {
+            return rendered.toUpperCase();
+        }
+        if (filterName === "slug") {
+            return slugifyTemplateValue(rendered);
+        }
+        return rendered;
+    }, String(value || ""));
+}
+
 function formatPreviewNote(message, tone = "info") {
     return {
         message,
@@ -641,15 +674,27 @@ function buildLayoutExample(node, variables, now) {
 
     let rendered = layout.replace(/%date:([^%]+)%/g, (_, format) => renderDateFormat(format, now));
     rendered = rendered.replace(/%strftime:([^%]+)%/g, (_, format) => renderStrftime(format, now));
-    rendered = rendered.replace(NODE_WIDGET_TOKEN_RE, (_, nodeName, widgetName) => {
+    rendered = rendered.replace(NODE_WIDGET_TOKEN_RE, (placeholder, nodeName, widgetName, filterText) => {
         usesWidgetPlaceholder = true;
-        return `{${nodeName}.${widgetName}}`;
+        parseTemplateFilters(filterText, placeholder, notes);
+        return `{${nodeName}.${widgetName}${filterText || ""}}`;
     });
-    rendered = rendered.replace(VARIABLE_TOKEN_RE, (_, key) => variables[key] ?? `%${key}%`);
+    rendered = rendered.replace(VARIABLE_TOKEN_RE, (placeholder, key, filterText) => {
+        if (variables[key] === undefined) {
+            return `%${key}${filterText || ""}%`;
+        }
+        return applyTemplateFilters(
+            variables[key],
+            parseTemplateFilters(filterText, placeholder, notes),
+        );
+    });
 
     const remainingTokens = [...rendered.matchAll(UNKNOWN_TOKEN_RE)].map((match) => match[1]);
-    const unknownVariables = remainingTokens.filter((token) => /^[A-Z0-9_]+$/.test(token) && !VALID_TEMPLATE_VARIABLES.has(token));
-    const unknownPlaceholders = remainingTokens.filter((token) => !/^[A-Z0-9_]+$/.test(token));
+    const unknownVariables = remainingTokens.filter((token) => {
+        const match = token.match(/^([A-Z0-9_]+)((?::[a-z]+)*)$/);
+        return match && !VALID_TEMPLATE_VARIABLES.has(match[1]);
+    });
+    const unknownPlaceholders = remainingTokens.filter((token) => !/^([A-Z0-9_]+)((?::[a-z]+)*)$/.test(token));
 
     if (unknownVariables.length || unknownPlaceholders.length) {
         const details = [
