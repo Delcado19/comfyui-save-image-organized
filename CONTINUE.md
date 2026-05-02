@@ -9,22 +9,12 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.6.1`.
+- `v0.6.1` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25259822729`) plus `Publish to Comfy Registry` (`25259822727`), both successful.
 - `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
 - `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
-- `v0.5.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
-- `v0.5.3` publishes the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics for Detection Info/helper payloads.
-- Post-`v0.6.0` release gate: run `H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag v0.6.0 --github --workflows --fail-on-unresolved-detection` after tagging and publishing.
-- Post-`v0.5.3` maintainer commits on `main` have passed GitHub Actions CI; verify the latest run with `gh run list --limit 5` before release work.
-- The local live ComfyUI custom-node install at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\comfyui-save-image-organized` has been refreshed from `v0.5.0` to current `main`; installed `nodes.py` imports successfully and exposes `SaveImageClean` as `Save Image Organized`.
-- `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
-- `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
-- `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
-- `v0.5.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions runs.
-- `main` includes post-`v0.5.0` documentation updates for Registry installation and the GitHub Actions publishing workflow.
-- `main` includes post-`v0.4.0` maintainer updates for handoff status, repository Git policy, workflow validation diagnostics, stricter release gates, full workflow release scans, and the optional `Friendly Clean` name sources.
-- `CHANGELOG.md` has a `0.5.0` section dated `2026-05-01` for the `AGENTS.md` policy, unnamed Reroute input validation fix, workflow-validation reason reporting, stricter unresolved-detection release gate, full workflow release scans, and `Friendly Clean` name sources.
-- `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01` for maintainer workflow-validation tooling, release-readiness tooling, loader-source labels in detection summaries, and sampler-setting convenience variables.
-- GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
+- `v0.5.3` is the last `v0.5.x` release; it added the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics.
+- The local live ComfyUI custom-node install at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\comfyui-save-image-organized` is current with `main` (refreshed to `v0.6.1`); installed `nodes.py` imports successfully and exposes `SaveImageClean` as `Save Image Organized`.
+- GitHub Actions CI runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
 - The current local `private-workflows` validator summary is `103` Save Image Organized nodes, `70 OK`, `0 PARTIAL`, `33 MISS`, `0 unresolved`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable`.
@@ -50,6 +40,7 @@ This file is for continuation context, not end-user documentation.
 - Save templates support sampler-setting convenience variables: `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%`.
 - Save templates support small text filters on variables and `%node.widget%` placeholders: `lower`, `upper`, and `slug`.
 - Save templates support `%BATCH%`, which is empty for single-image saves and expands to `_1-of-N` for multi-image batches; the default Save Layout is `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%`.
+- The node emits a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout; for `error` mode the warning appears in the exception message, for `overwrite` mode in the text output.
 - The workflow migration helper now carries standard `SaveImage` prefixes into `<old prefix>/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%` so migrated batch outputs avoid same-second filename collisions by default.
 - `Model Name` and `Text Encoder Name` now offer `Friendly Clean` in addition to `Friendly`, `Exact`, and `Custom`; it removes known releaser or publisher prefixes while preserving the existing `Friendly` and `Exact` behavior.
 - A local `private-workflows` Friendly Clean audit found only the already-covered packager prefixes `Goekdeniz-Guelmez`, `Goekdeniz_Guelmez`, and `mradermacher`; no new prefix stripping rule was added. Regression tests preserve creator/producer-style prefixes such as `Huihui` and `Lockout`.
@@ -162,6 +153,22 @@ The following items are the core of the `v0.5.3` release:
 - regression coverage that keeps `Friendly Clean` conservative: known packager prefixes are removed while creator or producer prefixes remain intact
 - detection diagnostics now include the selected loader node's upstream link distance in UI text and structured helper payloads
 
+## Released In v0.6.0
+
+The following items are the core of the `v0.6.0` release:
+
+- path template filters `lower`, `upper`, and `slug` for variables and `%node.widget%` placeholders
+- `%BATCH%` template variable: empty for single-image saves, expands to `_1-of-N` for multi-image batches
+- default Save Layout updated to `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%`
+- workflow migration helper now appends `%BATCH%` when converting standard `SaveImage` filename prefixes
+
+## Released In v0.6.1
+
+The following items are the core of the `v0.6.1` release:
+
+- runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout
+- `Release Pipeline` and `Docs Sync Checker` agent role definitions added to `AGENTS.md`
+
 ## Known Gaps
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
@@ -201,7 +208,7 @@ The following items are the core of the `v0.5.3` release:
 
 ## Manual Test Checklist
 
-- Verify default save layout produces `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%`.
+- Verify default save layout produces `%TOP_FOLDER%/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%`.
 - Verify `Friendly`, `Friendly Clean`, `Exact`, and `Custom` selection for both model and text encoder.
 - Verify custom names are used as fallback when detection fails.
 - Verify `%date:...%` tokens render correctly for both multi-letter and single-letter tokens.
@@ -213,6 +220,7 @@ The following items are the core of the `v0.5.3` release:
   - `overwrite`
   - `error`
   - `seconds`
+- Verify batch collision warning appears for `overwrite` and `error` modes when no batch variable is in a custom Save Layout with multiple images.
 - Verify PNG prompt metadata is preserved in saved files.
 - Verify the frontend helper panel updates when relevant widgets change.
 - For ignored `private-workflows`, verify standard `SaveImage` node count stays `0` after migrations and rerun `tools/validate_local_workflows.py private-workflows --json`.
@@ -220,28 +228,12 @@ The following items are the core of the `v0.5.3` release:
 
 ## Release Checklist
 
-- `v0.3.1` was tagged and published on GitHub.
-- `CHANGELOG.md` has a `0.3.1` section dated `2026-04-30`.
-- GitHub Actions CI passed for the release commit.
-- `v0.4.0` was tagged and published on GitHub.
-- `CHANGELOG.md` has a `0.4.0` section dated `2026-05-01`.
-- Local release readiness checks passed with `pytest`, `ruff`, Python compile, frontend syntax check, and workflow validation.
-- GitHub Actions CI passed for the `v0.4.0` release commit.
-- `v0.5.0` is prepared with a `CHANGELOG.md` section dated `2026-05-01`.
-- `v0.5.0` was published to the Comfy Registry as `save-image-organized`.
-- For the final release gate, use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection`.
-- `v0.3.0` was tagged and published on GitHub.
-- `CHANGELOG.md` has a `0.3.0` section dated `2026-04-30`.
-- GitHub Actions CI passed for the `v0.3.0` release commit.
-- For the next release, keep a full manual workflow pass in ComfyUI with at least:
-  - checkpoint-based workflow
-  - UNET loader workflow
-  - GGUF text encoder workflow
-- Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels.
-- Use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection` as the final release gate.
+- `v0.6.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
+- `v0.6.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
+- `v0.5.3` is tagged locally and on `origin`, published as a GitHub Release, and published to the Comfy Registry.
+- For every release, use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection` as the final gate.
 - Verify `Publish to Comfy Registry` succeeds after pushing a `pyproject.toml` version change.
-- `v0.5.2` was published to the Comfy Registry after bumping `pyproject.toml` to avoid republishing the existing `0.5.1` node version.
-- GitHub Actions CI and `Publish to Comfy Registry` passed for commit `0d7ce96`.
+- Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels before tagging.
 
 ## Notes
 
