@@ -9,6 +9,7 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.5.2`.
+- `v0.5.2` is published to the Comfy Registry and verified by passing GitHub Actions CI plus the `Publish to Comfy Registry` workflow.
 - `v0.5.2` keeps the Inkscape-authored Comfy Registry icon design and updates only SVG metadata for the registry asset.
 - `v0.5.1` adds the dedicated Comfy Registry icon asset and `Icon` metadata in `pyproject.toml`.
 - `v0.5.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions runs.
@@ -19,7 +20,10 @@ This file is for continuation context, not end-user documentation.
 - GitHub Actions CI now runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
-- The current local workflow validator summary is `22` Save nodes, `19 OK`, `0 PARTIAL`, `3 MISS`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable` because those Save nodes are connected only to LoadImage/Upscale branches.
+- The current local `private-workflows` validator summary is `103` Save Image Organized nodes, `70 OK`, `0 PARTIAL`, `33 MISS`, `0 unresolved`, and `0 errors`; the remaining MISS cases report `no model/text encoder loader reachable`.
+- The ignored local `private-workflows` folder has been migrated from standard `SaveImage` nodes to `SaveImageClean` nodes: `60` workflow files changed locally, `80` standard `SaveImage` nodes replaced, and `0` standard `SaveImage` nodes remain.
+- During the local private-workflow migration, node `id`, `pos`, `size`, `flags`, `order`, `mode`, `title`, image input links, and global link IDs were preserved. Existing `filename_prefix` values were carried into the new `Save Layout` as `<old prefix>/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%`.
+- One pre-existing private workflow link-table inconsistency remains outside Save nodes: `private-workflows/VTON/Codex/Flux2 klein 9b Virtual Try-On 6.0.2 (Codex).json` has link `176` targeting input slot `0` on `List of strings [Crystools]`, while the node stores that link on `string_2`.
 - The release-readiness checker now has `--fail-on-unresolved-detection`, which is stricter than the default workflow scan but does not fail on expected no-loader Save branches.
 - Release-readiness workflow checks now scan all workflows by default; use `--workflow-limit <n>` only for explicit sampling during development.
 - The repo currently exposes two nodes:
@@ -140,7 +144,7 @@ The following items are the core of the `v0.5.2` release:
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
 - The automated test suite is still modest, but it now covers core helper behavior, multi-image save execution, PNG metadata preservation, checkpoint fallback, diffusion-model loader variants, bridge/switch traversal, widget-only loaders, postprocessing-only save branches, and prompt references via `Node name for S&R` or node id.
-- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior. The maintainer workflow validator can sample local exported workflows, but it still does not mirror a broad library of publicly tracked real exported workflows from multiple ComfyUI installations.
+- Validation is still mostly runtime validation inside the node; the current regression harness covers template parsing, loader detection, collision handling, detection-info UI text, convenience variables, and basic save/metadata behavior. The ignored `private-workflows` folder provides a larger local workflow corpus, but it is not public test coverage and should not replace tracked regression fixtures.
 - Frontend preview logic is clearer than before, now warns about unknown placeholders, and can reflect the last real resolved path after execution, but it still relies on sample values before the first workflow run.
 - Compatibility has been expanded for loader naming patterns, bridge nodes, and switch nodes, but third-party custom-node ecosystems remain the most likely place for future edge cases.
 - Some save or preview nodes in real workflows legitimately resolve to empty detection because their current branch only contains input-image, postprocessing, or utility nodes and no sampler/loader path. That behavior is expected and should not be treated as a detection bug by itself.
@@ -148,10 +152,11 @@ The following items are the core of the `v0.5.2` release:
 
 ## Next Priorities
 
-1. Keep expanding workflow validation coverage across different custom-node ecosystems and loader families, especially mixed GGUF/safetensors workflows and Save nodes placed after long postprocessing chains.
+1. Keep using `private-workflows` as a local migration and detection regression corpus, especially the `33` expected no-loader MISS branches and mixed GGUF/safetensors workflows.
 2. Watch `Friendly Clean` prefix rules against real filenames and add known releaser or publisher prefixes conservatively.
 3. Consider small UI diagnostics that show which loader path produced the active names if the existing detection labels are not enough.
 4. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
+5. If private workflow migration becomes recurring, add a small tracked migration/verification helper instead of relying on one-off scripts.
 
 ## Deferred Ideas
 
@@ -193,6 +198,7 @@ The following items are the core of the `v0.5.2` release:
   - `seconds`
 - Verify PNG prompt metadata is preserved in saved files.
 - Verify the frontend helper panel updates when relevant widgets change.
+- For ignored `private-workflows`, verify standard `SaveImage` node count stays `0` after migrations and rerun `tools/validate_local_workflows.py private-workflows --json`.
 
 ## Release Checklist
 
@@ -216,6 +222,8 @@ The following items are the core of the `v0.5.2` release:
 - Confirm `README.md`, `docs/USAGE.md`, and Info-tab docs still match the actual UI labels.
 - Use `tools/check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection` as the final release gate.
 - Verify `Publish to Comfy Registry` succeeds after pushing a `pyproject.toml` version change.
+- `v0.5.2` was published to the Comfy Registry after bumping `pyproject.toml` to avoid republishing the existing `0.5.1` node version.
+- GitHub Actions CI and `Publish to Comfy Registry` passed for commit `0d7ce96`.
 
 ## Notes
 
