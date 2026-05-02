@@ -991,6 +991,70 @@ def test_default_layout_adds_batch_suffix_for_multi_image_saves(workspace_tmp_pa
     assert payload["batch_size"] == "2"
 
 
+def test_batch_variable_is_empty_for_single_image_save(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%%BATCH%",
+        collision_mode="error",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="single",
+        filename_datetime="frame",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert saved_images[0]["filename"] == "frame.png"
+    assert (workspace_tmp_path / "single" / "frame.png").exists()
+
+    payload = result["ui"]["save_image_clean"][0]
+    assert payload["batch"] == ""
+    assert payload["batch_index"] == "1"
+    assert payload["batch_size"] == "1"
+
+
+def test_batch_variable_in_custom_mid_path_position(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.full((2, 2, 3), 0.5, dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%BATCH%%FILENAME%",
+        collision_mode="error",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="batch-mid",
+        filename_datetime="img",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert [item["filename"] for item in saved_images] == [
+        "_1-of-3img.png",
+        "_2-of-3img.png",
+        "_3-of-3img.png",
+    ]
+    assert all(item["subfolder"] == "batch-mid" for item in saved_images)
+    assert (workspace_tmp_path / "batch-mid" / "_1-of-3img.png").exists()
+    assert (workspace_tmp_path / "batch-mid" / "_2-of-3img.png").exists()
+    assert (workspace_tmp_path / "batch-mid" / "_3-of-3img.png").exists()
+
+
 def test_save_images_preserves_prompt_and_extra_png_metadata(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)
