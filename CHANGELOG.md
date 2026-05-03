@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-05-03
+
 ### Changed
 
 - added `Friendly Clean` output examples to `README.md`, `docs/USAGE.md`, and `web/docs/SaveImageClean.md`, including a packager-prefix example showing the difference from `Friendly`
