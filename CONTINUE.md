@@ -9,6 +9,7 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.6.2`.
+- `v0.6.2` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25271979195`) plus `Publish to Comfy Registry` (`25271979191`), both successful.
 - `v0.6.2` adds `Friendly Clean` output examples to `README.md`, `docs/USAGE.md`, and `web/docs/SaveImageClean.md`, and fills missing model/text encoder example blocks in `docs/USAGE.md`.
 - `v0.6.1` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25259822729`) plus `Publish to Comfy Registry` (`25259822727`), both successful.
 - `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
@@ -230,6 +231,7 @@ The following items are the core of the `v0.6.1` release:
 
 ## Release Checklist
 
+- `v0.6.2` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
 - `v0.6.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
 - `v0.6.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.5.3` is tagged locally and on `origin`, published as a GitHub Release, and published to the Comfy Registry.
