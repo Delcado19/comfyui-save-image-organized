@@ -1041,6 +1041,7 @@ function hookWidgetUpdates(node) {
         "subfolder",
         "model_folder",
         "clip_folder",
+        "export_workflow_metadata",
     ];
 
     for (const name of watchedNames) {
