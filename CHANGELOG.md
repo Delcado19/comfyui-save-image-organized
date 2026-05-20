@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-05-20
+
+### Fixed
+
+- Fixed helper preview not updating when `Export Workflow Metadata` toggle is changed
+  - Added `export_workflow_metadata` to watched widget list in `hookWidgetUpdates`
+  - Now changing the toggle triggers `Last Detection Snapshot` state and preview update
+  - Workflow run required to refresh to `Fresh Detection` with current detected values
+
 ## [0.6.2] - 2026-05-03
 
 ### Changed
