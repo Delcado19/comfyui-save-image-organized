@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-02
+
 ### Added
 
 - `FILENAME` and `FILE_PATH` STRING outputs, reporting the first saved image in a batch, for chaining into other nodes
