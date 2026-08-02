@@ -9,6 +9,7 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.7.0`, adding `FILENAME`/`FILE_PATH` outputs, `Image Format`/`Image Quality` (PNG/JPEG/WebP) widgets appended after every existing optional widget, and a fix collapsing the doubled folder that checkpoint-loader workflows produced when `Model Name` and `Text Encoder Name` resolve to the same file, plus fixes for JPEG alpha flattening, `image_quality` clamping, and a `tools/migrate_save_image_nodes.py` `widgets_values` alignment bug. See `CHANGELOG.md [0.7.0]`.
+- `v0.7.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`30761127021`) plus `Publish to Comfy Registry` (`30761127055`), both successful.
 - `v0.6.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`26165966917`) plus `Publish to Comfy Registry` (`26165966814`), both successful.
 - `v0.6.3` fixes the helper preview so changing the `Export Workflow Metadata` toggle marks the last detection snapshot stale and refreshes the preview state.
 - `v0.6.2` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25271979195`) plus `Publish to Comfy Registry` (`25271979191`), both successful.
@@ -256,6 +257,7 @@ The following items are the core of the `v0.7.0` release:
 
 ## Release Checklist
 
+- `v0.7.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.3` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.2` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
 - `v0.6.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
