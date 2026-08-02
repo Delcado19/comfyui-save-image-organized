@@ -139,6 +139,15 @@ CLIP_SOURCE_LABEL_TO_KEY = {
 MODEL_SOURCE_OPTIONS = list(MODEL_SOURCE_LABEL_TO_KEY.keys())
 CLIP_SOURCE_OPTIONS = list(CLIP_SOURCE_LABEL_TO_KEY.keys())
 DETECTION_INFO_OPTIONS = ["Off", "Summary", "Verbose"]
+IMAGE_FORMAT_OPTIONS = ["PNG", "JPEG", "WebP"]
+# Pillow save() needs its own format name; JPEG has no 4-letter/lowercase
+# alias and WebP save()'s format string is fully uppercase.
+IMAGE_FORMAT_INFO = {
+    "PNG": {"extension": "png", "pillow_format": "PNG"},
+    "JPEG": {"extension": "jpg", "pillow_format": "JPEG"},
+    "WebP": {"extension": "webp", "pillow_format": "WEBP"},
+}
+KNOWN_IMAGE_EXTENSIONS = {info["extension"] for info in IMAGE_FORMAT_INFO.values()} | {"jpeg"}
 DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
 
 
@@ -425,11 +434,29 @@ def _has_batch_differentiator(template: str) -> bool:
     return any(var in template for var in _BATCH_DIFFERENTIATORS)
 
 
-def _normalize_template_file_path(value: str) -> Path:
+def _normalize_template_file_path(value: str, extension: str) -> Path:
     relative_path = _sanitize_relative_path(value)
-    if relative_path.suffix.lower() == ".png":
+    if relative_path.suffix.lower().lstrip(".") in KNOWN_IMAGE_EXTENSIONS:
         relative_path = relative_path.with_suffix("")
-    return relative_path.with_suffix(".png")
+    return relative_path.with_suffix(f".{extension}")
+
+
+def _collapse_consecutive_duplicate_segments(value: str) -> str:
+    """Drop a path segment that repeats the one immediately before it.
+
+    A checkpoint loader provides one file for both the model and the text
+    encoder, so the default `%MODEL_NAME%/%TEXT_ENCODER_NAME%` layout can
+    render two identical segments back to back (e.g. `sdxl-v1/sdxl-v1`).
+    Only *consecutive* duplicates are dropped so unrelated repeats elsewhere
+    in a custom template are left alone.
+    """
+    segments = PATH_SPLIT_RE.split(value or "")
+    collapsed: list[str] = []
+    for segment in segments:
+        if segment and collapsed and collapsed[-1] == segment:
+            continue
+        collapsed.append(segment)
+    return "/".join(collapsed)
 
 
 def _render_date_format(value: str, now: datetime) -> str:
@@ -1336,7 +1363,7 @@ class SaveImageClean:
                         "tooltip": (
                             "Store prompt and workflow metadata in the PNG, like ComfyUI's normal "
                             "Save Image node. Turn this off when you want clean PNG files without "
-                            "embedded workflow data."
+                            "embedded workflow data. PNG only; JPEG and WebP saves never embed it."
                         ),
                     },
                 ),
@@ -1374,6 +1401,29 @@ class SaveImageClean:
                         ),
                     },
                 ),
+                # ComfyUI restores widgets_values positionally over required-then-optional
+                # widgets in declaration order. Appending here, after every pre-existing
+                # optional widget, keeps those widgets' saved positions valid; the required
+                # block is not a safe place to append since optional widgets sit after it.
+                "image_format": (
+                    IMAGE_FORMAT_OPTIONS,
+                    {
+                        "default": "PNG",
+                        "tooltip": (
+                            "Output image file format. JPEG and WebP are lossy and use Image "
+                            "Quality below; PNG is lossless and ignores it."
+                        ),
+                    },
+                ),
+                "image_quality": (
+                    "INT",
+                    {
+                        "default": 95,
+                        "min": 1,
+                        "max": 100,
+                        "tooltip": "JPEG/WebP quality (1-100). Ignored when Image Format is PNG.",
+                    },
+                ),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -1382,7 +1432,12 @@ class SaveImageClean:
             },
         }
 
-    RETURN_TYPES = ()
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("FILENAME", "FILE_PATH")
+    OUTPUT_TOOLTIPS = (
+        "File name of the first saved image in this batch, without folders.",
+        "Absolute file path of the first saved image in this batch.",
+    )
     FUNCTION = "save_images"
     OUTPUT_NODE = True
     CATEGORY = "image/save"
@@ -1678,6 +1733,7 @@ class SaveImageClean:
         batch_index: int,
         batch_size: int,
         path_template: str,
+        extension: str,
         prompt: Any,
         unique_id: Any,
     ) -> tuple[Path, str, list[str], dict[str, str]]:
@@ -1701,7 +1757,8 @@ class SaveImageClean:
 
         if path_template and path_template.strip():
             rendered = _render_path_template(path_template.strip(), variables, now, prompt)
-            relative_path = _normalize_template_file_path(rendered)
+            rendered = _collapse_consecutive_duplicate_segments(rendered)
+            relative_path = _normalize_template_file_path(rendered, extension)
             return relative_path, rendered, detection_lines, detection_state
 
         clean_model = _sanitize_path_component(variables["MODEL_NAME"])
@@ -1709,7 +1766,9 @@ class SaveImageClean:
         clean_subfolder = _sanitize_path_component(subfolder) if subfolder.strip() else ""
         base_name = f"{variables['FILENAME']}{variables['BATCH']}"
 
-        relative_path = Path(clean_model) / clean_clip / f"{base_name}.png"
+        # Same file behind both model and text encoder (checkpoint loaders) -> one folder, not two.
+        model_clip_segments = [clean_model] if clean_clip == clean_model else [clean_model, clean_clip]
+        relative_path = Path(*model_clip_segments) / f"{base_name}.{extension}"
         if clean_subfolder:
             relative_path = Path(clean_subfolder) / relative_path
         preview = str(relative_path.with_suffix(""))
@@ -1721,6 +1780,7 @@ class SaveImageClean:
         output_root: Path,
         relative_path: Path,
         collision_mode: str,
+        extension: str,
     ) -> Path:
         candidate = output_root / relative_path
         candidate.parent.mkdir(parents=True, exist_ok=True)
@@ -1733,13 +1793,13 @@ class SaveImageClean:
             raise FileExistsError(f"Target file already exists: {candidate}")
         if collision_mode == "seconds":
             second_name = _sanitize_path_component(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-            candidate = candidate.with_name(f"{second_name}.png")
+            candidate = candidate.with_name(f"{second_name}.{extension}")
             if not candidate.exists():
                 return candidate
 
         stem = candidate.stem
         for index in range(2, 10000):
-            numbered = candidate.with_name(f"{stem}-{index}.png")
+            numbered = candidate.with_name(f"{stem}-{index}.{extension}")
             if not numbered.exists():
                 return numbered
 
@@ -1754,6 +1814,8 @@ class SaveImageClean:
         clip_source: str,
         detection_info: str,
         export_workflow_metadata: bool,
+        image_format: str = "PNG",
+        image_quality: int = 95,
         subfolder: str = "",
         model_folder: str = "",
         clip_folder: str = "",
@@ -1763,15 +1825,32 @@ class SaveImageClean:
         unique_id: Any = None,
     ):
         output_root = Path(self.output_dir)
+        format_info = IMAGE_FORMAT_INFO.get(image_format, IMAGE_FORMAT_INFO["PNG"])
+        extension = format_info["extension"]
+        pillow_format = format_info["pillow_format"]
+        # The widget clamps to 1-100 in the UI, but hand-edited or migrated workflow JSON can
+        # submit values outside that range directly. Pillow's WebP encoder raises ValueError on
+        # an out-of-range quality instead of clamping it, so enforce the documented range here.
+        image_quality = max(1, min(100, image_quality))
+        # Workflow metadata uses PNG text chunks; JPEG/WebP have no equivalent
+        # that ComfyUI's own "load workflow from image" feature can read back,
+        # so non-PNG saves skip it rather than embed metadata nothing can use.
         metadata = self._build_metadata(
             export_workflow_metadata=export_workflow_metadata,
             prompt=prompt,
             extra_pnginfo=extra_pnginfo,
+        ) if pillow_format == "PNG" else None
+        metadata_format_note = (
+            f"Note: Export Workflow Metadata is PNG-only; this save used {image_format} "
+            "without embedded metadata."
+            if export_workflow_metadata and pillow_format != "PNG"
+            else None
         )
         saved = []
         preview = ""
         detection_lines: list[str] = []
         detection_ui_payload: dict[str, Any] | None = None
+        first_target_path: Path | None = None
         batch_size = len(images)
         batch_collision_warning: str | None = None
         if (
@@ -1802,6 +1881,7 @@ class SaveImageClean:
                 batch_index=batch_index,
                 batch_size=batch_size,
                 path_template=path_template,
+                extension=extension,
                 prompt=prompt,
                 unique_id=unique_id,
             )
@@ -1819,14 +1899,31 @@ class SaveImageClean:
                     output_root=output_root,
                     relative_path=relative_path,
                     collision_mode=collision_mode,
+                    extension=extension,
                 )
             except FileExistsError as exc:
                 if batch_collision_warning:
                     raise FileExistsError(f"{exc}\n{batch_collision_warning}") from exc
                 raise
+            if first_target_path is None:
+                first_target_path = target_path
 
             pil_image = Image.fromarray(array)
-            pil_image.save(target_path, pnginfo=metadata, compress_level=self.compress_level)
+            if pillow_format == "PNG":
+                pil_image.save(target_path, format=pillow_format, pnginfo=metadata, compress_level=self.compress_level)
+            else:
+                if pillow_format == "JPEG" and pil_image.mode != "RGB":
+                    # JPEG has no alpha channel. Image.convert("RGB") on its own would just drop
+                    # the alpha data and keep whatever RGB values sit underneath transparent
+                    # pixels, which can show up as unexpected colors/fringing. Composite onto a
+                    # white background first so transparent areas flatten the way users expect.
+                    if "A" in pil_image.getbands():
+                        flattened = Image.new("RGB", pil_image.size, (255, 255, 255))
+                        flattened.paste(pil_image, mask=pil_image.convert("RGBA").getchannel("A"))
+                        pil_image = flattened
+                    else:
+                        pil_image = pil_image.convert("RGB")
+                pil_image.save(target_path, format=pillow_format, quality=image_quality)
 
             saved.append(
                 {
@@ -1837,12 +1934,20 @@ class SaveImageClean:
             )
 
         text_output = [preview, *detection_lines]
+        if metadata_format_note:
+            text_output.append(metadata_format_note)
         if batch_collision_warning:
             text_output.append(batch_collision_warning)
         ui = {"images": saved, "text": text_output}
         if detection_ui_payload is not None:
             ui["save_image_clean"] = [detection_ui_payload]
-        return {"ui": ui}
+
+        # Batches save N images but two STRING outputs can only report one;
+        # the first image's name/path represent the whole batch, matching
+        # how `preview` above is also taken from the first image.
+        output_filename = first_target_path.name if first_target_path else ""
+        output_file_path = str(first_target_path.resolve()) if first_target_path else ""
+        return {"ui": ui, "result": (output_filename, output_file_path)}
 
 
 NODE_CLASS_MAPPINGS = {

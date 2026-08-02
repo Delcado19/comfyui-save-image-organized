@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -14,6 +15,24 @@ def test_strip_known_extension_removes_only_supported_suffix():
     assert nodes._strip_known_extension("model.safetensors") == "model"
     assert nodes._strip_known_extension("encoder.gguf") == "encoder"
     assert nodes._strip_known_extension("notes.txt") == "notes.txt"
+
+
+@pytest.mark.parametrize(
+    ("manual_suffix", "target_extension", "expected"),
+    [
+        (".png", "jpg", Path("shot.jpg")),
+        (".jpg", "png", Path("shot.png")),
+        # A user typing the 4-letter spelling manually in a custom Save Layout
+        # must be recognized just like the 3-letter ".jpg" the widget itself uses.
+        (".jpeg", "png", Path("shot.png")),
+        (".JPEG", "webp", Path("shot.webp")),
+        (".webp", "jpg", Path("shot.jpg")),
+    ],
+)
+def test_normalize_template_file_path_replaces_any_known_image_extension(
+    manual_suffix, target_extension, expected
+):
+    assert nodes._normalize_template_file_path(f"shot{manual_suffix}", target_extension) == expected
 
 
 def test_humanize_display_name_normalizes_known_model_alias_and_quant():
@@ -540,6 +559,7 @@ def test_resolve_target_path_increments_existing_files(workspace_tmp_path):
         output_root=workspace_tmp_path,
         relative_path=existing.relative_to(workspace_tmp_path),
         collision_mode="increment",
+        extension="png",
     )
 
     assert target == workspace_tmp_path / "example-2.png"
@@ -556,6 +576,7 @@ def test_resolve_target_path_errors_when_requested(workspace_tmp_path):
             output_root=workspace_tmp_path,
             relative_path=existing.relative_to(workspace_tmp_path),
             collision_mode="error",
+            extension="png",
         )
 
 
@@ -569,6 +590,7 @@ def test_resolve_target_path_overwrites_when_requested(workspace_tmp_path):
         output_root=workspace_tmp_path,
         relative_path=existing.relative_to(workspace_tmp_path),
         collision_mode="overwrite",
+        extension="png",
     )
 
     assert target == existing
@@ -591,6 +613,7 @@ def test_resolve_target_path_uses_seconds_name_when_requested(workspace_tmp_path
         output_root=workspace_tmp_path,
         relative_path=existing.relative_to(workspace_tmp_path),
         collision_mode="seconds",
+        extension="png",
     )
 
     assert target == workspace_tmp_path / "2026-04-22_21-22-05.png"
@@ -1276,3 +1299,240 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
     assert payload["sampler"] == "dpmpp_2m"
     assert payload["scheduler"] == "karras"
     assert payload["denoise"] == "0.75"
+
+
+def test_save_images_returns_filename_and_absolute_path_outputs(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="output-tests",
+        filename_datetime="output-check",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    filename, file_path = result["result"]
+    expected_first_file = workspace_tmp_path / "output-tests" / "output-check.png"
+    assert filename == "output-check.png"
+    assert file_path == str(expected_first_file.resolve())
+    assert Path(file_path).exists()
+
+
+def test_save_images_collapses_duplicate_folder_for_checkpoint_loader(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {
+                "images": ["2", 0],
+            },
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "model": ["3", 0],
+                "clip": ["3", 1],
+            },
+        },
+        "3": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {
+                "ckpt_name": "sdxl-checkpoint-v1.safetensors",
+            },
+        },
+    }
+
+    result = saver.save_images(
+        images=[image],
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Exact",
+        clip_source="Exact",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        filename_datetime="ckpt-output",
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert saved_images[0]["subfolder"] == "sdxl-checkpoint-v1"
+    assert (workspace_tmp_path / "sdxl-checkpoint-v1" / "ckpt-output.png").exists()
+
+
+def test_save_images_supports_jpeg_export_with_quality(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        image_format="JPEG",
+        image_quality=80,
+        subfolder="jpeg-tests",
+        filename_datetime="jpeg-output",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "jpeg-tests" / result["ui"]["images"][0]["filename"]
+    assert saved_file.name == "jpeg-output.jpg"
+    with Image.open(saved_file) as jpeg:
+        assert jpeg.format == "JPEG"
+    assert any("PNG-only" in line for line in result["ui"]["text"])
+
+
+def test_save_images_flattens_transparent_pixels_onto_white_for_jpeg(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    # Fully transparent pixel with red RGB data underneath: a naive RGBA->RGB
+    # conversion would keep the red, but JPEG has no alpha channel, so the
+    # visible result should be flattened onto white instead of showing red.
+    array = np.zeros((2, 2, 4), dtype=np.float32)
+    array[0, 0] = [1.0, 0.0, 0.0, 0.0]
+    array[0, 1] = [0.0, 1.0, 0.0, 1.0]
+    image = DummyImage(array)
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        image_format="JPEG",
+        subfolder="jpeg-alpha-tests",
+        filename_datetime="jpeg-alpha",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "jpeg-alpha-tests" / result["ui"]["images"][0]["filename"]
+    with Image.open(saved_file) as jpeg:
+        assert jpeg.mode == "RGB"
+        pixel = jpeg.getpixel((0, 0))
+    assert pixel[0] > 200 and pixel[1] > 200 and pixel[2] > 200
+
+
+def test_save_images_increments_jpeg_collisions_with_jpg_suffix(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        image_format="JPEG",
+        subfolder="jpeg-collision-tests",
+        filename_datetime="same-name",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    filenames = [item["filename"] for item in result["ui"]["images"]]
+    assert filenames == ["same-name.jpg", "same-name-2.jpg"]
+    assert (workspace_tmp_path / "jpeg-collision-tests" / "same-name-2.jpg").exists()
+
+
+def test_save_images_supports_webp_export_and_keeps_png_metadata_default(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    webp_result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        image_format="WebP",
+        image_quality=90,
+        subfolder="webp-tests",
+        filename_datetime="webp-output",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "webp-tests" / webp_result["ui"]["images"][0]["filename"]
+    assert saved_file.name == "webp-output.webp"
+    with Image.open(saved_file) as webp:
+        assert webp.format == "WEBP"
+
+    png_result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="webp-tests",
+        filename_datetime="png-output",
+        prompt={"workflow": "still-embedded"},
+        unique_id="1",
+    )
+
+    png_file = workspace_tmp_path / "webp-tests" / png_result["ui"]["images"][0]["filename"]
+    assert png_file.name == "png-output.png"
+    with Image.open(png_file) as png:
+        assert png.info["prompt"] == json.dumps({"workflow": "still-embedded"})
+
+
+def test_save_images_clamps_out_of_range_quality_for_webp(workspace_tmp_path):
+    # Pillow's WebP encoder raises ValueError for quality outside 1-100 instead of
+    # clamping it, unlike JPEG. A hand-edited or migrated workflow can submit values
+    # outside the widget's declared 1-100 range, so the node must clamp first.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = saver.save_images(
+        images=[image],
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        image_format="WebP",
+        image_quality=1000,
+        subfolder="webp-clamp-tests",
+        filename_datetime="webp-clamped",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_file = workspace_tmp_path / "webp-clamp-tests" / result["ui"]["images"][0]["filename"]
+    with Image.open(saved_file) as webp:
+        assert webp.format == "WEBP"

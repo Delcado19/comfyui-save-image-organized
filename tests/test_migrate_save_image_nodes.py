@@ -2,13 +2,28 @@ from __future__ import annotations
 
 import json
 
+import nodes
 from tools.migrate_save_image_nodes import (
     DEFAULT_FILENAME_PATTERN,
     ORGANIZED_AUX_ID,
     ORGANIZED_NODE_TYPE,
+    _organized_widgets,
     migrate_workflow,
     scan_workflows,
 )
+
+
+def test_organized_widgets_stays_aligned_with_input_types():
+    # Regression guard: _organized_widgets is a plain positional list that must
+    # match SaveImageClean.INPUT_TYPES()'s required-then-optional widget count
+    # exactly, or ComfyUI's positional widgets_values restore silently shifts
+    # every value into the wrong widget's slot. This is the check that would
+    # have caught the original misalignment.
+    input_types = nodes.SaveImageClean.INPUT_TYPES()
+    widget_names = [name for name in input_types["required"] if name != "images"]
+    widget_names += list(input_types["optional"])
+
+    assert len(_organized_widgets("some/path")) == len(widget_names)
 
 
 def _ui_workflow():
@@ -86,16 +101,23 @@ def test_migrate_workflow_preserves_ui_geometry_and_links(workspace_tmp_path):
         "type": "IMAGE",
         "link": 12,
     }
+    # Left empty rather than guessed at: ComfyUI's frontend adds any output
+    # sockets missing from a saved workflow by reconciling against the live
+    # node definition on load.
+    assert save_node["outputs"] == []
     assert migrated["links"] == [
         [12, 99, 0, 1, 0, "IMAGE"],
         [13, 99, 0, 2, 0, "IMAGE"],
     ]
+    # Must stay positionally aligned with SaveImageClean.INPUT_TYPES()'s
+    # required-then-optional widget order: path_template, model_source,
+    # clip_source, filename_datetime, collision_mode, detection_info,
+    # export_workflow_metadata, subfolder, model_folder, clip_folder,
+    # image_format, image_quality.
     assert save_node["widgets_values"] == [
-        "",
         "renders/test/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%",
         "Friendly",
         "Friendly",
-        "",
         DEFAULT_FILENAME_PATTERN,
         "increment",
         "Off",
@@ -103,7 +125,8 @@ def test_migrate_workflow_preserves_ui_geometry_and_links(workspace_tmp_path):
         "",
         "",
         "",
-        "",
+        "PNG",
+        95,
     ]
     assert save_node["properties"]["Node name for S&R"] == ORGANIZED_NODE_TYPE
     assert save_node["properties"]["aux_id"] == ORGANIZED_AUX_ID

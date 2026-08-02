@@ -142,16 +142,33 @@ def _organized_inputs(image_link: Any) -> list[dict[str, Any]]:
             "widget": {"name": "clip_folder"},
             "link": None,
         },
+        {
+            "localized_name": "image_format",
+            "name": "image_format",
+            "shape": 7,
+            "type": "COMBO",
+            "widget": {"name": "image_format"},
+            "link": None,
+        },
+        {
+            "localized_name": "image_quality",
+            "name": "image_quality",
+            "shape": 7,
+            "type": "INT",
+            "widget": {"name": "image_quality"},
+            "link": None,
+        },
     ]
 
 
 def _organized_widgets(path_template: str) -> list[Any]:
+    # Must stay positionally aligned with SaveImageClean.INPUT_TYPES()'s
+    # required-then-optional widget order in nodes.py: ComfyUI restores
+    # widgets_values by position, not by name.
     return [
-        "",
         path_template,
         "Friendly",
         "Friendly",
-        "",
         DEFAULT_FILENAME_PATTERN,
         "increment",
         "Off",
@@ -159,7 +176,8 @@ def _organized_widgets(path_template: str) -> list[Any]:
         "",
         "",
         "",
-        "",
+        "PNG",
+        95,
     ]
 
 
@@ -178,6 +196,12 @@ def _migrate_ui_node(node: dict[str, Any], *, version: str | None) -> None:
     path_template = _path_template_from_prefix(_filename_prefix_from_ui(node))
     node["type"] = ORGANIZED_NODE_TYPE
     node["inputs"] = _organized_inputs(_image_link(node))
+    # Left empty rather than guessed: ComfyUI's frontend reconciles a saved
+    # node's outputs against the live node definition on load and adds any
+    # sockets missing from the save file (the same mechanism that makes it
+    # safe for SaveImageClean.RETURN_TYPES to gain FILENAME/FILE_PATH without
+    # migrating already-saved workflows). A hand-guessed outputs schema here
+    # risks being wrong in a way this repo has no fixture to verify against.
     node["outputs"] = []
     node["properties"] = _organized_properties(node.get("properties"), version=version)
     node["widgets_values"] = _organized_widgets(path_template)

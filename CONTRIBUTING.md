@@ -21,10 +21,14 @@ Before opening a pull request, verify at least the following:
 4. Custom save layouts resolve placeholders such as `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, `%FILENAME%`, and `%date:yyyy-MM-dd_hh-mm%`.
 5. Custom save layouts resolve `%node.widget%` placeholders such as `%KSampler.seed%` when the prompt contains the referenced widget values.
 6. Saved PNG files still contain prompt metadata.
-7. `ruff check .` passes in a local development environment with the dev dependencies installed.
-8. `python -m pytest` passes in a local development environment with the dev dependencies installed.
-9. For loader-detection changes, run `python tools/validate_local_workflows.py` against a local ComfyUI workflow folder when available.
-10. Before tagging a release, run `python tools/check_release_ready.py --workflows --fail-on-unresolved-detection`; after publishing the tag and GitHub release, run it again with `--tag <version> --github --workflows --fail-on-unresolved-detection`.
+7. Checkpoint-loader workflows, where `Model Name` and `Text Encoder Name` resolve to the same value, save into one folder rather than a doubled one.
+8. `Image Format` produces a correctly-formatted file for `PNG`, `JPEG`, and `WebP`; `Export Workflow Metadata` is skipped (with a text-output note) for `JPEG`/`WebP`.
+9. `FILENAME` and `FILE_PATH` outputs report the first saved image's name and absolute path.
+10. New required/optional widgets are appended after every existing optional widget, never inserted earlier, so `widgets_values` positions in already-saved workflows stay valid.
+11. `ruff check .` passes in a local development environment with the dev dependencies installed.
+12. `python -m pytest` passes in a local development environment with the dev dependencies installed.
+13. For loader-detection changes, run `python tools/validate_local_workflows.py` against a local ComfyUI workflow folder when available.
+14. Before tagging a release, run `python tools/check_release_ready.py --workflows --fail-on-unresolved-detection`; after publishing the tag and GitHub release, run it again with `--tag <version> --github --workflows --fail-on-unresolved-detection`.
 
 ## Coding Guidelines
 

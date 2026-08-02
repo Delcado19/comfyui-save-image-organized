@@ -104,9 +104,14 @@ Common descriptor words in `Friendly` names are shortened into bracket tags:
 - `thinking` -> `[Think]`
 - `reasoning` -> `[Rsn]`
 
+Checkpoint loaders provide one file for both the model and the text encoder. When `Model Name` and
+`Text Encoder Name` resolve to the same value, the node saves into a single folder instead of one
+folder nested inside an identical one (`my-checkpoint/file.png`, not
+`my-checkpoint/my-checkpoint/file.png`).
+
 ### Filename
 
-This controls the filename only, without `.png`.
+This controls the filename only, without the file extension (`.png`, `.jpg`, or `.webp`, depending on `Image Format`).
 
 Default:
 
@@ -168,6 +173,21 @@ Options:
 
 - `On`: saves prompt and workflow metadata into the PNG
 - `Off`: writes a clean PNG without embedded workflow metadata
+
+This only applies to `PNG` output; `JPEG` and `WebP` saves never embed workflow metadata.
+
+### Image Format
+
+Chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy, controlled by `Image Quality`).
+
+### Image Quality
+
+Quality for `JPEG`/`WebP` output, `1`-`100`. Ignored when `Image Format` is `PNG`.
+
+## Outputs
+
+- `FILENAME`: file name of the first saved image in the batch
+- `FILE_PATH`: absolute file path of the first saved image in the batch
 
 ## Variables You Will Actually Use
 
@@ -419,3 +439,7 @@ normal ComfyUI `Save Image` node.
 
 - `On`: saves prompt and workflow metadata into the PNG
 - `Off`: writes a clean PNG without embedded workflow metadata
+
+This only affects `PNG` output. `JPEG` and `WebP` files never contain workflow metadata; the node
+adds a note to its output text if `Export Workflow Metadata` is `On` but the chosen format can't
+store it.

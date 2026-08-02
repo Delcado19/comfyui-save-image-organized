@@ -12,8 +12,10 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - readable folder names for models and text encoders
 - filename templates with `%date:...%`, `%strftime:...%`, `%node.widget%`, and small text filters
 - automatic model and text encoder detection from the active workflow
+- PNG, JPEG, or WebP output, with a quality control for the lossy formats
 - PNG workflow metadata export that matches ComfyUI's normal `Save Image` behavior
 - optional switch to disable embedded workflow metadata export entirely
+- `FILENAME`/`FILE_PATH` outputs for chaining the saved image into other nodes
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
@@ -78,7 +80,7 @@ portraits/FLUX.2 Klein 9B [5K-M]/Lockout Qwen3 4B zimage V2 [Her][Q8]/2026-04-22
 
 For multi-image batches, `%BATCH%` automatically adds `_1-of-4`, `_2-of-4`, and so on. For single-image saves, `%BATCH%` is empty.
 
-If `Top Folder` is empty, no extra folder is added.
+If `Top Folder` is empty, no extra folder is added. If a checkpoint loader provides the same file for both the model and the text encoder, `%MODEL_NAME%` and `%TEXT_ENCODER_NAME%` collapse into one folder instead of two identical nested ones.
 
 ### Model Name And Text Encoder
 
@@ -165,6 +167,20 @@ Options:
 
 - `On`: saves prompt and workflow metadata into the PNG
 - `Off`: writes a clean PNG without embedded workflow metadata
+
+This only applies to `PNG` output. `JPEG` and `WebP` saves never embed workflow metadata; the node
+adds a note to its output text when `Export Workflow Metadata` is `On` but the chosen format can't
+store it.
+
+### Image Format And Quality
+
+`Image Format` chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy). `Image Quality` (`1`-`100`)
+controls JPEG/WebP compression and is ignored for PNG.
+
+### Outputs
+
+- `FILENAME`: file name of the first saved image in the batch
+- `FILE_PATH`: absolute file path of the first saved image in the batch
 
 ### Detailed Variables
 

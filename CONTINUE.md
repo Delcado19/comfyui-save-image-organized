@@ -8,14 +8,16 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.6.2`.
+- The current registry version is `0.6.3`. Unreleased on top of that (code, tests, and docs done; not tagged/published): `FILENAME`/`FILE_PATH` outputs, `Image Format`/`Image Quality` (PNG/JPEG/WebP) widgets appended after every existing optional widget, and a fix collapsing the doubled folder that checkpoint-loader workflows produced when `Model Name` and `Text Encoder Name` resolve to the same file. See `CHANGELOG.md [Unreleased]`.
+- `v0.6.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`26165966917`) plus `Publish to Comfy Registry` (`26165966814`), both successful.
+- `v0.6.3` fixes the helper preview so changing the `Export Workflow Metadata` toggle marks the last detection snapshot stale and refreshes the preview state.
 - `v0.6.2` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25271979195`) plus `Publish to Comfy Registry` (`25271979191`), both successful.
 - `v0.6.2` adds `Friendly Clean` output examples to `README.md`, `docs/USAGE.md`, and `web/docs/SaveImageClean.md`, and fills missing model/text encoder example blocks in `docs/USAGE.md`.
 - `v0.6.1` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`25259822729`) plus `Publish to Comfy Registry` (`25259822727`), both successful.
 - `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
 - `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
 - `v0.5.3` is the last `v0.5.x` release; it added the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics.
-- The local live ComfyUI custom-node install at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\comfyui-save-image-organized` is current with `main` (refreshed to `v0.6.1`); installed `nodes.py` imports successfully and exposes `SaveImageClean` as `Save Image Organized`.
+- The local live ComfyUI custom-node install is at `H:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`; its `pyproject.toml` reports `0.6.3`. The older documented path `...\custom_nodes\comfyui-save-image-organized` is not present.
 - GitHub Actions CI runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
@@ -171,6 +173,19 @@ The following items are the core of the `v0.6.1` release:
 - runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout
 - `Release Pipeline` and `Docs Sync Checker` agent role definitions added to `AGENTS.md`
 
+## Released In v0.6.2
+
+The following items are the core of the `v0.6.2` release:
+
+- `Friendly Clean` output examples in `README.md`, `docs/USAGE.md`, and `web/docs/SaveImageClean.md`
+- missing model and text encoder example blocks filled in `docs/USAGE.md`
+
+## Released In v0.6.3
+
+The following item is the core of the `v0.6.3` release:
+
+- helper preview updates when the `Export Workflow Metadata` toggle changes, moving the helper into stale snapshot state until the next workflow run refreshes detection
+
 ## Known Gaps
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
@@ -187,6 +202,7 @@ The following items are the core of the `v0.6.1` release:
 2. Keep `private-workflows` as a local migration and detection regression corpus, especially mixed GGUF/safetensors workflows and future custom-node branches.
 3. Keep `CHANGELOG.md` and `pyproject.toml` versions aligned before each registry release.
 4. Extend `tools/migrate_save_image_nodes.py` only when future exported workflow formats require additional compatibility handling.
+5. **Re-check the local `private-workflows` migration.** `tools/migrate_save_image_nodes.py` had a `widgets_values` alignment bug (fixed in this repo review): migrated nodes got a `widgets_values` array with the wrong item count and no offset for the node's actual widget order (13 entries for what should be 12, offset by one from the first widget on). Since ComfyUI restores `widgets_values` positionally (see the comment in `nodes.py` next to the `optional` widget block), this would carry each widget's value into the next widget's slot — e.g. `collision_mode`'s value landing where `detection_info` expects its own. This consequence follows from how ComfyUI's positional restore is documented to work, but was not independently re-verified against a live ComfyUI install in this session. The tool is fixed now, but the `60` workflow files already migrated locally were migrated with the broken version — open a sample of them in ComfyUI and check the `Save Image Organized` widget values, or re-run the migration tool against a fresh export.
 
 ## Deferred Ideas
 
@@ -196,10 +212,8 @@ The following items are the core of the `v0.6.1` release:
   - hash-based suffix option
   - more configurable suffix handling
 - Metadata controls:
-  - toggle PNG metadata writing
   - optional prompt-only metadata mode
   - clearer handling for extra PNG info
-- Optional additional export formats such as JPEG or WebP
 
 ## Out Of Scope For Now
 
@@ -231,6 +245,7 @@ The following items are the core of the `v0.6.1` release:
 
 ## Release Checklist
 
+- `v0.6.3` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.2` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
 - `v0.6.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
 - `v0.6.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.

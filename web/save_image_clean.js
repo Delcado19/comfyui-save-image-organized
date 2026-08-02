@@ -12,10 +12,15 @@ const LABELS = {
     collision_mode: "If File Exists",
     detection_info: "Detection Info",
     export_workflow_metadata: "Export Workflow Metadata",
+    image_format: "Image Format",
+    image_quality: "Image Quality",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",
 };
+
+const IMAGE_FORMAT_EXTENSIONS = { PNG: "png", JPEG: "jpg", WebP: "webp" };
+const KNOWN_IMAGE_EXTENSION_RE = /\.(png|jpe?g|webp)$/i;
 
 const SAMPLE_MODEL = "flux-2-klein-9b-Q5_K_M.gguf";
 const SAMPLE_CLIP = "Lockout-Qwen3-4b-zimage-hereticV2-q8.gguf";
@@ -490,11 +495,35 @@ function sanitizePathPart(value) {
 }
 
 function sanitizeRelativePath(value) {
-    return String(value || "")
+    const cleaned = String(value || "")
         .split(/[\\/]+/)
         .filter(Boolean)
         .map((part) => sanitizePathPart(part))
         .join("/");
+    // Mirrors nodes.py _sanitize_relative_path: a template that renders to
+    // nothing (e.g. an empty %TOP_FOLDER%-only layout) still needs a name,
+    // instead of a preview showing a bare ".png"/".jpg"/".webp".
+    return cleaned || "unnamed";
+}
+
+// Mirrors nodes.py _collapse_consecutive_duplicate_segments: a checkpoint
+// loader provides one file for both model and text encoder, so the default
+// layout can render two identical segments back to back.
+function collapseConsecutiveDuplicateSegments(value) {
+    const segments = String(value || "").split(/[\\/]+/);
+    const collapsed = [];
+    for (const segment of segments) {
+        if (segment && collapsed.length && collapsed[collapsed.length - 1] === segment) {
+            continue;
+        }
+        collapsed.push(segment);
+    }
+    return collapsed.join("/");
+}
+
+function getImageExtension(node) {
+    const format = String(getWidget(node, "image_format")?.value || "PNG");
+    return IMAGE_FORMAT_EXTENSIONS[format] || "png";
 }
 
 function renderDateFormat(format, now) {
@@ -625,8 +654,10 @@ function buildLegacyExample(node, variables) {
         parts.push(variables.TOP_FOLDER);
     }
     parts.push(variables.MODEL_NAME);
-    parts.push(variables.TEXT_ENCODER_NAME);
-    parts.push(`${variables.FILENAME}.png`);
+    if (variables.TEXT_ENCODER_NAME !== variables.MODEL_NAME) {
+        parts.push(variables.TEXT_ENCODER_NAME);
+    }
+    parts.push(`${variables.FILENAME}.${getImageExtension(node)}`);
     return parts.join("/");
 }
 
@@ -710,10 +741,10 @@ function buildLayoutExample(node, variables, now) {
         notes.push(formatPreviewNote("Widget placeholders show as {node.widget} until the workflow runs."));
     }
 
+    rendered = collapseConsecutiveDuplicateSegments(rendered);
     let cleanPath = sanitizeRelativePath(rendered);
-    if (!cleanPath.toLowerCase().endsWith(".png")) {
-        cleanPath = `${cleanPath}.png`;
-    }
+    cleanPath = cleanPath.replace(KNOWN_IMAGE_EXTENSION_RE, "");
+    cleanPath = `${cleanPath}.${getImageExtension(node)}`;
     return {
         path: cleanPath,
         notes,
@@ -1042,6 +1073,7 @@ function hookWidgetUpdates(node) {
         "model_folder",
         "clip_folder",
         "export_workflow_metadata",
+        "image_format",
     ];
 
     for (const name of watchedNames) {

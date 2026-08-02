@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `FILENAME` and `FILE_PATH` STRING outputs, reporting the first saved image in a batch, for chaining into other nodes
+- `Image Format` (`PNG`/`JPEG`/`WebP`) and `Image Quality` (1-100, JPEG/WebP only) widgets, appended after every existing optional widget so saved workflows keep their widget positions
+  - `Export Workflow Metadata` stays PNG-only; JPEG/WebP saves add a text-output note instead of silently dropping metadata
+
+### Fixed
+
+- Checkpoint-loader workflows no longer save into a doubled folder (`my-checkpoint/my-checkpoint/file.png`) when `Model Name` and `Text Encoder Name` resolve to the same file; consecutive duplicate path segments are now collapsed to one
+- JPEG export of images with an alpha channel now composites transparent pixels onto white instead of silently keeping whatever RGB values sat underneath them
+- `image_quality` is now clamped to the documented `1`-`100` range before saving; out-of-range values previously crashed WebP export with `ValueError: invalid configuration`
+- `tools/migrate_save_image_nodes.py` wrote a `widgets_values` array for migrated `SaveImageClean` nodes that did not match the node's actual widget order (13 entries for what should be 12, offset by one from the first widget on). Since ComfyUI restores `widgets_values` positionally, this would carry each widget's value into the next widget's slot (e.g. `collision_mode`'s value landing where `detection_info` expects its own). The migration helper now derives `widgets_values` positionally from the real node schema, including `image_format`/`image_quality`. Workflows migrated with the old tool should be re-migrated or have their `Save Image Organized` widget values checked by hand
+
 ## [0.6.3] - 2026-05-20
 
 ### Fixed
