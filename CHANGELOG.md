@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-09
+
 ### Added
 
 - `Loader Priority` (`Nearest`/`First Used`) widget, appended after `Image Quality`. When more than one model loader feeds a save (e.g. a base pass whose output is re-encoded and refined by a second model), `Nearest` (default, previous behavior) picks the loader with the fewest upstream links; `First Used` picks the one furthest upstream instead, i.e. the first model applied in a multi-stage pipeline

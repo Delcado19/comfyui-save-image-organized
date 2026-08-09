@@ -8,7 +8,7 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.7.0`, adding `FILENAME`/`FILE_PATH` outputs, `Image Format`/`Image Quality` (PNG/JPEG/WebP) widgets appended after every existing optional widget, and a fix collapsing the doubled folder that checkpoint-loader workflows produced when `Model Name` and `Text Encoder Name` resolve to the same file, plus fixes for JPEG alpha flattening, `image_quality` clamping, and a `tools/migrate_save_image_nodes.py` `widgets_values` alignment bug. See `CHANGELOG.md [0.7.0]`.
+- The current registry version is `0.7.1`, adding a `Loader Priority` (`Nearest`/`First Used`) widget appended after `Image Quality`. Fixes the case where a multi-stage pipeline (e.g. a base pass refined by a second model) resolved `Model Name`/`Text Encoder Name` to the nearer refiner loader instead of the base loader that produced the actual content; `Nearest` keeps the previous default behavior, `First Used` opts into picking the loader furthest upstream. See `CHANGELOG.md [0.7.1]`.
 - `v0.7.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`30761127021`) plus `Publish to Comfy Registry` (`30761127055`), both successful.
 - `v0.6.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`26165966917`) plus `Publish to Comfy Registry` (`26165966814`), both successful.
 - `v0.6.3` fixes the helper preview so changing the `Export Workflow Metadata` toggle marks the last detection snapshot stale and refreshes the preview state.
@@ -18,7 +18,7 @@ This file is for continuation context, not end-user documentation.
 - `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
 - `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
 - `v0.5.3` is the last `v0.5.x` release; it added the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics.
-- The local live ComfyUI custom-node install is at `<drive>:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`, where `<drive>` is whatever drive letter ComfyUI-Easy-Install is currently mounted on (it has changed between sessions, e.g. `H:` then `G:` — always verify before assuming). Its `pyproject.toml` reports `0.7.0` after this release. The older documented path `...\custom_nodes\comfyui-save-image-organized` is not present.
+- The local live ComfyUI custom-node install is at `<drive>:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`, where `<drive>` is whatever drive letter ComfyUI-Easy-Install is currently mounted on (it has changed between sessions, e.g. `H:` then `G:` — always verify before assuming). Its `pyproject.toml` reports `0.7.1` after this release. The older documented path `...\custom_nodes\comfyui-save-image-organized` is not present.
 - GitHub Actions CI runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
@@ -197,6 +197,12 @@ The following items are the core of the `v0.7.0` release:
 - JPEG export of images with an alpha channel composites transparent pixels onto white instead of keeping whatever RGB values sat underneath them
 - `image_quality` is clamped to the documented `1`-`100` range before saving
 - `tools/migrate_save_image_nodes.py` `widgets_values` alignment bug fixed: migrated nodes now get a correctly ordered, correctly sized `widgets_values` array
+
+## Released In v0.7.1
+
+The following item is the core of the `v0.7.1` release:
+
+- `Loader Priority` (`Nearest`/`First Used`) widget, appended after `Image Quality`, fixing multi-stage pipelines (e.g. base pass refined by a second model) that always resolved to the nearer refiner loader instead of the base loader
 
 ## Known Gaps
 
