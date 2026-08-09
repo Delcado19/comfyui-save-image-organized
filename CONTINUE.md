@@ -9,6 +9,7 @@ This file is for continuation context, not end-user documentation.
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.7.1`, adding a `Loader Priority` (`Nearest`/`First Used`) widget appended after `Image Quality`. Fixes the case where a multi-stage pipeline (e.g. a base pass refined by a second model) resolved `Model Name`/`Text Encoder Name` to the nearer refiner loader instead of the base loader that produced the actual content; `Nearest` keeps the previous default behavior, `First Used` opts into picking the loader furthest upstream. See `CHANGELOG.md [0.7.1]`.
+- `v0.7.1` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`31315692742`) plus `Publish to Comfy Registry` (`31315692738`), both successful.
 - `v0.7.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`30761127021`) plus `Publish to Comfy Registry` (`30761127055`), both successful.
 - `v0.6.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`26165966917`) plus `Publish to Comfy Registry` (`26165966814`), both successful.
 - `v0.6.3` fixes the helper preview so changing the `Export Workflow Metadata` toggle marks the last detection snapshot stale and refreshes the preview state.
@@ -263,6 +264,7 @@ The following item is the core of the `v0.7.1` release:
 
 ## Release Checklist
 
+- `v0.7.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.7.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.3` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.2` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by the final release gate.
