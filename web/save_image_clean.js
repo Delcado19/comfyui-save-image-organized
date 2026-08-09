@@ -14,6 +14,7 @@ const LABELS = {
     export_workflow_metadata: "Export Workflow Metadata",
     image_format: "Image Format",
     image_quality: "Image Quality",
+    loader_priority: "Loader Priority",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",

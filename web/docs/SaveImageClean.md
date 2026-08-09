@@ -184,6 +184,19 @@ Chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy, controlled by `Image Qu
 
 Quality for `JPEG`/`WebP` output, `1`-`100`. Ignored when `Image Format` is `PNG`.
 
+### Loader Priority
+
+When more than one model loader feeds a save (for example a base pass whose
+output is re-encoded and refined by a second model), this decides which
+loader's name is used:
+
+- `Nearest` (default): the loader with the fewest upstream links from this
+  node. Right for most workflows, including single-loader saves and
+  refiner/upscale passes after the model that actually produced the saved
+  pixels.
+- `First Used`: the loader with the most upstream links, i.e. the first model
+  applied in a multi-stage pipeline.
+
 ## Outputs
 
 - `FILENAME`: file name of the first saved image in the batch

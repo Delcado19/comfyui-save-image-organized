@@ -140,6 +140,12 @@ MODEL_SOURCE_OPTIONS = list(MODEL_SOURCE_LABEL_TO_KEY.keys())
 CLIP_SOURCE_OPTIONS = list(CLIP_SOURCE_LABEL_TO_KEY.keys())
 DETECTION_INFO_OPTIONS = ["Off", "Summary", "Verbose"]
 IMAGE_FORMAT_OPTIONS = ["PNG", "JPEG", "WebP"]
+# "Nearest" (default) picks the loader with the fewest upstream links from Save Image Organized,
+# which is right for single-pass workflows and refiner/upscale passes after the model that actually
+# produced the saved pixels. "First Used" instead picks the loader with the MOST upstream links, i.e.
+# the one furthest back in a multi-stage pipeline (e.g. a base pass whose output is re-encoded and
+# refined by a second model) -- see issue raised 2026-08-09 about base+turbo two-pass workflows.
+LOADER_PRIORITY_OPTIONS = ["Nearest", "First Used"]
 # Pillow save() needs its own format name; JPEG has no 4-letter/lowercase
 # alias and WebP save()'s format string is fully uppercase.
 IMAGE_FORMAT_INFO = {
@@ -1088,9 +1094,14 @@ def _resolve_prompt_input_value(
     )
 
 
-def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
+def _find_active_name_details(
+    prompt: Any, unique_id: Any, loader_priority: str = "Nearest"
+) -> dict[str, Any]:
     best_unet: tuple[int, int, int, str, str, str] | None = None
     best_clip: tuple[int, int, int, str, str, str] | None = None
+    # "First Used" wants the loader furthest upstream to win; negating distance lets the
+    # same "lowest tuple wins" comparison below serve both modes.
+    distance_sign = -1 if loader_priority == "First Used" else 1
 
     for node_id, node, distance in _walk_prompt_upstream(prompt, unique_id):
         class_type = str(node.get("class_type", ""))
@@ -1099,6 +1110,7 @@ def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
         clip_priority = _get_clip_loader_priority(class_type, inputs)
         checkpoint_priority = _get_checkpoint_loader_priority(class_type, inputs)
         loader_label = _format_match_label(node_id, node)
+        ranked_distance = distance_sign * distance
 
         if unet_priority is not None or checkpoint_priority is not None:
             unet_values = _extract_string_inputs_from_node(
@@ -1108,7 +1120,7 @@ def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
             )
             priority = unet_priority if unet_priority is not None else checkpoint_priority
             for value_index, value in enumerate(unet_values):
-                candidate = (priority, distance, value_index, value.casefold(), value, loader_label)
+                candidate = (priority, ranked_distance, value_index, value.casefold(), value, loader_label, distance)
                 if best_unet is None or candidate < best_unet:
                     best_unet = candidate
 
@@ -1120,7 +1132,7 @@ def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
             )
             priority = clip_priority if clip_priority is not None else checkpoint_priority
             for value_index, value in enumerate(clip_values):
-                candidate = (priority, distance, value_index, value.casefold(), value, loader_label)
+                candidate = (priority, ranked_distance, value_index, value.casefold(), value, loader_label, distance)
                 if best_clip is None or candidate < best_clip:
                     best_clip = candidate
 
@@ -1129,13 +1141,14 @@ def _find_active_name_details(prompt: Any, unique_id: Any) -> dict[str, Any]:
         "ACTIVE_CLIP": best_clip[4] if best_clip else "",
         "ACTIVE_UNET_SOURCE": best_unet[5] if best_unet else "",
         "ACTIVE_CLIP_SOURCE": best_clip[5] if best_clip else "",
-        "ACTIVE_UNET_DISTANCE": best_unet[1] if best_unet else None,
-        "ACTIVE_CLIP_DISTANCE": best_clip[1] if best_clip else None,
+        # Real (unsigned) upstream link count, not the priority-ranked value used for sorting.
+        "ACTIVE_UNET_DISTANCE": best_unet[6] if best_unet else None,
+        "ACTIVE_CLIP_DISTANCE": best_clip[6] if best_clip else None,
     }
 
 
-def _find_active_names(prompt: Any, unique_id: Any) -> dict[str, str]:
-    details = _find_active_name_details(prompt, unique_id)
+def _find_active_names(prompt: Any, unique_id: Any, loader_priority: str = "Nearest") -> dict[str, str]:
+    details = _find_active_name_details(prompt, unique_id, loader_priority)
     return {
         "ACTIVE_UNET": details["ACTIVE_UNET"],
         "ACTIVE_CLIP": details["ACTIVE_CLIP"],
@@ -1424,6 +1437,19 @@ class SaveImageClean:
                         "tooltip": "JPEG/WebP quality (1-100). Ignored when Image Format is PNG.",
                     },
                 ),
+                "loader_priority": (
+                    LOADER_PRIORITY_OPTIONS,
+                    {
+                        "default": "Nearest",
+                        "tooltip": (
+                            "How to pick a model/text-encoder when more than one loader feeds "
+                            "this save. Nearest picks the loader with the fewest upstream links "
+                            "(right for most single-pass workflows). First Used picks the loader "
+                            "furthest upstream, i.e. the first one applied in a multi-stage "
+                            "pipeline such as a base pass refined by a second model."
+                        ),
+                    },
+                ),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -1477,13 +1503,16 @@ class SaveImageClean:
         subfolder: str,
         model_source: str,
         clip_source: str,
+        loader_priority: str,
         image_width: int | None,
         image_height: int | None,
         batch_index: int,
         batch_size: int,
         now: datetime,
     ) -> tuple[dict[str, str], dict[str, str]]:
-        active_names = _find_active_name_details(prompt=prompt, unique_id=unique_id)
+        active_names = _find_active_name_details(
+            prompt=prompt, unique_id=unique_id, loader_priority=loader_priority
+        )
         seed_value = _find_upstream_scalar_input(
             prompt,
             unique_id,
@@ -1727,6 +1756,7 @@ class SaveImageClean:
         subfolder: str,
         model_source: str,
         clip_source: str,
+        loader_priority: str,
         detection_info: str,
         image_width: int | None,
         image_height: int | None,
@@ -1747,6 +1777,7 @@ class SaveImageClean:
             subfolder=subfolder,
             model_source=model_source,
             clip_source=clip_source,
+            loader_priority=loader_priority,
             image_width=image_width,
             image_height=image_height,
             batch_index=batch_index,
@@ -1820,6 +1851,7 @@ class SaveImageClean:
         model_folder: str = "",
         clip_folder: str = "",
         filename_datetime: str = DEFAULT_FILENAME_PATTERN,
+        loader_priority: str = "Nearest",
         prompt: Any = None,
         extra_pnginfo: Any = None,
         unique_id: Any = None,
@@ -1875,6 +1907,7 @@ class SaveImageClean:
                 subfolder=subfolder,
                 model_source=model_source,
                 clip_source=clip_source,
+                loader_priority=loader_priority,
                 detection_info=detection_info,
                 image_width=image_width,
                 image_height=image_height,

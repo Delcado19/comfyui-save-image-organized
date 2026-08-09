@@ -113,7 +113,7 @@ def test_migrate_workflow_preserves_ui_geometry_and_links(workspace_tmp_path):
     # required-then-optional widget order: path_template, model_source,
     # clip_source, filename_datetime, collision_mode, detection_info,
     # export_workflow_metadata, subfolder, model_folder, clip_folder,
-    # image_format, image_quality.
+    # image_format, image_quality, loader_priority.
     assert save_node["widgets_values"] == [
         "renders/test/%MODEL_NAME%/%TEXT_ENCODER_NAME%/%FILENAME%%BATCH%",
         "Friendly",
@@ -127,6 +127,7 @@ def test_migrate_workflow_preserves_ui_geometry_and_links(workspace_tmp_path):
         "",
         "PNG",
         95,
+        "Nearest",
     ]
     assert save_node["properties"]["Node name for S&R"] == ORGANIZED_NODE_TYPE
     assert save_node["properties"]["aux_id"] == ORGANIZED_AUX_ID

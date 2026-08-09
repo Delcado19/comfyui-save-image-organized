@@ -156,7 +156,7 @@ When detection comes from the workflow, the output also includes the upstream lo
 
 If the current save node only sees a postprocessing branch and no sampler or loader upstream, Detection Info will report that no workflow loader was found on that save branch. In that case the node uses the default placeholders unless you provide custom names.
 
-If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced.
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced. `Loader Priority` picks which one: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
 
 ### Export Workflow Metadata
 
@@ -182,6 +182,10 @@ Chooses the saved file type: `PNG`, `JPEG`, or `WebP`.
 ### Image Quality
 
 Quality for `JPEG` and `WebP` output, from `1` to `100`. Ignored when `Image Format` is `PNG`.
+
+### Loader Priority
+
+Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
 
 ## Outputs
 

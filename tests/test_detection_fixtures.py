@@ -64,3 +64,29 @@ def test_detection_fixture_traverses_lora_passthrough_nodes(load_prompt_fixture)
         "ACTIVE_UNET": "Flux/flux-2-klein-9b-Q5_K_M.gguf",
         "ACTIVE_CLIP": "Goekdeniz-Guelmez_Josiefied-Qwen3-8B-abliterated-v1-Q4_K_M.gguf",
     }
+
+
+def test_detection_fixture_nearest_picks_the_closer_loader_in_a_two_stage_pipeline(
+    load_prompt_fixture,
+):
+    # Default "Nearest": a base pass refined by a second model should resolve
+    # to the second (refiner) loader, since it's fewer upstream links away.
+    prompt = load_prompt_fixture("detection_two_stage_pipeline.json")
+
+    assert nodes._find_active_names(prompt, "1") == {
+        "ACTIVE_UNET": "Z-Image Turbo/turbo.safetensors",
+        "ACTIVE_CLIP": "",
+    }
+
+
+def test_detection_fixture_first_used_picks_the_farther_loader_in_a_two_stage_pipeline(
+    load_prompt_fixture,
+):
+    # "First Used" should instead resolve to the loader furthest upstream,
+    # i.e. the first model applied in the pipeline.
+    prompt = load_prompt_fixture("detection_two_stage_pipeline.json")
+
+    assert nodes._find_active_names(prompt, "1", "First Used") == {
+        "ACTIVE_UNET": "Z-Image Base/base.safetensors",
+        "ACTIVE_CLIP": "",
+    }
