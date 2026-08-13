@@ -507,19 +507,20 @@ function sanitizeRelativePath(value) {
     return cleaned || "unnamed";
 }
 
-// Mirrors nodes.py _collapse_consecutive_duplicate_segments: a checkpoint
-// loader provides one file for both model and text encoder, so the default
-// layout can render two identical segments back to back.
-function collapseConsecutiveDuplicateSegments(value) {
-    const segments = String(value || "").split(/[\\/]+/);
-    const collapsed = [];
-    for (const segment of segments) {
-        if (segment && collapsed.length && collapsed[collapsed.length - 1] === segment) {
-            continue;
-        }
-        collapsed.push(segment);
+const MODEL_CLIP_TOKEN_PAIR_RE = /%MODEL_NAME(?::[^%]*)?%[\\/]+%TEXT_ENCODER_NAME(?::[^%]*)?%/;
+
+// Mirrors nodes.py _collapse_duplicate_model_clip_tokens: a checkpoint loader
+// provides one file for both model and text encoder, so an adjacent
+// %MODEL_NAME%/%TEXT_ENCODER_NAME% token pair can render two identical
+// segments back to back. Only that specific token pair is merged (before
+// variables are substituted), so an unrelated duplicate elsewhere in the
+// rendered path (e.g. %TOP_FOLDER% happening to equal %MODEL_NAME%, see
+// issue raised 2026-08-13) is left alone.
+function collapseDuplicateModelClipTokens(layout, cleanModel, cleanClip) {
+    if (!cleanModel || cleanModel !== cleanClip) {
+        return layout;
     }
-    return collapsed.join("/");
+    return layout.replace(MODEL_CLIP_TOKEN_PAIR_RE, "%MODEL_NAME%");
 }
 
 function getImageExtension(node) {
@@ -702,7 +703,8 @@ function formatPreviewNote(message, tone = "info") {
 }
 
 function buildLayoutExample(node, variables, now) {
-    const layout = String(getWidget(node, "path_template")?.value || DEFAULT_LAYOUT).trim();
+    let layout = String(getWidget(node, "path_template")?.value || DEFAULT_LAYOUT).trim();
+    layout = collapseDuplicateModelClipTokens(layout, variables.MODEL_NAME, variables.TEXT_ENCODER_NAME);
     const notes = [];
     let usesWidgetPlaceholder = false;
 
@@ -742,7 +744,6 @@ function buildLayoutExample(node, variables, now) {
         notes.push(formatPreviewNote("Widget placeholders show as {node.widget} until the workflow runs."));
     }
 
-    rendered = collapseConsecutiveDuplicateSegments(rendered);
     let cleanPath = sanitizeRelativePath(rendered);
     cleanPath = cleanPath.replace(KNOWN_IMAGE_EXTENSION_RE, "");
     cleanPath = `${cleanPath}.${getImageExtension(node)}`;

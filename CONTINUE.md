@@ -8,7 +8,9 @@ This file is for continuation context, not end-user documentation.
 ## Current State
 
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
-- The current registry version is `0.7.1`, adding a `Loader Priority` (`Nearest`/`First Used`) widget appended after `Image Quality`. Fixes the case where a multi-stage pipeline (e.g. a base pass refined by a second model) resolved `Model Name`/`Text Encoder Name` to the nearer refiner loader instead of the base loader that produced the actual content; `Nearest` keeps the previous default behavior, `First Used` opts into picking the loader furthest upstream. See `CHANGELOG.md [0.7.1]`.
+- The current registry version is `0.7.2`, fixing the checkpoint-loader duplicate-folder collapse (from 0.7.0) so it no longer merges an unrelated `%TOP_FOLDER%` that happens to equal `%MODEL_NAME%` (e.g. a model-family folder holding a single model). The collapse is now scoped to a literal adjacent `%MODEL_NAME%/%TEXT_ENCODER_NAME%` token pair in the template, matched pre-render, and only fires when both resolve to the same file. See `CHANGELOG.md [0.7.2]`.
+- `v0.7.2` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry` (run IDs recorded after verification).
+- `v0.7.1` adds a `Loader Priority` (`Nearest`/`First Used`) widget appended after `Image Quality`. Fixes the case where a multi-stage pipeline (e.g. a base pass refined by a second model) resolved `Model Name`/`Text Encoder Name` to the nearer refiner loader instead of the base loader that produced the actual content; `Nearest` keeps the previous default behavior, `First Used` opts into picking the loader furthest upstream. See `CHANGELOG.md [0.7.1]`.
 - `v0.7.1` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`31315692742`) plus `Publish to Comfy Registry` (`31315692738`), both successful.
 - `v0.7.0` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`30761127021`) plus `Publish to Comfy Registry` (`30761127055`), both successful.
 - `v0.6.3` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`26165966917`) plus `Publish to Comfy Registry` (`26165966814`), both successful.
@@ -19,7 +21,7 @@ This file is for continuation context, not end-user documentation.
 - `v0.6.1` adds a runtime warning when saving multiple images with `collision_mode=error` or `overwrite` and no batch variable in the Save Layout, and adds `Release Pipeline` and `Docs Sync Checker` agent definitions to `AGENTS.md`.
 - `v0.6.0` adds path template filters (`lower`, `upper`, `slug`), the `%BATCH%` template variable, updates the default Save Layout to append `%BATCH%` after `%FILENAME%`, and updates the workflow migration helper to carry `%BATCH%` into migrated layouts.
 - `v0.5.3` is the last `v0.5.x` release; it added the workflow migration helper, expected no-loader workflow regression coverage, conservative `Friendly Clean` audit coverage, and loader-distance diagnostics.
-- The local live ComfyUI custom-node install is at `<drive>:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`, where `<drive>` is whatever drive letter ComfyUI-Easy-Install is currently mounted on (it has changed between sessions, e.g. `H:` then `G:` — always verify before assuming). Its `pyproject.toml` reports `0.7.1` after this release. The older documented path `...\custom_nodes\comfyui-save-image-organized` is not present.
+- The local live ComfyUI custom-node install is at `<drive>:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`, where `<drive>` is whatever drive letter ComfyUI-Easy-Install is currently mounted on (it has changed between sessions, e.g. `H:` then `G:` — always verify before assuming). Its `pyproject.toml` reports `0.7.2` after this release. The older documented path `...\custom_nodes\comfyui-save-image-organized` is not present.
 - GitHub Actions CI runs `ruff` and `pytest` on Windows for pushes to `main` and pull requests.
 - Maintainer workflow validation now preserves linked UI inputs even when the exported input name is empty, which allows Reroute and `Reroute (rgthree)` nodes to stay connected during local workflow scans.
 - Maintainer workflow validation now reports a `REASON` column and JSON `reason` field for each Save node, so remaining misses explain whether a loader is unreachable or a loader name could not be resolved.
@@ -205,6 +207,12 @@ The following item is the core of the `v0.7.1` release:
 
 - `Loader Priority` (`Nearest`/`First Used`) widget, appended after `Image Quality`, fixing multi-stage pipelines (e.g. base pass refined by a second model) that always resolved to the nearer refiner loader instead of the base loader
 
+## Released In v0.7.2
+
+The following item is the core of the `v0.7.2` release:
+
+- checkpoint-loader duplicate-folder collapse (from `v0.7.0`) is now scoped to a literal adjacent `%MODEL_NAME%/%TEXT_ENCODER_NAME%` token pair, matched pre-render, instead of collapsing any consecutive duplicate segment in the rendered path; an unrelated `%TOP_FOLDER%` that happens to equal `%MODEL_NAME%` is no longer merged away
+
 ## Known Gaps
 
 - The latest checkpoint widget-object fix is covered by automated regression tests and an installation-level runtime check against the local ComfyUI custom-node copy.
@@ -264,6 +272,7 @@ The following item is the core of the `v0.7.1` release:
 
 ## Release Checklist
 
+- `v0.7.2` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.7.1` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.7.0` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.
 - `v0.6.3` is tagged locally and on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI and `Publish to Comfy Registry`.

@@ -1374,6 +1374,41 @@ def test_save_images_collapses_duplicate_folder_for_checkpoint_loader(workspace_
     assert (workspace_tmp_path / "sdxl-checkpoint-v1" / "ckpt-output.png").exists()
 
 
+def test_save_images_does_not_collapse_top_folder_matching_model_name(workspace_tmp_path):
+    # A %TOP_FOLDER% that happens to equal %MODEL_NAME% (e.g. a model-family
+    # folder holding a single model) is unrelated to the checkpoint-loader
+    # collapse above and must not be merged away. See issue raised 2026-08-13.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = saver.save_images(
+        images=[image],
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Custom",
+        clip_source="Custom",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="Z-Image Base",
+        model_folder="Z-Image Base",
+        clip_folder="Some Text Encoder",
+        filename_datetime="base-output",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="1",
+    )
+
+    saved_images = result["ui"]["images"]
+    assert saved_images[0]["subfolder"].replace("\\", "/") == "Z-Image Base/Z-Image Base/Some Text Encoder"
+    assert (
+        workspace_tmp_path
+        / "Z-Image Base"
+        / "Z-Image Base"
+        / "Some Text Encoder"
+        / "base-output.png"
+    ).exists()
+
+
 def test_save_images_supports_jpeg_export_with_quality(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

@@ -447,22 +447,26 @@ def _normalize_template_file_path(value: str, extension: str) -> Path:
     return relative_path.with_suffix(f".{extension}")
 
 
-def _collapse_consecutive_duplicate_segments(value: str) -> str:
-    """Drop a path segment that repeats the one immediately before it.
+_MODEL_CLIP_TOKEN_PAIR_RE = re.compile(
+    r"%MODEL_NAME(?::[^%]*)?%[\\/]+%TEXT_ENCODER_NAME(?::[^%]*)?%"
+)
+
+
+def _collapse_duplicate_model_clip_tokens(template: str, clean_model: str, clean_clip: str) -> str:
+    """Merge an adjacent `%MODEL_NAME%/%TEXT_ENCODER_NAME%` token pair into one.
 
     A checkpoint loader provides one file for both the model and the text
     encoder, so the default `%MODEL_NAME%/%TEXT_ENCODER_NAME%` layout can
-    render two identical segments back to back (e.g. `sdxl-v1/sdxl-v1`).
-    Only *consecutive* duplicates are dropped so unrelated repeats elsewhere
-    in a custom template are left alone.
+    render two identical segments back to back (e.g. `sdxl-v1/sdxl-v1`). This
+    only rewrites that specific adjacent token pair in the *template* (before
+    variables are substituted), and only when the resolved names actually
+    match, so an unrelated duplicate elsewhere in the rendered path (e.g.
+    `%TOP_FOLDER%` happening to equal `%MODEL_NAME%`, see issue raised
+    2026-08-13) is left alone.
     """
-    segments = PATH_SPLIT_RE.split(value or "")
-    collapsed: list[str] = []
-    for segment in segments:
-        if segment and collapsed and collapsed[-1] == segment:
-            continue
-        collapsed.append(segment)
-    return "/".join(collapsed)
+    if not clean_model or clean_model != clean_clip:
+        return template
+    return _MODEL_CLIP_TOKEN_PAIR_RE.sub("%MODEL_NAME%", template)
 
 
 def _render_date_format(value: str, now: datetime) -> str:
@@ -1787,8 +1791,12 @@ class SaveImageClean:
         detection_lines = self._build_detection_info_lines(detection_info, detection_state)
 
         if path_template and path_template.strip():
-            rendered = _render_path_template(path_template.strip(), variables, now, prompt)
-            rendered = _collapse_consecutive_duplicate_segments(rendered)
+            clean_model = _sanitize_path_component(variables["MODEL_NAME"])
+            clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
+            template = _collapse_duplicate_model_clip_tokens(
+                path_template.strip(), clean_model, clean_clip
+            )
+            rendered = _render_path_template(template, variables, now, prompt)
             relative_path = _normalize_template_file_path(rendered, extension)
             return relative_path, rendered, detection_lines, detection_state
 

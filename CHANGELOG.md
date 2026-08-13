@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-08-13
+
+### Fixed
+
+- The checkpoint-loader duplicate-folder collapse (added in 0.7.0) no longer fires on an unrelated `%TOP_FOLDER%` that happens to equal `%MODEL_NAME%` (e.g. a model-family folder holding a single model). It now only merges an adjacent `%MODEL_NAME%/%TEXT_ENCODER_NAME%` token pair, and only when both resolve to the same file
+
 ## [0.7.1] - 2026-08-09
 
 ### Added
