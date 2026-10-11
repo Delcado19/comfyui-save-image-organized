@@ -15,7 +15,7 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - PNG, JPEG, or WebP output, with a quality control for the lossy formats
 - PNG workflow metadata export that matches ComfyUI's normal `Save Image` behavior
 - optional switch to disable embedded workflow metadata export entirely
-- `FILENAME`/`FILE_PATH` outputs for chaining the saved image into other nodes
+- `FILENAME`/`FILE_PATH`/`IMAGES` outputs for chaining the saved image into other nodes mid-workflow
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
@@ -174,13 +174,16 @@ store it.
 
 ### Image Format And Quality
 
-`Image Format` chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy). `Image Quality` (`1`-`100`)
-controls JPEG/WebP compression and is ignored for PNG.
+`Image Format` chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy), shown as a row of buttons
+on the node. `Image Quality` (`1`-`100`, shown as a slider) controls JPEG/WebP compression and is
+ignored for PNG.
 
 ### Outputs
 
 - `FILENAME`: file name of the first saved image in the batch
 - `FILE_PATH`: absolute file path of the first saved image in the batch
+- `IMAGES`: the same images that were saved, passed through unchanged so this node can sit
+  mid-workflow instead of only at the end
 
 ### Detailed Variables
 

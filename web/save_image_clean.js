@@ -753,6 +753,100 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
+const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
+
+let _formatButtonsCssInjected = false;
+function injectFormatButtonsCss() {
+    if (_formatButtonsCssInjected || document.getElementById("save-image-clean-format-css")) {
+        _formatButtonsCssInjected = true;
+        return;
+    }
+    _formatButtonsCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "save-image-clean-format-css";
+    style.textContent = [
+        ".sic-fmt-row{display:flex;gap:4px;width:100%;box-sizing:border-box;padding:0 8px;}",
+        ".sic-fmt-btn{flex:1;padding:5px 0;font-size:11px;font-weight:600;border-radius:6px;",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#b7b7b7;",
+        "cursor:pointer;font-family:inherit;",
+        "transition:transform 120ms ease-out, background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;}",
+        ".sic-fmt-btn:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        ".sic-fmt-btn:active{transform:scale(0.97);}",
+        ".sic-fmt-btn.active{background:#4c86e0;border-color:#4c86e0;color:#fff;}",
+        ".sic-fmt-btn.active:hover{border-color:#5d93e6;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+// A combo widget hidden this way (type swapped to "hidden", computeSize zeroed)
+// still holds its value and still serializes into widgets_values - only its
+// own draw/row height is suppressed. This is the standard way custom nodes
+// replace a stock widget's rendering without touching how ComfyUI persists it.
+function hideNativeWidget(widget) {
+    if (!widget || widget.__saveImageCleanHidden) {
+        return;
+    }
+    widget.__saveImageCleanHidden = true;
+    widget.computeSize = () => [0, -4];
+    widget.type = "hidden";
+}
+
+function setActiveFormatButton(node, activeId) {
+    const buttons = node.__saveImageCleanFormatButtons;
+    if (!buttons) {
+        return;
+    }
+    for (const [id, button] of Object.entries(buttons)) {
+        button.classList.toggle("active", id === activeId);
+    }
+}
+
+function createFormatButtonsWidget(node) {
+    const formatWidget = getWidget(node, "image_format");
+    if (!formatWidget || node.__saveImageCleanFormatWidget) {
+        return node.__saveImageCleanFormatWidget;
+    }
+
+    injectFormatButtonsCss();
+    hideNativeWidget(formatWidget);
+
+    const row = document.createElement("div");
+    row.className = "sic-fmt-row";
+
+    const buttons = {};
+    for (const id of IMAGE_FORMAT_IDS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sic-fmt-btn";
+        button.textContent = id;
+        button.title = `Save as ${id}`;
+        button.addEventListener("click", () => {
+            if (formatWidget.value === id) {
+                return;
+            }
+            formatWidget.value = id;
+            formatWidget.callback?.(id);
+            setActiveFormatButton(node, id);
+        });
+        row.appendChild(button);
+        buttons[id] = button;
+    }
+
+    const widget = node.addDOMWidget("save_image_clean_format_buttons", "custom", row, {
+        getMinHeight: () => 26,
+        getMaxHeight: () => 28,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 2,
+    });
+
+    node.__saveImageCleanFormatWidget = widget;
+    node.__saveImageCleanFormatButtons = buttons;
+    insertWidgetBefore(node, widget, "image_format");
+    setActiveFormatButton(node, formatWidget.value);
+    return widget;
+}
+
 function createHelpPanelWidget(node) {
     if (node.__saveImageCleanHelpWidget) {
         return node.__saveImageCleanHelpWidget;
@@ -1004,6 +1098,7 @@ function updateHelp(node) {
 
     ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
+    setActiveFormatButton(node, getWidget(node, "image_format")?.value);
 
     if (lastRunInfo && !lastRunInfo.stale) {
         setHelperStatus(refs, "fresh");
@@ -1121,6 +1216,7 @@ app.registerExtension({
                 setFriendlyLabels(this);
                 ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
                 ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
+                createFormatButtonsWidget(this);
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
@@ -1134,6 +1230,7 @@ app.registerExtension({
             setFriendlyLabels(this);
             ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
+            createFormatButtonsWidget(this);
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
             updateHelp(this);

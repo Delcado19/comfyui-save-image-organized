@@ -1438,6 +1438,7 @@ class SaveImageClean:
                         "default": 95,
                         "min": 1,
                         "max": 100,
+                        "display": "slider",
                         "tooltip": "JPEG/WebP quality (1-100). Ignored when Image Format is PNG.",
                     },
                 ),
@@ -1462,11 +1463,13 @@ class SaveImageClean:
             },
         }
 
-    RETURN_TYPES = ("STRING", "STRING")
-    RETURN_NAMES = ("FILENAME", "FILE_PATH")
+    RETURN_TYPES = ("STRING", "STRING", "IMAGE")
+    RETURN_NAMES = ("FILENAME", "FILE_PATH", "IMAGES")
     OUTPUT_TOOLTIPS = (
         "File name of the first saved image in this batch, without folders.",
         "Absolute file path of the first saved image in this batch.",
+        "The same images that were saved, passed through unchanged so this node can sit "
+        "mid-workflow instead of only at the end.",
     )
     FUNCTION = "save_images"
     OUTPUT_NODE = True
@@ -1988,7 +1991,7 @@ class SaveImageClean:
         # how `preview` above is also taken from the first image.
         output_filename = first_target_path.name if first_target_path else ""
         output_file_path = str(first_target_path.resolve()) if first_target_path else ""
-        return {"ui": ui, "result": (output_filename, output_file_path)}
+        return {"ui": ui, "result": (output_filename, output_file_path, images)}
 
 
 NODE_CLASS_MAPPINGS = {

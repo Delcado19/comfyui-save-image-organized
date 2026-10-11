@@ -1323,11 +1323,12 @@ def test_save_images_returns_filename_and_absolute_path_outputs(workspace_tmp_pa
         unique_id="1",
     )
 
-    filename, file_path = result["result"]
+    filename, file_path, passthrough_images = result["result"]
     expected_first_file = workspace_tmp_path / "output-tests" / "output-check.png"
     assert filename == "output-check.png"
     assert file_path == str(expected_first_file.resolve())
     assert Path(file_path).exists()
+    assert passthrough_images is images
 
 
 def test_save_images_collapses_duplicate_folder_for_checkpoint_loader(workspace_tmp_path):

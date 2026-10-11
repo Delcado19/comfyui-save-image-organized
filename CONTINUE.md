@@ -7,6 +7,7 @@ This file is for continuation context, not end-user documentation.
 
 ## Current State
 
+- Unreleased on top of `0.7.2`: `IMAGES` output added (passes saved images through unchanged for mid-workflow use), `Image Format` now renders as PNG/JPEG/WebP buttons instead of a dropdown, and `Image Quality` now renders as a native slider. Backend widget values and serialization are unchanged; verified live against the paired ComfyUI install (`G:\ComfyUI-Easy-Install\ComfyUI\custom_nodes\save-image-organized`) via `/object_info/SaveImageClean` and confirmed visually by the maintainer in the node canvas, including the native batch-grid preview (already free via ComfyUI's `ui.images`, no code change needed). Not yet released or committed. See `CHANGELOG.md [Unreleased]`.
 - The repository is published to the Comfy Registry as `save-image-organized` under publisher `delcado`.
 - The current registry version is `0.7.2`, fixing the checkpoint-loader duplicate-folder collapse (from 0.7.0) so it no longer merges an unrelated `%TOP_FOLDER%` that happens to equal `%MODEL_NAME%` (e.g. a model-family folder holding a single model). The collapse is now scoped to a literal adjacent `%MODEL_NAME%/%TEXT_ENCODER_NAME%` token pair in the template, matched pre-render, and only fires when both resolve to the same file. See `CHANGELOG.md [0.7.2]`.
 - `v0.7.2` is tagged locally, present on `origin`, published as a GitHub Release, published to the Comfy Registry, and verified by passing GitHub Actions CI (`31679404698`) plus `Publish to Comfy Registry` (`31679404697`), both successful.

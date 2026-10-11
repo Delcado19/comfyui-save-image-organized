@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `IMAGES` output, passing the saved images through unchanged so this node can sit mid-workflow instead of only at the end of a graph
+- `Image Format` now renders as a row of `PNG`/`JPEG`/`WebP` buttons instead of a dropdown; `Image Quality` now renders as a slider. Both still store the same widget values, so existing workflows are unaffected
+
 ## [0.7.2] - 2026-08-13
 
 ### Fixed

@@ -173,7 +173,8 @@ This only applies to PNG output. JPEG and WebP saves never embed workflow metada
 
 ### Image Format
 
-Chooses the saved file type: `PNG`, `JPEG`, or `WebP`.
+Chooses the saved file type: `PNG`, `JPEG`, or `WebP`, shown as a row of buttons on the node
+instead of a dropdown.
 
 - `PNG`: lossless, supports `Export Workflow Metadata`
 - `JPEG`: lossy, uses `Image Quality`, no embedded metadata
@@ -181,7 +182,8 @@ Chooses the saved file type: `PNG`, `JPEG`, or `WebP`.
 
 ### Image Quality
 
-Quality for `JPEG` and `WebP` output, from `1` to `100`. Ignored when `Image Format` is `PNG`.
+Quality for `JPEG` and `WebP` output, from `1` to `100`, shown as a slider. Ignored when
+`Image Format` is `PNG`.
 
 ### Loader Priority
 
@@ -191,9 +193,12 @@ Decides which loader wins when more than one model loader feeds a save (see the 
 
 - `FILENAME`: file name of the first saved image in the batch, without folders
 - `FILE_PATH`: absolute file path of the first saved image in the batch
+- `IMAGES`: the same images that were saved, passed through unchanged. Connect this to another
+  node to use this node mid-workflow instead of only at the end of a graph.
 
-For multi-image batches, both outputs describe only the first image; use `%BATCH_INDEX%` /
-`%BATCH_SIZE%` in the Save Layout if you need every image's path.
+For multi-image batches, `FILENAME` and `FILE_PATH` describe only the first image; use
+`%BATCH_INDEX%` / `%BATCH_SIZE%` in the Save Layout if you need every image's path. `IMAGES`
+passes through the full batch.
 
 ## Useful Variables
 

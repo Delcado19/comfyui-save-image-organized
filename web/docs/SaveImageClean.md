@@ -178,11 +178,13 @@ This only applies to `PNG` output; `JPEG` and `WebP` saves never embed workflow 
 
 ### Image Format
 
-Chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy, controlled by `Image Quality`).
+Chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy, controlled by `Image Quality`), shown as
+a row of buttons on the node instead of a dropdown.
 
 ### Image Quality
 
-Quality for `JPEG`/`WebP` output, `1`-`100`. Ignored when `Image Format` is `PNG`.
+Quality for `JPEG`/`WebP` output, `1`-`100`, shown as a slider. Ignored when `Image Format` is
+`PNG`.
 
 ### Loader Priority
 
@@ -201,6 +203,8 @@ loader's name is used:
 
 - `FILENAME`: file name of the first saved image in the batch
 - `FILE_PATH`: absolute file path of the first saved image in the batch
+- `IMAGES`: the same images that were saved, passed through unchanged, so this node can sit
+  mid-workflow instead of only at the end
 
 ## Variables You Will Actually Use
 
