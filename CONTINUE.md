@@ -234,6 +234,8 @@ The following item is the core of the `v0.7.2` release:
 
 ## Deferred Ideas
 
+- Save/Preview mode split (Pixaroma-style): a toggle between saving immediately and parking the result as a preview-only image, with a frontend "save now" action to commit a parked preview. Needs a backend preview registry/state plus a new route, similar to Pixaroma's `save_now()` route handler. Explicitly deferred by the maintainer in favor of the smaller IMAGES output/format buttons/quality slider batch (see `CHANGELOG.md [Unreleased]`)
+- Frontend path-template token "chips": an insert-token UI for the Save Layout field, similar to Pixaroma's token chip row, so template variables can be inserted without typing `%...%` by hand
 - More detailed UI diagnostics beyond the selected loader label and upstream link distance, if real workflows need them
 - Expanded collision strategies:
   - millisecond timestamp option
