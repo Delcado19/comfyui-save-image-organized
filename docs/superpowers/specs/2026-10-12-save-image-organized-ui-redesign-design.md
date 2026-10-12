@@ -181,8 +181,8 @@ Appendix A §9 verbatim, plus: the "Save Mode" duplicate-row issue is resolved (
 
 ## Open Items for the Implementation Plan
 
-1. Confirm the `hideNativeWidget`/browser-cache question live before writing new widget-hiding code for 5 more fields.
-2. Confirm the Pixaroma `display:block`-on-rebuild gotcha against our actual frontend version before committing to the absolutely-positioned-inner-layer escape hatch.
+1. Resolved 2026-10-12: confirmed real `hideNativeWidget` defect, not stale browser cache — the duplicate "Save Mode" native row survived a hard refresh. Root cause (confirmed via devtools: `type: "hidden"`, `computeSize(0): [0, -4]`, `hasElement: false` — so `type`/`computeSize` were correctly set but the row still rendered, and the widget has no DOM `.element` at all): `comfyui_frontend_package` 1.53.10 no longer suppresses a widget's own row from `widget.type === "hidden"` alone. Confirmed by reading the installed frontend bundle (`core-CqC6n1cV.js`) — ComfyUI's own built-in `CreateBoundingBoxes` extension hides widgets via a dedicated `widget.hidden` boolean (plus `widget.options.hidden` as a fallback) rather than the legacy `type` convention. Fixed by setting `widget.hidden = true` and `widget.options.hidden = true` in addition to the existing `type`/`computeSize` suppression (kept for backward compatibility with any code still checking `type`).
+2. Resolved 2026-10-12: not reproduced on `comfyui_frontend_package` 1.53.10 — resized the node smaller (the "Example Output" help text wrapped to a second line, normal text reflow, not a layout break), collapsed and re-expanded it, and the panel rendered correctly throughout with no flash of unstyled content and no stuck-broken state. A plain `display:flex` on the `addDOMWidget` root is sufficient; Task 8's absolutely-positioned inner-flex-layer escape hatch is not required on this frontend version.
 3. Decide final pixel values for the design-token table against the real running node (the table above is a starting point, per A §5).
 
 ---

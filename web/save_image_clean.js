@@ -848,6 +848,17 @@ function hideNativeWidget(widget) {
     widget.__saveImageCleanHidden = true;
     widget.computeSize = () => [0, -4];
     widget.type = "hidden";
+    // comfyui_frontend_package 1.53.10 no longer suppresses a widget's own
+    // row from widget.type === "hidden" alone (confirmed live, 2026-10-12:
+    // save_mode kept rendering with type "hidden" + computeSize [0,-4]).
+    // ComfyUI's own built-in extensions (e.g. CreateBoundingBoxes) hide
+    // widgets via a dedicated `hidden` flag instead - mirrored here, with
+    // `.options.hidden` as the fallback storage the same code uses when no
+    // reactive widget store entry exists yet.
+    widget.hidden = true;
+    if (widget.options) {
+        widget.options.hidden = true;
+    }
 }
 
 function setActiveFormatButton(node, activeId) {

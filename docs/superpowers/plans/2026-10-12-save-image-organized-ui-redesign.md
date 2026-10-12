@@ -182,8 +182,13 @@ export function hideNativeWidget(widget) {
     widget.__saveImageCleanHidden = true;
     widget.computeSize = () => [0, -4];
     widget.type = "hidden";
-    if (widget.element) {
-        widget.element.style.display = "none";
+    // comfyui_frontend_package 1.53.10 no longer suppresses a widget's own
+    // row from widget.type === "hidden" alone (confirmed live, Task 1,
+    // 2026-10-12). ComfyUI's own built-in extensions hide widgets via a
+    // dedicated `hidden` flag instead - mirrored here.
+    widget.hidden = true;
+    if (widget.options) {
+        widget.options.hidden = true;
     }
 }
 
@@ -1143,16 +1148,15 @@ function injectRootCss() {
     const style = document.createElement("style");
     style.id = "sic-root-css";
     style.textContent = [
-        // The absolutely-positioned inner layer is the Pixaroma-documented
-        // escape hatch for ComfyUI forcing addDOMWidget roots back to
-        // display:block on rebuild/collapse — keep ONLY if Task 1 Step 4
-        // confirmed that gotcha applies to this ComfyUI version; otherwise
-        // a plain flex column on .sic-root itself is enough (see the note
-        // Task 1 recorded in the spec's Open Items section).
-        ".sic-root{position:relative;width:100%;box-sizing:border-box;}",
-        ".sic-inner{position:absolute;inset:0;display:flex;flex-direction:column;",
-        "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;",
-        "overflow:visible;}",
+        // Task 1 confirmed live (2026-10-12, comfyui_frontend_package
+        // 1.53.10) that the Pixaroma-documented display:block-on-rebuild
+        // gotcha does NOT reproduce on this ComfyUI version (collapse/
+        // expand and resize both rendered correctly) — so the absolutely-
+        // positioned inner-layer escape hatch is skipped; a plain flex
+        // column on .sic-inner is sufficient (see the spec's Open Items).
+        ".sic-root{width:100%;box-sizing:border-box;}",
+        ".sic-inner{display:flex;flex-direction:column;",
+        "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;}",
         ".sic-section{display:flex;flex-direction:column;gap:var(--sic-space-sm);}",
         ".sic-section-head{display:flex;align-items:center;justify-content:space-between;",
         "padding:0 var(--sic-space-md);}",
