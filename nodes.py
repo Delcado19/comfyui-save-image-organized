@@ -7,6 +7,7 @@ from datetime import datetime
 from difflib import get_close_matches
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import folder_paths
 import numpy as np
@@ -155,6 +156,11 @@ IMAGE_FORMAT_INFO = {
 }
 KNOWN_IMAGE_EXTENSIONS = {info["extension"] for info in IMAGE_FORMAT_INFO.values()} | {"jpeg"}
 DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
+# In-memory cache for parked Preview-mode images, keyed by node id (str(unique_id))
+# then batch index. Replaced wholesale on every run of that node, in either mode,
+# and dropped entirely on process restart -- see
+# docs/superpowers/specs/2026-10-12-save-preview-mode-design.md.
+_PREVIEW_CACHE: dict[str, dict[int, dict[str, Any]]] = {}
 
 
 def _sanitize_path_component(value: str) -> str:
@@ -1362,6 +1368,7 @@ class SaveImageClean:
 
     def __init__(self):
         self.output_dir = folder_paths.get_output_directory()
+        self.temp_dir = folder_paths.get_temp_directory()
         self.type = "output"
         self.prefix_append = ""
         self.compress_level = 4
@@ -1514,6 +1521,18 @@ class SaveImageClean:
                             "(right for most single-pass workflows). First Used picks the loader "
                             "furthest upstream, i.e. the first one applied in a multi-stage "
                             "pipeline such as a base pass refined by a second model."
+                        ),
+                    },
+                ),
+                "save_mode": (
+                    ["Save", "Preview"],
+                    {
+                        "default": "Save",
+                        "tooltip": (
+                            "Save writes every image immediately, as before. Preview shows the "
+                            "result without writing to the final path; use the per-image Save "
+                            "button in the preview grid to write one later, to the path already "
+                            "shown here."
                         ),
                     },
                 ),
@@ -1904,6 +1923,7 @@ class SaveImageClean:
         clip_folder: str = "",
         filename_datetime: str = DEFAULT_FILENAME_PATTERN,
         loader_priority: str = "Nearest",
+        save_mode: str = "Save",
         prompt: Any = None,
         extra_pnginfo: Any = None,
         unique_id: Any = None,
@@ -1945,6 +1965,11 @@ class SaveImageClean:
                 "Add %BATCH% after %FILENAME% to give each image a unique name, "
                 "or switch to collision_mode='increment'."
             )
+        node_key = str(unique_id)
+        _PREVIEW_CACHE.pop(node_key, None)
+        preview_entries: dict[int, dict[str, Any]] = {}
+        preview_entries_ui: list[dict[str, Any]] = []
+        preview_run_token = uuid4().hex[:8]
         for batch_index, image in enumerate(images, start=1):
             array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
             image_height, image_width = array.shape[:2]
@@ -1974,6 +1999,30 @@ class SaveImageClean:
                     detection_state=current_detection_state,
                     detection_lines=current_detection_lines,
                 )
+
+            if save_mode == "Preview":
+                target_path = output_root / relative_path
+                preview_entries[batch_index] = {
+                    "image": image,
+                    "target_path": target_path,
+                    "image_format": image_format,
+                    "image_quality": image_quality,
+                    "metadata": metadata,
+                    "collision_mode": collision_mode,
+                }
+                temp_dir = Path(self.temp_dir)
+                temp_dir.mkdir(parents=True, exist_ok=True)
+                temp_filename = f"save_image_organized_preview_{node_key}_{preview_run_token}_{batch_index}.png"
+                Image.fromarray(array).save(temp_dir / temp_filename, format="PNG", compress_level=1)
+                preview_entries_ui.append(
+                    {
+                        "batch_index": batch_index,
+                        "filename": temp_filename,
+                        "subfolder": "",
+                        "type": "temp",
+                    }
+                )
+                continue
 
             try:
                 target_path = self._resolve_target_path(
@@ -2007,6 +2056,9 @@ class SaveImageClean:
         ui = {"images": saved, "text": text_output}
         if detection_ui_payload is not None:
             ui["save_image_clean"] = [detection_ui_payload]
+        if save_mode == "Preview" and preview_entries_ui:
+            ui["save_image_clean_preview"] = preview_entries_ui
+            _PREVIEW_CACHE[node_key] = preview_entries
 
         # Batches save N images but two STRING outputs can only report one;
         # the first image's name/path represent the whole batch, matching

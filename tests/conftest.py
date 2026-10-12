@@ -15,7 +15,17 @@ if str(REPO_ROOT) not in sys.path:
 
 folder_paths = types.ModuleType("folder_paths")
 folder_paths.get_output_directory = lambda: str(REPO_ROOT / "test-output")
+folder_paths.get_temp_directory = lambda: str(REPO_ROOT / "test-output-temp")
 sys.modules.setdefault("folder_paths", folder_paths)
+
+
+@pytest.fixture(autouse=True)
+def _clear_preview_cache():
+    import nodes
+
+    nodes._PREVIEW_CACHE.clear()
+    yield
+    nodes._PREVIEW_CACHE.clear()
 
 
 @pytest.fixture

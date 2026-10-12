@@ -1362,6 +1362,98 @@ def test_save_images_returns_filename_and_absolute_path_outputs(workspace_tmp_pa
     assert passthrough_images is images
 
 
+def test_save_images_preview_mode_does_not_write_final_file(workspace_tmp_path, tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    saver.temp_dir = str(tmp_path / "temp")
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="output-tests",
+        filename_datetime="preview-check",
+        save_mode="Preview",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="42",
+    )
+
+    filename, file_path, passthrough_images = result["result"]
+    assert filename == ""
+    assert file_path == ""
+    assert passthrough_images is images
+    assert not (workspace_tmp_path / "output-tests" / "preview-check.png").exists()
+    assert result["ui"]["images"] == []
+
+    preview_payload = result["ui"]["save_image_clean_preview"]
+    assert len(preview_payload) == 1
+    assert preview_payload[0]["batch_index"] == 1
+    assert preview_payload[0]["type"] == "temp"
+    temp_file = Path(saver.temp_dir) / preview_payload[0]["filename"]
+    assert temp_file.exists()
+
+
+def test_save_images_preview_mode_replaces_prior_cache_entry_on_rerun(workspace_tmp_path, tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    saver.temp_dir = str(tmp_path / "temp")
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+    kwargs = dict(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="output-tests",
+        filename_datetime="preview-cache",
+        save_mode="Preview",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="cache-node",
+    )
+
+    saver.save_images(**kwargs)
+    first_entry = nodes._PREVIEW_CACHE["cache-node"][1]
+    assert first_entry["target_path"].name == "preview-cache.png"
+
+    saver.save_images(**kwargs)
+    second_entry = nodes._PREVIEW_CACHE["cache-node"][1]
+    assert second_entry is not first_entry
+    assert len(nodes._PREVIEW_CACHE["cache-node"]) == 1
+
+
+def test_save_images_switching_back_to_save_clears_stale_preview_cache(workspace_tmp_path, tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    saver.temp_dir = str(tmp_path / "temp")
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+    base_kwargs = dict(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="output-tests",
+        filename_datetime="switch-back",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="switch-node",
+    )
+
+    saver.save_images(save_mode="Preview", **base_kwargs)
+    assert "switch-node" in nodes._PREVIEW_CACHE
+
+    saver.save_images(save_mode="Save", **base_kwargs)
+    assert "switch-node" not in nodes._PREVIEW_CACHE
+
+
 def test_save_images_collapses_duplicate_folder_for_checkpoint_loader(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

@@ -166,6 +166,14 @@ def _organized_inputs(image_link: Any) -> list[dict[str, Any]]:
             "widget": {"name": "loader_priority"},
             "link": None,
         },
+        {
+            "localized_name": "save_mode",
+            "name": "save_mode",
+            "shape": 7,
+            "type": "COMBO",
+            "widget": {"name": "save_mode"},
+            "link": None,
+        },
     ]
 
 
@@ -187,6 +195,7 @@ def _organized_widgets(path_template: str) -> list[Any]:
         "PNG",
         95,
         "Nearest",
+        "Save",
     ]
 
 
