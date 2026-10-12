@@ -187,19 +187,6 @@ function insertWidgetBefore(node, widget, targetName) {
     widgets.splice(Math.max(newTargetIndex, 0), 0, widget);
 }
 
-function insertWidgetAfter(node, widget, targetName) {
-    const widgets = node.widgets || [];
-    const widgetIndex = widgets.indexOf(widget);
-    const targetIndex = widgets.findIndex((item) => item?.name === targetName);
-    if (widgetIndex === -1 || targetIndex === -1 || widgetIndex === targetIndex + 1) {
-        return;
-    }
-
-    widgets.splice(widgetIndex, 1);
-    const newTargetIndex = widgets.findIndex((item) => item?.name === targetName);
-    widgets.splice(newTargetIndex + 1, 0, widget);
-}
-
 function insertTokenIntoWidget(node, widgetName, token) {
     const widget = getWidget(node, widgetName);
     const inputEl = widget?.inputEl;
@@ -213,7 +200,7 @@ function insertTokenIntoWidget(node, widgetName, token) {
     inputEl.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
-function ensureSectionLabel(node, key, text, targetName) {
+function ensureSectionLabel(node, key, text, targetName, actionEl = null) {
     const storeKey = `__saveImageCleanSection_${key}`;
     if (node[storeKey]) {
         insertWidgetBefore(node, node[storeKey], targetName);
@@ -221,21 +208,34 @@ function ensureSectionLabel(node, key, text, targetName) {
     }
 
     const element = document.createElement("div");
-    element.textContent = text;
     element.style.cssText = [
+        "display:flex",
+        "align-items:center",
+        "justify-content:space-between",
+        "gap:8px",
+        "padding:0 8px",
+        "margin:2px 0 -2px 0",
+    ].join(";");
+
+    const labelEl = document.createElement("span");
+    labelEl.textContent = text;
+    labelEl.style.cssText = [
         "font-size:10px",
         "font-weight:600",
         "letter-spacing:0.03em",
         "text-transform:uppercase",
         "color:#9d9d9d",
-        "padding:0 8px",
-        "margin:2px 0 -2px 0",
         "pointer-events:none",
     ].join(";");
+    element.appendChild(labelEl);
+
+    if (actionEl) {
+        element.appendChild(actionEl);
+    }
 
     const widget = node.addDOMWidget(`save_image_clean_section_${key}`, "custom", element, {
-        getMinHeight: () => 14,
-        getMaxHeight: () => 16,
+        getMinHeight: () => 22,
+        getMaxHeight: () => 24,
         serialize: false,
         hideOnZoom: false,
         margin: 0,
@@ -913,10 +913,11 @@ function injectTemplateBuilderCss() {
     const style = document.createElement("style");
     style.id = "save-image-clean-builder-css";
     style.textContent = [
-        ".sic-builder-trigger{margin:2px 8px;padding:4px 8px;font-size:10px;font-weight:600;",
-        "border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);",
+        ".sic-builder-trigger{flex:none;white-space:nowrap;padding:3px 9px;font-size:9px;font-weight:600;",
+        "letter-spacing:0.02em;border-radius:5px;",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);",
         "color:#b7b7b7;cursor:pointer;font-family:inherit;",
-        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease);}",
+        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
         ".sic-builder-trigger:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
         ".sic-builder-trigger:active{transform:scale(0.97);}",
         ".sic-builder-panel{position:fixed;z-index:10000;width:320px;max-height:420px;",
@@ -975,6 +976,12 @@ function makeDraggable(panel, handle) {
     let originTop = 0;
 
     handle.addEventListener("pointerdown", (event) => {
+        // setPointerCapture below would otherwise swallow the click event on
+        // the close button (a child of this drag handle) before the browser
+        // can synthesize it on that specific element.
+        if (event.target.closest(".sic-builder-close")) {
+            return;
+        }
         if (pointerId !== null) {
             return;
         }
@@ -1003,9 +1010,13 @@ function makeDraggable(panel, handle) {
 
 function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
     const targetWidget = getWidget(node, widgetName);
-    const storeKey = `__saveImageCleanBuilder_${widgetName}`;
-    if (!targetWidget || node[storeKey]) {
-        return node[storeKey];
+    const triggerKey = `__saveImageCleanBuilder_${widgetName}_trigger`;
+    const panelKey = `__saveImageCleanBuilder_${widgetName}_panel`;
+    if (!targetWidget) {
+        return null;
+    }
+    if (node[panelKey]) {
+        return { trigger: node[triggerKey], panel: node[panelKey] };
     }
 
     injectTemplateBuilderCss();
@@ -1013,7 +1024,7 @@ function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
     const trigger = document.createElement("button");
     trigger.type = "button";
     trigger.className = "sic-builder-trigger";
-    trigger.textContent = triggerLabel;
+    trigger.textContent = "✎ Build";
 
     const panel = document.createElement("div");
     panel.className = "sic-builder-panel";
@@ -1105,18 +1116,9 @@ function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
         closeTemplateBuilderPanel(panel);
     });
 
-    const widget = node.addDOMWidget(`save_image_clean_builder_trigger_${widgetName}`, "custom", trigger, {
-        getMinHeight: () => 22,
-        getMaxHeight: () => 24,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-
-    node[storeKey] = widget;
-    node[`${storeKey}_panel`] = panel;
-    insertWidgetAfter(node, widget, widgetName);
-    return widget;
+    node[triggerKey] = trigger;
+    node[panelKey] = panel;
+    return { trigger, panel };
 }
 
 function createHelpPanelWidget(node) {
@@ -1489,11 +1491,11 @@ app.registerExtension({
             const result = onConfigure?.apply(this, arguments);
             requestAnimationFrame(() => {
                 setFriendlyLabels(this);
-                ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
-                ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
+                const pathBuilder = createTemplateBuilderWidget(this, "path_template", "Build Path");
+                const filenameBuilder = createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
+                ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
+                ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
                 createFormatButtonsWidget(this);
-                createTemplateBuilderWidget(this, "path_template", "Build Path");
-                createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
@@ -1505,11 +1507,11 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
             setFriendlyLabels(this);
-            ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
-            ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
+            const pathBuilder = createTemplateBuilderWidget(this, "path_template", "Build Path");
+            const filenameBuilder = createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
+            ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
+            ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
             createFormatButtonsWidget(this);
-            createTemplateBuilderWidget(this, "path_template", "Build Path");
-            createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
             updateHelp(this);
