@@ -1,6 +1,6 @@
 # 001 — Introduce shared easing tokens and fix hover easing mismatch
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 90009ad
 - **Severity**: LOW
 - **Category**: Easing & duration / Cohesion & tokens

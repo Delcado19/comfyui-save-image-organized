@@ -1,6 +1,6 @@
 # 004 — Floating path-template builder window (click-to-insert variable chips)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 90009ad
 - **Severity**: HIGH (new capability, maintainer-requested)
 - **Category**: Missed opportunities / Physicality & origin (Apple fluid-interface + Emil craft applied to a new surface)

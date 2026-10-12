@@ -132,6 +132,33 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "CUSTOM_TEXT_ENCODER_NAME",
 ]);
 const TEMPLATE_FILTERS = new Set(["lower", "upper", "slug"]);
+const TEMPLATE_BUILDER_GROUPS = [
+    {
+        label: "Main",
+        tokens: ["TOP_FOLDER", "MODEL_NAME", "TEXT_ENCODER_NAME", "FILENAME", "BATCH"],
+    },
+    {
+        label: "Convenience",
+        tokens: [
+            "WIDTH", "HEIGHT", "SEED", "STEPS", "CFG", "SAMPLER", "SCHEDULER",
+            "DENOISE", "BATCH_INDEX", "BATCH_SIZE",
+        ],
+    },
+    {
+        label: "Detailed",
+        tokens: [
+            "FRIENDLY_MODEL_NAME", "CLEAN_FRIENDLY_MODEL_NAME", "EXACT_MODEL_NAME", "CUSTOM_MODEL_NAME",
+            "FRIENDLY_TEXT_ENCODER_NAME", "CLEAN_FRIENDLY_TEXT_ENCODER_NAME", "EXACT_TEXT_ENCODER_NAME",
+            "CUSTOM_TEXT_ENCODER_NAME",
+        ],
+    },
+];
+const TEMPLATE_BUILDER_FILTERS = ["lower", "upper", "slug"];
+const TEMPLATE_BUILDER_DATE_PRESETS = [
+    { label: "yyyy-MM-dd", token: "%date:yyyy-MM-dd%" },
+    { label: "yyyy-MM-dd_hh-mm-ss", token: "%date:yyyy-MM-dd_hh-mm-ss%" },
+    { label: "hh-mm-ss", token: "%date:hh-mm-ss%" },
+];
 const DISPLAY_WORD_RE = /[A-Z]+(?=[A-Z][a-z]|\d|[^A-Za-z0-9]|$)|[A-Z]?[a-z]+|\d+(?:\.\d+)?/g;
 
 function getWidget(node, name) {
@@ -158,6 +185,32 @@ function insertWidgetBefore(node, widget, targetName) {
     widgets.splice(widgetIndex, 1);
     const newTargetIndex = widgets.findIndex((item) => item?.name === targetName);
     widgets.splice(Math.max(newTargetIndex, 0), 0, widget);
+}
+
+function insertWidgetAfter(node, widget, targetName) {
+    const widgets = node.widgets || [];
+    const widgetIndex = widgets.indexOf(widget);
+    const targetIndex = widgets.findIndex((item) => item?.name === targetName);
+    if (widgetIndex === -1 || targetIndex === -1 || widgetIndex === targetIndex + 1) {
+        return;
+    }
+
+    widgets.splice(widgetIndex, 1);
+    const newTargetIndex = widgets.findIndex((item) => item?.name === targetName);
+    widgets.splice(newTargetIndex + 1, 0, widget);
+}
+
+function insertTokenIntoWidget(node, widgetName, token) {
+    const widget = getWidget(node, widgetName);
+    const inputEl = widget?.inputEl;
+    if (!inputEl) {
+        return;
+    }
+    const start = inputEl.selectionStart ?? inputEl.value.length;
+    const end = inputEl.selectionEnd ?? inputEl.value.length;
+    inputEl.focus();
+    inputEl.setRangeText(token, start, end, "end");
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function ensureSectionLabel(node, key, text, targetName) {
@@ -764,12 +817,15 @@ function injectFormatButtonsCss() {
     _formatButtonsCssInjected = true;
     const style = document.createElement("style");
     style.id = "save-image-clean-format-css";
+    // :root vars here are global (this stylesheet is injected once into document.head)
+    // and are reused by the help-panel and template-builder widgets elsewhere in this file.
     style.textContent = [
+        ":root{--sic-ease-out:cubic-bezier(0.23,1,0.32,1);--sic-ease:ease;}",
         ".sic-fmt-row{display:flex;gap:4px;width:100%;box-sizing:border-box;padding:0 8px;}",
         ".sic-fmt-btn{flex:1;padding:5px 0;font-size:11px;font-weight:600;border-radius:6px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#b7b7b7;",
         "cursor:pointer;font-family:inherit;",
-        "transition:transform 120ms ease-out, background 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out;}",
+        "transition:transform 120ms var(--sic-ease-out), background 120ms var(--sic-ease), color 120ms var(--sic-ease), border-color 120ms var(--sic-ease);}",
         ".sic-fmt-btn:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
         ".sic-fmt-btn:active{transform:scale(0.97);}",
         ".sic-fmt-btn.active{background:#4c86e0;border-color:#4c86e0;color:#fff;}",
@@ -847,6 +903,222 @@ function createFormatButtonsWidget(node) {
     return widget;
 }
 
+let _templateBuilderCssInjected = false;
+function injectTemplateBuilderCss() {
+    if (_templateBuilderCssInjected || document.getElementById("save-image-clean-builder-css")) {
+        _templateBuilderCssInjected = true;
+        return;
+    }
+    _templateBuilderCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "save-image-clean-builder-css";
+    style.textContent = [
+        ".sic-builder-trigger{margin:2px 8px;padding:4px 8px;font-size:10px;font-weight:600;",
+        "border-radius:6px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);",
+        "color:#b7b7b7;cursor:pointer;font-family:inherit;",
+        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease);}",
+        ".sic-builder-trigger:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        ".sic-builder-trigger:active{transform:scale(0.97);}",
+        ".sic-builder-panel{position:fixed;z-index:10000;width:320px;max-height:420px;",
+        "display:flex;flex-direction:column;overflow:hidden;",
+        "background:rgba(32,32,36,0.97);border:1px solid rgba(255,255,255,0.12);",
+        "border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,0.45);",
+        "color:#e4e4e4;font-family:inherit;",
+        "opacity:0;transform:scale(0.95);pointer-events:none;",
+        "transition:opacity 200ms var(--sic-ease-out), transform 200ms var(--sic-ease-out);}",
+        ".sic-builder-panel.open{opacity:1;transform:scale(1);pointer-events:auto;}",
+        ".sic-builder-header{display:flex;align-items:center;justify-content:space-between;",
+        "padding:8px 10px;cursor:grab;background:rgba(255,255,255,0.04);",
+        "border-bottom:1px solid rgba(255,255,255,0.08);font-size:11px;font-weight:600;}",
+        ".sic-builder-close{cursor:pointer;color:#9d9d9d;font-size:14px;line-height:1;background:none;border:none;}",
+        ".sic-builder-close:hover{color:#e3e3e3;}",
+        ".sic-builder-body{padding:8px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;}",
+        ".sic-builder-group-label{font-size:9px;font-weight:700;letter-spacing:0.04em;",
+        "text-transform:uppercase;color:#8d8d8d;margin-bottom:4px;}",
+        ".sic-builder-chip-row{display:flex;flex-wrap:wrap;gap:4px;}",
+        ".sic-builder-chip{padding:3px 7px;font-size:10px;border-radius:5px;",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#cfcfcf;",
+        "cursor:pointer;font-family:Consolas,'Courier New',monospace;",
+        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
+        ".sic-builder-chip:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        ".sic-builder-chip:active{transform:scale(0.97);}",
+        ".sic-builder-preview{margin:4px 10px 10px 10px;padding:8px 10px;border-radius:8px;",
+        "background:rgba(0,0,0,0.25);font-family:Consolas,'Courier New',monospace;font-size:11px;",
+        "color:#8eb7ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}",
+        "@media (prefers-reduced-motion: reduce){",
+        ".sic-builder-panel{transition:opacity 200ms linear;transform:none !important;}",
+        ".sic-builder-panel.open{transform:none !important;}",
+        "}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function closeTemplateBuilderPanel(panel) {
+    panel.classList.remove("open");
+}
+
+function openTemplateBuilderPanel(panel, triggerEl) {
+    const rect = triggerEl.getBoundingClientRect();
+    const left = Math.min(rect.left, window.innerWidth - 336);
+    const top = Math.min(rect.bottom + 6, window.innerHeight - 440);
+    panel.style.left = `${Math.max(left, 8)}px`;
+    panel.style.top = `${Math.max(top, 8)}px`;
+    panel.style.transformOrigin = `${rect.left + rect.width / 2 - left}px 0px`;
+    panel.classList.add("open");
+}
+
+function makeDraggable(panel, handle) {
+    let pointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let originLeft = 0;
+    let originTop = 0;
+
+    handle.addEventListener("pointerdown", (event) => {
+        if (pointerId !== null) {
+            return;
+        }
+        pointerId = event.pointerId;
+        handle.setPointerCapture(pointerId);
+        startX = event.clientX;
+        startY = event.clientY;
+        originLeft = panel.offsetLeft;
+        originTop = panel.offsetTop;
+    });
+    handle.addEventListener("pointermove", (event) => {
+        if (event.pointerId !== pointerId) {
+            return;
+        }
+        panel.style.left = `${originLeft + (event.clientX - startX)}px`;
+        panel.style.top = `${originTop + (event.clientY - startY)}px`;
+    });
+    handle.addEventListener("pointerup", (event) => {
+        if (event.pointerId !== pointerId) {
+            return;
+        }
+        handle.releasePointerCapture(pointerId);
+        pointerId = null;
+    });
+}
+
+function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
+    const targetWidget = getWidget(node, widgetName);
+    const storeKey = `__saveImageCleanBuilder_${widgetName}`;
+    if (!targetWidget || node[storeKey]) {
+        return node[storeKey];
+    }
+
+    injectTemplateBuilderCss();
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "sic-builder-trigger";
+    trigger.textContent = triggerLabel;
+
+    const panel = document.createElement("div");
+    panel.className = "sic-builder-panel";
+
+    const header = document.createElement("div");
+    header.className = "sic-builder-header";
+    const title = document.createElement("span");
+    title.textContent = triggerLabel;
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "sic-builder-close";
+    closeBtn.textContent = "✕";
+    closeBtn.addEventListener("click", () => closeTemplateBuilderPanel(panel));
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    const body = document.createElement("div");
+    body.className = "sic-builder-body";
+
+    const preview = document.createElement("div");
+    preview.className = "sic-builder-preview";
+
+    const updatePreview = () => {
+        const now = new Date();
+        if (widgetName === "filename_datetime") {
+            preview.textContent = buildFilenameValue(node, now);
+            return;
+        }
+        const variables = buildVariables(node, now, node.__saveImageCleanLastRunInfo?.detection || null);
+        preview.textContent = buildLayoutExample(node, variables, now).path;
+    };
+
+    const addChipRow = (label, chips) => {
+        const groupLabel = document.createElement("div");
+        groupLabel.className = "sic-builder-group-label";
+        groupLabel.textContent = label;
+        const row = document.createElement("div");
+        row.className = "sic-builder-chip-row";
+        for (const chip of chips) {
+            const chipBtn = document.createElement("button");
+            chipBtn.type = "button";
+            chipBtn.className = "sic-builder-chip";
+            chipBtn.textContent = chip.display;
+            chipBtn.title = chip.token;
+            chipBtn.addEventListener("click", () => {
+                insertTokenIntoWidget(node, widgetName, chip.token);
+                updatePreview();
+            });
+            row.appendChild(chipBtn);
+        }
+        body.appendChild(groupLabel);
+        body.appendChild(row);
+    };
+
+    for (const group of TEMPLATE_BUILDER_GROUPS) {
+        addChipRow(group.label, group.tokens.map((name) => ({ display: name, token: `%${name}%` })));
+    }
+    addChipRow("Filters (append to last token)", TEMPLATE_BUILDER_FILTERS.map((name) => ({
+        display: `:${name}`,
+        token: `:${name}`,
+    })));
+    addChipRow("Date presets", TEMPLATE_BUILDER_DATE_PRESETS.map((preset) => ({
+        display: preset.label,
+        token: preset.token,
+    })));
+
+    panel.appendChild(header);
+    panel.appendChild(body);
+    panel.appendChild(preview);
+    document.body.appendChild(panel);
+    makeDraggable(panel, header);
+
+    trigger.addEventListener("click", () => {
+        if (panel.classList.contains("open")) {
+            closeTemplateBuilderPanel(panel);
+            return;
+        }
+        updatePreview();
+        openTemplateBuilderPanel(panel, trigger);
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        if (!panel.classList.contains("open")) {
+            return;
+        }
+        if (panel.contains(event.target) || trigger.contains(event.target)) {
+            return;
+        }
+        closeTemplateBuilderPanel(panel);
+    });
+
+    const widget = node.addDOMWidget(`save_image_clean_builder_trigger_${widgetName}`, "custom", trigger, {
+        getMinHeight: () => 22,
+        getMaxHeight: () => 24,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+
+    node[storeKey] = widget;
+    node[`${storeKey}_panel`] = panel;
+    insertWidgetAfter(node, widget, widgetName);
+    return widget;
+}
+
 function createHelpPanelWidget(node) {
     if (node.__saveImageCleanHelpWidget) {
         return node.__saveImageCleanHelpWidget;
@@ -895,6 +1167,7 @@ function createHelpPanelWidget(node) {
         "border:1px solid rgba(255,255,255,0.08)",
         "box-sizing:border-box",
         "white-space:nowrap",
+        "transition:background 160ms var(--sic-ease), color 160ms var(--sic-ease), border-color 160ms var(--sic-ease)",
     ].join(";");
 
     const noteEl = document.createElement("div");
@@ -903,6 +1176,7 @@ function createHelpPanelWidget(node) {
         "line-height:1.35",
         "color:#a9a9a9",
         "min-height:14px",
+        "transition:color 160ms var(--sic-ease)",
     ].join(";");
 
     const createPreviewValue = () => {
@@ -923,6 +1197,7 @@ function createHelpPanelWidget(node) {
             "overflow:hidden",
             "text-overflow:ellipsis",
             "border:1px solid transparent",
+            "transition:border-color 160ms var(--sic-ease)",
         ].join(";");
         return valueEl;
     };
@@ -1217,6 +1492,8 @@ app.registerExtension({
                 ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
                 ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
                 createFormatButtonsWidget(this);
+                createTemplateBuilderWidget(this, "path_template", "Build Path");
+                createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
@@ -1231,6 +1508,8 @@ app.registerExtension({
             ensureSectionLabel(this, "save_layout", "Save Layout", "path_template");
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime");
             createFormatButtonsWidget(this);
+            createTemplateBuilderWidget(this, "path_template", "Build Path");
+            createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
             updateHelp(this);
@@ -1242,6 +1521,14 @@ app.registerExtension({
             const result = onExecuted?.apply(this, arguments);
             setLastRunStateFromMessage(this, message);
             updateHelp(this);
+            return result;
+        };
+
+        const onRemoved = nodeType.prototype.onRemoved;
+        nodeType.prototype.onRemoved = function () {
+            const result = onRemoved?.apply(this, arguments);
+            this.__saveImageCleanBuilder_path_template_panel?.remove();
+            this.__saveImageCleanBuilder_filename_datetime_panel?.remove();
             return result;
         };
     },

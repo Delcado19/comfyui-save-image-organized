@@ -236,6 +236,17 @@ passes through the full batch.
 - `%EXACT_TEXT_ENCODER_NAME%`
 - `%CUSTOM_TEXT_ENCODER_NAME%`
 
+## Building A Path Or Filename By Clicking
+
+Instead of typing every `%TOKEN%` by hand, click `Build Path` (next to `Save Layout`) or
+`Build Filename` (next to `Filename`) on the node. Each opens a separate floating window — not
+part of the node itself, since the node has no spare width for a full token palette — with
+click-to-insert chips grouped exactly as Main/Convenience/Detailed above, plus the three filters
+and a few common date presets, and a live preview of the resulting path or filename. The window
+is draggable and closes when you click outside it or press its own close button. Clicking a chip
+inserts it at the current cursor position in the field; you can still type by hand at any time,
+before, after, or between clicks.
+
 ## Example Layouts
 
 ### Default

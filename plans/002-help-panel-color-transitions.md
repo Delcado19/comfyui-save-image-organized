@@ -1,6 +1,6 @@
 # 002 — Transition the help panel's status badge, note, and preview-border color changes
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 90009ad
 - **Severity**: MEDIUM
 - **Category**: Missed opportunities / Physicality

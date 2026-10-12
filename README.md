@@ -16,6 +16,7 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - PNG workflow metadata export that matches ComfyUI's normal `Save Image` behavior
 - optional switch to disable embedded workflow metadata export entirely
 - `FILENAME`/`FILE_PATH`/`IMAGES` outputs for chaining the saved image into other nodes mid-workflow
+- a `Build Path`/`Build Filename` window with click-to-insert variable chips, so you don't have to type `%TOKEN%` by hand
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
@@ -184,6 +185,14 @@ ignored for PNG.
 - `FILE_PATH`: absolute file path of the first saved image in the batch
 - `IMAGES`: the same images that were saved, passed through unchanged so this node can sit
   mid-workflow instead of only at the end
+
+### Building A Path Or Filename By Clicking
+
+`Build Path` (next to `Save Layout`) and `Build Filename` (next to `Filename`) open a floating
+window with click-to-insert chips for every template variable, filter, and date preset below,
+plus a live preview of the result. It is a separate, draggable window rather than part of the
+node, since the node itself has no room for a full token palette. Clicking a chip inserts it at
+the cursor in the corresponding field; typing by hand still works exactly as before.
 
 ### Detailed Variables
 

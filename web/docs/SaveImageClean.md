@@ -206,6 +206,14 @@ loader's name is used:
 - `IMAGES`: the same images that were saved, passed through unchanged, so this node can sit
   mid-workflow instead of only at the end
 
+## Building A Path Or Filename By Clicking
+
+`Build Path` and `Build Filename` on the node open a separate floating window with click-to-insert
+chips for the variables below, plus filters and date presets, and a live preview. The window is
+draggable and floats over the canvas rather than living inside the node, since the node has no
+room for a full token palette. Typing the fields by hand still works as before; clicking a chip
+just inserts text at the cursor.
+
 ## Variables You Will Actually Use
 
 ### Main variables
