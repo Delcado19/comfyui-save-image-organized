@@ -242,6 +242,13 @@ function ensureSectionLabel(node, key, text, targetName, actionEl = null) {
         hideOnZoom: false,
         margin: 0,
     });
+    // comfyui_frontend_package 1.53.10's serialiseWidgetValues()/widgets_values
+    // restore both check widget.serialize === false directly - the
+    // addDOMWidget options.serialize flag above is never copied there, so
+    // every custom DOM widget must set this explicitly or it gets counted
+    // as a real positional slot in widgets_values (confirmed live, 2026-10-12:
+    // this shifted every field after a custom widget by one position on load).
+    widget.serialize = false;
     node[storeKey] = widget;
     insertWidgetBefore(node, widget, targetName);
     return widget;
@@ -808,7 +815,7 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
-import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow } from "./sic_components.mjs";
+import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow } from "./sic_components.mjs";
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
@@ -831,6 +838,7 @@ function createFormatButtonsWidget(node) {
         hideOnZoom: false,
         margin: 2,
     });
+    widget.serialize = false; // see ensureSectionLabel's comment above
     node.__saveImageCleanFormatWidget = widget;
     node.__saveImageCleanFormatSeg = seg;
     insertWidgetBefore(node, widget, "image_format");
@@ -879,6 +887,29 @@ function createDropdownRowWidget(node, widgetName) {
         hideOnZoom: false,
         margin: 0,
     });
+    widget.serialize = false; // see ensureSectionLabel's comment above
+    node[storeKey] = { widget, row };
+    insertWidgetBefore(node, widget, widgetName);
+    return node[storeKey];
+}
+
+function createSwitchRowWidget(node, widgetName, label) {
+    const storeKey = `__saveImageCleanSwitch_${widgetName}`;
+    if (node[storeKey]) {
+        return node[storeKey];
+    }
+    const row = buildSwitchRow(node, widgetName, label);
+    if (!row) {
+        return null;
+    }
+    const widget = node.addDOMWidget(`save_image_clean_switch_${widgetName}`, "custom", row.root, {
+        getMinHeight: () => 30,
+        getMaxHeight: () => 32,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+    widget.serialize = false; // see ensureSectionLabel's comment above
     node[storeKey] = { widget, row };
     insertWidgetBefore(node, widget, widgetName);
     return node[storeKey];
@@ -904,6 +935,7 @@ function createSaveModeToggleWidget(node) {
         hideOnZoom: false,
         margin: 2,
     });
+    widget.serialize = false; // see ensureSectionLabel's comment above
     node.__saveImageCleanSaveModeWidget = widget;
     node.__saveImageCleanSaveModeSeg = seg;
     insertWidgetBefore(node, widget, "save_mode");
@@ -1029,6 +1061,7 @@ function createPreviewGridWidget(node) {
         hideOnZoom: false,
         margin: 4,
     });
+    widget.serialize = false; // see ensureSectionLabel's comment above
 
     const refs = { widget, container, body };
     node.__saveImageCleanPreviewGridRefs = refs;
@@ -1426,6 +1459,7 @@ function createHelpPanelWidget(node) {
         hideOnZoom: false,
         margin: 8,
     });
+    node.__saveImageCleanHelpWidget.serialize = false; // see ensureSectionLabel's comment above
 
     return node.__saveImageCleanHelpWidget;
 }

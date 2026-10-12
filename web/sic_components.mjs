@@ -215,3 +215,71 @@ export function buildDropdownRow(node, widgetName, label, optionIds, { optionLab
 
     return { widget, root, selectEl: select, valueEl: valueText };
 }
+
+let _switchCssInjected = false;
+function injectSwitchCss() {
+    if (_switchCssInjected || document.getElementById("sic-switch-css")) {
+        _switchCssInjected = true;
+        return;
+    }
+    _switchCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-switch-css";
+    style.textContent = [
+        ".sic-switch-track{position:relative;width:34px;height:18px;border-radius:9px;",
+        "background:#555;flex:0 0 auto;transition:background 150ms var(--sic-ease);pointer-events:none;}",
+        ".sic-switch-track::after{content:\"\";position:absolute;top:2px;left:2px;width:14px;height:14px;",
+        "border-radius:50%;background:#ccc;transition:left 150ms var(--sic-ease);}",
+        ".sic-switch-track.on{background:var(--sic-accent);}",
+        ".sic-switch-track.on::after{left:18px;background:#fff;}",
+        ".sic-row-checkbox{position:absolute;inset:0;width:100%;height:100%;opacity:0;",
+        "cursor:pointer;margin:0;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function getWidget3(node, name) {
+    return (node.widgets || []).find((widget) => widget.name === name);
+}
+
+/**
+ * One native BOOLEAN widget rendered as a label + pill switch. A real,
+ * fully transparent <input type=checkbox> handles click/keyboard/focus; the
+ * visible track is pure decoration driven off its checked state.
+ */
+export function buildSwitchRow(node, widgetName, label) {
+    const widget = getWidget3(node, widgetName);
+    if (!widget) {
+        return null;
+    }
+    injectDesignTokens();
+    injectSwitchCss();
+    hideNativeWidget(widget);
+
+    const root = el("div", "sic-row");
+    root.style.position = "relative";
+    const labelEl = el("span", "sic-row-label", label);
+    const track = el("span", "sic-switch-track");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "sic-row-checkbox";
+    checkbox.checked = Boolean(widget.value);
+
+    const render = () => {
+        track.classList.toggle("on", Boolean(widget.value));
+    };
+    render();
+
+    checkbox.addEventListener("change", () => {
+        widget.value = checkbox.checked;
+        widget.callback?.(checkbox.checked);
+        render();
+    });
+
+    root.appendChild(labelEl);
+    root.appendChild(track);
+    root.appendChild(checkbox);
+
+    return { widget, root, checkboxEl: checkbox };
+}
