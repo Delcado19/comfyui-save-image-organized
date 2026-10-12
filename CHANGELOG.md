@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - `IMAGES` output, passing the saved images through unchanged so this node can sit mid-workflow instead of only at the end of a graph
 - `Image Format` now renders as a row of `PNG`/`JPEG`/`WebP` buttons instead of a dropdown; `Image Quality` now renders as a slider. Both still store the same widget values, so existing workflows are unaffected
 - `Build Path` and `Build Filename` buttons next to `Save Layout` and `Filename`, opening a floating, draggable window with click-to-insert chips for every supported template variable, filter, and date preset, plus a live preview. Nothing is written to those fields except what you click; typing still works exactly as before
+- `Save`/`Preview` mode toggle. `Save` behaves exactly as before. `Preview` shows the result without writing anything to the final path; each image gets its own `Save` button in a preview grid, writing it later to the path already resolved when the node ran
 
 ## [0.7.2] - 2026-08-13
 

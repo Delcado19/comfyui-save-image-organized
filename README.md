@@ -17,6 +17,7 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - optional switch to disable embedded workflow metadata export entirely
 - `FILENAME`/`FILE_PATH`/`IMAGES` outputs for chaining the saved image into other nodes mid-workflow
 - a `Build Path`/`Build Filename` window with click-to-insert variable chips, so you don't have to type `%TOKEN%` by hand
+- a `Preview` mode that shows the result without saving, with a per-image `Save` button when you're ready
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes
@@ -178,6 +179,15 @@ store it.
 `Image Format` chooses `PNG` (lossless), `JPEG`, or `WebP` (both lossy), shown as a row of buttons
 on the node. `Image Quality` (`1`-`100`, shown as a slider) controls JPEG/WebP compression and is
 ignored for PNG.
+
+### Save And Preview Modes
+
+`Save` (default) writes every image immediately, exactly as before. `Preview` shows the result the
+same way ComfyUI's built-in `Preview Image` node does, without writing anything to the final path.
+Each image gets its own `Save` button in the preview grid below the node; clicking it writes that
+one image to the path that was already resolved when the node ran. Nothing is written until you
+click `Save` on an image, and a parked preview is dropped the next time the node runs or ComfyUI
+restarts — there is no separate "discard" action.
 
 ### Outputs
 

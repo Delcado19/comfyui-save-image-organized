@@ -199,6 +199,16 @@ loader's name is used:
 - `First Used`: the loader with the most upstream links, i.e. the first model
   applied in a multi-stage pipeline.
 
+## Save And Preview Modes
+
+`Save` (default) writes every image immediately. `Preview` shows the result using ComfyUI's own
+built-in temporary-image mechanism — the same one every `Preview Image` node already uses, not a new save
+location of our own — and gives each image its own `Save` button so you can write it later, to the path already shown when the node ran. A parked
+preview disappears the next time the node runs again or ComfyUI restarts; there is no separate
+discard action.
+
+`FILENAME`/`FILE_PATH` are empty strings in `Preview` mode, since nothing has been saved yet.
+
 ## Outputs
 
 - `FILENAME`: file name of the first saved image in the batch

@@ -185,6 +185,23 @@ instead of a dropdown.
 Quality for `JPEG` and `WebP` output, from `1` to `100`, shown as a slider. Ignored when
 `Image Format` is `PNG`.
 
+### Save And Preview Modes
+
+`Save` (default) behaves exactly as every earlier version: every image in the batch is written to
+its resolved path immediately when the node runs.
+
+`Preview` shows the result without writing to the final path, using ComfyUI's own built-in
+temporary-image mechanism (the same one `Preview Image` uses) instead of a save location of our own.
+This node adds no new temp folder or disk-accumulation logic beyond what every other preview node in
+ComfyUI already does.
+Each image in the batch gets its own `Save` button, shown directly under its thumbnail. Clicking it
+writes that image to the path that was already resolved when the node ran, using the `Image Format`,
+`Image Quality`, and `Export Workflow Metadata` settings active at that time, not whatever they are
+when you click `Save`.
+
+A parked (not-yet-saved) preview is dropped automatically the next time that node runs again, or
+when ComfyUI restarts. There is no separate "discard" button.
+
 ### Loader Priority
 
 Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
@@ -199,6 +216,8 @@ Decides which loader wins when more than one model loader feeds a save (see the 
 For multi-image batches, `FILENAME` and `FILE_PATH` describe only the first image; use
 `%BATCH_INDEX%` / `%BATCH_SIZE%` in the Save Layout if you need every image's path. `IMAGES`
 passes through the full batch.
+In `Preview` mode, `FILENAME` and `FILE_PATH` are always empty strings, since nothing is written
+until you click `Save` on an image — see Save And Preview Modes above.
 
 ## Useful Variables
 
