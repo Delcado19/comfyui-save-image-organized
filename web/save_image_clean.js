@@ -216,7 +216,7 @@ function ensureSectionLabel(node, key, text, targetName, actionEl = null) {
         "justify-content:space-between",
         "gap:8px",
         "padding:0 8px",
-        "margin:2px 0 -2px 0",
+        "margin:2px 0 3px 0",
     ].join(";");
 
     const labelEl = document.createElement("span");
