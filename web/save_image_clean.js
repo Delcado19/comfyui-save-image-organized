@@ -1022,10 +1022,14 @@ function buildPreviewCell(node, entry) {
         saveBtn.disabled = true;
         statusEl.textContent = "";
         try {
-            const response = await fetch(api.apiURL("/save_image_organized/save_now"), {
+            // Echo back the node_id/run_token the backend attached to this entry, rather than
+            // deriving node.id locally: inside a subgraph the backend's real node id (e.g.
+            // "12:5") differs from the frontend's local node.id, and two nodes/tabs can share
+            // a local id, so a locally-derived id can save the wrong image to the wrong path.
+            const response = await api.fetchApi("/save_image_organized/save_now", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ node_id: String(node.id), batch_index: entry.batch_index }),
+                body: JSON.stringify({ node_id: entry.node_id, batch_index: entry.batch_index, run_token: entry.run_token }),
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {

@@ -207,6 +207,11 @@ location of our own — and gives each image its own `Save` button so you can wr
 preview disappears the next time the node runs again or ComfyUI restarts; there is no separate
 discard action.
 
+Preview-mode images intentionally skip the standard `ui.images` channel that ComfyUI's
+history/queue panel and native image lightbox read from (a deliberate choice to avoid duplicating
+the custom save-button grid with the native thumbnail strip), so the per-image grid in the node
+itself is the only place to see and save a pending preview.
+
 `FILENAME`/`FILE_PATH` are empty strings in `Preview` mode, since nothing has been saved yet.
 
 ## Outputs

@@ -160,6 +160,8 @@ DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
 # then batch index. Replaced wholesale on every run of that node, in either mode,
 # and dropped entirely on process restart -- see
 # docs/superpowers/specs/2026-10-12-save-preview-mode-design.md.
+# Each entry's "image" is a view into the full batch tensor (not a copy), so saving
+# only some images in a batch does not free memory for the rest until the node reruns.
 _PREVIEW_CACHE: dict[str, dict[int, dict[str, Any]]] = {}
 
 
@@ -1308,12 +1310,18 @@ class PreviewNotFoundError(Exception):
     """Raised when a save-now request names a preview that is missing or already saved."""
 
 
-def _handle_save_now(node_id: str, batch_index: int) -> dict[str, str]:
+def _handle_save_now(node_id: str, batch_index: int, run_token: str) -> dict[str, str]:
     node_cache = _PREVIEW_CACHE.get(node_id)
     entry = node_cache.get(batch_index) if node_cache else None
+    # A run_token mismatch means this entry belongs to a different run than the one
+    # the caller was shown (e.g. the node reran, or another browser tab/node shares
+    # this node_id) -- treat it exactly like a missing entry rather than saving it.
+    if entry is not None and entry.get("run_token") != run_token:
+        entry = None
     if entry is None:
         raise PreviewNotFoundError(
-            f"No pending preview for node {node_id!r}, batch index {batch_index}. Rerun the node."
+            f"No pending preview for node {node_id!r}, batch index {batch_index}. "
+            "It was already saved or expired; change an input and rerun."
         )
 
     # The raw path cached at preview time is never edited (see spec Non-Goals), but
@@ -1331,7 +1339,11 @@ def _handle_save_now(node_id: str, batch_index: int) -> dict[str, str]:
     )
 
     del node_cache[batch_index]
-    if not node_cache:
+    # Only drop the node's cache dict if it's still the exact same object we looked
+    # up above -- if the node reran and replaced _PREVIEW_CACHE[node_id] with a new
+    # dict while this save was in flight, deleting by key could drop that newer run's
+    # cache instead of the (now-empty) one we were working with.
+    if not node_cache and _PREVIEW_CACHE.get(node_id) is node_cache:
         del _PREVIEW_CACHE[node_id]
 
     return {"filename": target_path.name, "file_path": str(target_path.resolve())}
@@ -2042,10 +2054,16 @@ class SaveImageClean:
                     "image_quality": image_quality,
                     "metadata": metadata,
                     "collision_mode": collision_mode,
+                    "run_token": preview_run_token,
                 }
                 temp_dir = Path(self.temp_dir)
                 temp_dir.mkdir(parents=True, exist_ok=True)
-                temp_filename = f"save_image_organized_preview_{node_key}_{preview_run_token}_{batch_index}.png"
+                # node_key is intentionally not part of this filename: inside a
+                # subgraph it can contain a ":" (e.g. "12:5"), which Windows/NTFS
+                # parses as an alternate-data-stream separator rather than a normal
+                # filename character. The random run token + batch index is already
+                # globally unique, so the node id isn't needed here.
+                temp_filename = f"save_image_organized_preview_{preview_run_token}_{batch_index}.png"
                 Image.fromarray(array).save(temp_dir / temp_filename, format="PNG", compress_level=1)
                 preview_entries_ui.append(
                     {
@@ -2053,6 +2071,8 @@ class SaveImageClean:
                         "filename": temp_filename,
                         "subfolder": "",
                         "type": "temp",
+                        "node_id": node_key,
+                        "run_token": preview_run_token,
                     }
                 )
                 continue
@@ -2127,15 +2147,16 @@ if PromptServer is not None:
 
     @PromptServer.instance.routes.post("/save_image_organized/save_now")
     async def _save_image_organized_save_now(request):
-        payload = await request.json()
-        node_id = str(payload.get("node_id", ""))
         try:
+            payload = await request.json()
+            node_id = str(payload.get("node_id", ""))
             batch_index = int(payload.get("batch_index"))
-        except (TypeError, ValueError):
-            return web.json_response({"error": "batch_index must be an integer"}, status=400)
+            run_token = str(payload.get("run_token", ""))
+        except Exception:  # noqa: BLE001 - malformed/missing JSON body or fields
+            return web.json_response({"error": "invalid request body"}, status=400)
 
         try:
-            result = _handle_save_now(node_id, batch_index)
+            result = _handle_save_now(node_id, batch_index, run_token)
         except PreviewNotFoundError as exc:
             return web.json_response({"error": str(exc)}, status=404)
         except Exception as exc:  # noqa: BLE001 - surface the real write failure to the UI

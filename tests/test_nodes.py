@@ -1402,9 +1402,12 @@ def test_save_images_preview_mode_replaces_prior_cache_entry_on_rerun(workspace_
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)
     saver.temp_dir = str(tmp_path / "temp")
-    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+    two_images = [
+        DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+    ]
+    one_image = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
     kwargs = dict(
-        images=images,
         path_template="%TOP_FOLDER%/%FILENAME%",
         collision_mode="increment",
         model_source="Friendly",
@@ -1418,14 +1421,19 @@ def test_save_images_preview_mode_replaces_prior_cache_entry_on_rerun(workspace_
         unique_id="cache-node",
     )
 
-    saver.save_images(**kwargs)
+    saver.save_images(images=two_images, **kwargs)
     first_entry = nodes._PREVIEW_CACHE["cache-node"][1]
     assert first_entry["target_path"].name == "preview-cache.png"
+    # 2-image batch -> two cache entries, proving the base case before checking replacement.
+    assert len(nodes._PREVIEW_CACHE["cache-node"]) == 2
 
-    saver.save_images(**kwargs)
+    saver.save_images(images=one_image, **kwargs)
     second_entry = nodes._PREVIEW_CACHE["cache-node"][1]
     assert second_entry is not first_entry
+    # A rerun with a smaller (1-image) batch must wholly replace the prior cache dict,
+    # not merge into it -- otherwise the stale batch_index 2 entry would still be here.
     assert len(nodes._PREVIEW_CACHE["cache-node"]) == 1
+    assert 2 not in nodes._PREVIEW_CACHE["cache-node"]
 
 
 def test_save_images_switching_back_to_save_clears_stale_preview_cache(workspace_tmp_path, tmp_path):
@@ -1464,10 +1472,11 @@ def test_handle_save_now_writes_cached_entry_and_clears_it(tmp_path):
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-a",
         }
     }
 
-    result = nodes._handle_save_now("node-a", 1)
+    result = nodes._handle_save_now("node-a", 1, "token-a")
 
     assert result == {"filename": "save-now.png", "file_path": str(target.resolve())}
     assert target.exists()
@@ -1476,7 +1485,7 @@ def test_handle_save_now_writes_cached_entry_and_clears_it(tmp_path):
 
 def test_handle_save_now_raises_for_unknown_node(tmp_path):
     with pytest.raises(nodes.PreviewNotFoundError):
-        nodes._handle_save_now("does-not-exist", 1)
+        nodes._handle_save_now("does-not-exist", 1, "token-a")
 
 
 def test_handle_save_now_raises_for_wrong_batch_index_on_known_node(tmp_path):
@@ -1488,11 +1497,34 @@ def test_handle_save_now_raises_for_wrong_batch_index_on_known_node(tmp_path):
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-known",
         }
     }
 
     with pytest.raises(nodes.PreviewNotFoundError):
-        nodes._handle_save_now("node-known", 2)
+        nodes._handle_save_now("node-known", 2, "token-known")
+
+
+def test_handle_save_now_raises_for_mismatched_run_token(tmp_path):
+    # A run_token mismatch (e.g. the node reran, or another node/tab shares this node_id)
+    # must be treated exactly like a missing entry: no file written, cache untouched.
+    target = tmp_path / "mismatched.png"
+    entry = {
+        "image": DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+        "target_path": target,
+        "image_format": "PNG",
+        "image_quality": 95,
+        "metadata": None,
+        "collision_mode": "increment",
+        "run_token": "token-a",
+    }
+    nodes._PREVIEW_CACHE["node-mismatch"] = {1: entry}
+
+    with pytest.raises(nodes.PreviewNotFoundError):
+        nodes._handle_save_now("node-mismatch", 1, "token-b")
+
+    assert not target.exists()
+    assert nodes._PREVIEW_CACHE["node-mismatch"][1] is entry
 
 
 def test_handle_save_now_raises_on_second_call_after_success(tmp_path):
@@ -1505,12 +1537,13 @@ def test_handle_save_now_raises_on_second_call_after_success(tmp_path):
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-b",
         }
     }
 
-    nodes._handle_save_now("node-b", 1)
+    nodes._handle_save_now("node-b", 1, "token-b")
     with pytest.raises(nodes.PreviewNotFoundError):
-        nodes._handle_save_now("node-b", 1)
+        nodes._handle_save_now("node-b", 1, "token-b")
 
 
 def test_handle_save_now_saving_one_batch_image_leaves_siblings_pending(tmp_path):
@@ -1522,6 +1555,7 @@ def test_handle_save_now_saving_one_batch_image_leaves_siblings_pending(tmp_path
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-c",
         },
         2: {
             "image": DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
@@ -1530,10 +1564,11 @@ def test_handle_save_now_saving_one_batch_image_leaves_siblings_pending(tmp_path
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-c",
         },
     }
 
-    nodes._handle_save_now("node-c", 1)
+    nodes._handle_save_now("node-c", 1, "token-c")
 
     assert "node-c" in nodes._PREVIEW_CACHE
     assert 1 not in nodes._PREVIEW_CACHE["node-c"]
@@ -1556,10 +1591,11 @@ def test_handle_save_now_applies_collision_mode_at_save_time(tmp_path):
             "image_quality": 95,
             "metadata": None,
             "collision_mode": "increment",
+            "run_token": "token-d",
         }
     }
 
-    result = nodes._handle_save_now("node-d", 1)
+    result = nodes._handle_save_now("node-d", 1, "token-d")
 
     assert result["filename"] == "collide-2.png"
     assert (tmp_path / "collide-2.png").exists()

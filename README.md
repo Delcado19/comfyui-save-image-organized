@@ -182,17 +182,19 @@ ignored for PNG.
 
 ### Save And Preview Modes
 
-`Save` (default) writes every image immediately, exactly as before. `Preview` shows the result the
-same way ComfyUI's built-in `Preview Image` node does, without writing anything to the final path.
-Each image gets its own `Save` button in the preview grid below the node; clicking it writes that
-one image to the path that was already resolved when the node ran. Nothing is written until you
-click `Save` on an image, and a parked preview is dropped the next time the node runs or ComfyUI
-restarts — there is no separate "discard" action.
+`Save` (default) writes every image immediately, exactly as before. `Preview` stores the result in
+ComfyUI's temp folder, like `Preview Image` does, without writing anything to the final path yet.
+Each image gets its own `Save` button in a preview grid that's part of the node's own widget
+stack; clicking it writes that one image to the path that was already resolved when the node ran.
+Nothing is written until you click `Save` on an image, and a parked preview is dropped the next
+time the node runs or ComfyUI restarts — there is no separate "discard" action.
 
 ### Outputs
 
-- `FILENAME`: file name of the first saved image in the batch
-- `FILE_PATH`: absolute file path of the first saved image in the batch
+- `FILENAME`: file name of the first saved image in the batch (empty string in `Preview` mode,
+  since nothing has been written yet)
+- `FILE_PATH`: absolute file path of the first saved image in the batch (also empty in `Preview`
+  mode)
 - `IMAGES`: the same images that were saved, passed through unchanged so this node can sit
   mid-workflow instead of only at the end
 

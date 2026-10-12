@@ -202,6 +202,11 @@ when you click `Save`.
 A parked (not-yet-saved) preview is dropped automatically the next time that node runs again, or
 when ComfyUI restarts. There is no separate "discard" button.
 
+Preview-mode images intentionally do not go through the standard `ui.images` channel ComfyUI's
+history/queue panel and native image lightbox read from (this avoids duplicating the thumbnails
+in both the custom save-button grid and the native thumbnail strip), so the per-image grid in the
+node itself is the only place to see and save a pending preview.
+
 ### Loader Priority
 
 Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
