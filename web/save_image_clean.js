@@ -1,4 +1,5 @@
 import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
 
 const NODE_NAME = "SaveImageClean";
 const MODEL_OPTIONS = ["Friendly", "Friendly Clean", "Exact", "Custom"];
@@ -963,6 +964,153 @@ function createSaveModeToggleWidget(node) {
     return widget;
 }
 
+let _previewGridCssInjected = false;
+function injectPreviewGridCss() {
+    if (_previewGridCssInjected || document.getElementById("save-image-clean-preview-grid-css")) {
+        _previewGridCssInjected = true;
+        return;
+    }
+    _previewGridCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "save-image-clean-preview-grid-css";
+    style.textContent = [
+        ".sic-preview-grid{display:flex;flex-direction:column;}",
+        ".sic-preview-grid-body{display:flex;flex-wrap:wrap;gap:8px;padding:6px 8px;}",
+        ".sic-preview-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;}",
+        ".sic-preview-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.2);}",
+        ".sic-preview-save-btn{width:100%;padding:3px 0;font-size:10px;font-weight:600;border-radius:5px;",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#cfcfcf;",
+        "cursor:pointer;font-family:inherit;",
+        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
+        ".sic-preview-save-btn:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        ".sic-preview-save-btn:active{transform:scale(0.97);}",
+        ".sic-preview-save-btn.saved{background:#2f8f5b;border-color:#2f8f5b;color:#fff;cursor:default;}",
+        ".sic-preview-save-btn:disabled{opacity:0.7;}",
+        ".sic-preview-status{font-size:9px;color:#e08a8a;text-align:center;min-height:11px;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function buildPreviewImageUrl(entry) {
+    const params = new URLSearchParams({
+        filename: entry.filename,
+        type: entry.type || "temp",
+        subfolder: entry.subfolder || "",
+    });
+    return api.apiURL(`/view?${params.toString()}`);
+}
+
+function buildPreviewCell(node, entry) {
+    const cell = document.createElement("div");
+    cell.className = "sic-preview-cell";
+
+    const img = document.createElement("img");
+    img.className = "sic-preview-thumb";
+    img.src = buildPreviewImageUrl(entry);
+    img.alt = `Preview ${entry.batch_index}`;
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "sic-preview-save-btn";
+    saveBtn.textContent = "Save";
+
+    const statusEl = document.createElement("div");
+    statusEl.className = "sic-preview-status";
+
+    saveBtn.addEventListener("click", async () => {
+        saveBtn.disabled = true;
+        statusEl.textContent = "";
+        try {
+            const response = await fetch(api.apiURL("/save_image_organized/save_now"), {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ node_id: String(node.id), batch_index: entry.batch_index }),
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(data?.error || `Save failed (${response.status})`);
+            }
+            saveBtn.textContent = "✓ Saved";
+            saveBtn.title = data.file_path || data.filename || "";
+            saveBtn.classList.add("saved");
+            setTimeout(() => {
+                saveBtn.textContent = "Saved";
+            }, 2000);
+        } catch (err) {
+            saveBtn.disabled = false;
+            statusEl.textContent = err?.message || "Save failed";
+        }
+    });
+
+    cell.appendChild(img);
+    cell.appendChild(saveBtn);
+    cell.appendChild(statusEl);
+    return cell;
+}
+
+function createPreviewGridWidget(node) {
+    if (node.__saveImageCleanPreviewGridRefs) {
+        return node.__saveImageCleanPreviewGridRefs;
+    }
+
+    injectPreviewGridCss();
+
+    const container = document.createElement("div");
+    container.className = "sic-preview-grid";
+    container.style.display = "none";
+
+    const body = document.createElement("div");
+    body.className = "sic-preview-grid-body";
+    container.appendChild(body);
+
+    const widget = node.addDOMWidget("save_image_clean_preview_grid", "custom", container, {
+        getMinHeight: () => (container.style.display === "none" ? 0 : 130),
+        getMaxHeight: () => (container.style.display === "none" ? 0 : 260),
+        serialize: false,
+        hideOnZoom: false,
+        margin: 4,
+    });
+
+    const refs = { widget, container, body };
+    node.__saveImageCleanPreviewGridRefs = refs;
+    insertWidgetBefore(node, widget, "save_mode");
+    return refs;
+}
+
+function updatePreviewGrid(node, message) {
+    const refs = node.__saveImageCleanPreviewGridRefs;
+    if (!refs) {
+        return;
+    }
+
+    const entries = Array.isArray(message?.save_image_clean_preview) ? message.save_image_clean_preview : [];
+    refs.body.replaceChildren();
+
+    if (!entries.length) {
+        refs.container.style.display = "none";
+        node.setSize?.(node.computeSize());
+        node.setDirtyCanvas?.(true, true);
+        return;
+    }
+
+    for (const entry of entries) {
+        refs.body.appendChild(buildPreviewCell(node, entry));
+    }
+    refs.container.style.display = "flex";
+    // The native per-node thumbnail strip is driven by node.imgs, populated by
+    // ComfyUI's own default onExecuted from message.images. Preview-mode temp
+    // images are intentionally kept out of message.images (see nodes.py's
+    // save_image_clean_preview key) so they never reach node.imgs in the first
+    // place; this clears it defensively in case that ever changes upstream.
+    node.imgs = [];
+    const newSize = node.computeSize();
+    newSize[0] = Math.max(newSize[0], node.size[0]);
+    newSize[1] = Math.max(newSize[1], node.size[1]);
+    node.setSize?.(newSize);
+    node.setDirtyCanvas?.(true, true);
+}
+
 let _templateBuilderCssInjected = false;
 function injectTemplateBuilderCss() {
     if (_templateBuilderCssInjected || document.getElementById("save-image-clean-builder-css")) {
@@ -1558,6 +1706,7 @@ app.registerExtension({
                 ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
                 createFormatButtonsWidget(this);
                 createSaveModeToggleWidget(this);
+                createPreviewGridWidget(this);
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
@@ -1575,6 +1724,7 @@ app.registerExtension({
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
             createFormatButtonsWidget(this);
             createSaveModeToggleWidget(this);
+            createPreviewGridWidget(this);
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
             updateHelp(this);
@@ -1586,6 +1736,7 @@ app.registerExtension({
             const result = onExecuted?.apply(this, arguments);
             setLastRunStateFromMessage(this, message);
             updateHelp(this);
+            updatePreviewGrid(this, message);
             return result;
         };
 
