@@ -1236,6 +1236,68 @@ def _render_filename_value(pattern: str, now: datetime) -> str:
     return _sanitize_path_component(rendered)
 
 
+def _write_image_to_path(
+    image: Any,
+    target_path: Path,
+    image_format: str,
+    image_quality: int,
+    metadata: PngImagePlugin.PngInfo | None,
+    *,
+    compress_level: int = 4,
+) -> Path:
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
+    pil_image = Image.fromarray(array)
+    format_info = IMAGE_FORMAT_INFO.get(image_format, IMAGE_FORMAT_INFO["PNG"])
+    pillow_format = format_info["pillow_format"]
+    # The widget clamps to 1-100 in the UI, but hand-edited or migrated workflow JSON,
+    # or a cached Preview-mode entry saved later, can carry a value outside that range.
+    # Pillow's WebP encoder raises ValueError on an out-of-range quality instead of
+    # clamping it, so enforce the documented range here, at the one place that
+    # actually writes the file.
+    quality = max(1, min(100, image_quality))
+    if pillow_format == "PNG":
+        pil_image.save(target_path, format=pillow_format, pnginfo=metadata, compress_level=compress_level)
+    else:
+        if pillow_format == "JPEG" and pil_image.mode != "RGB":
+            # JPEG has no alpha channel. Image.convert("RGB") on its own would just drop
+            # the alpha data and keep whatever RGB values sit underneath transparent
+            # pixels, which can show up as unexpected colors/fringing. Composite onto a
+            # white background first so transparent areas flatten the way users expect.
+            if "A" in pil_image.getbands():
+                flattened = Image.new("RGB", pil_image.size, (255, 255, 255))
+                flattened.paste(pil_image, mask=pil_image.convert("RGBA").getchannel("A"))
+                pil_image = flattened
+            else:
+                pil_image = pil_image.convert("RGB")
+        pil_image.save(target_path, format=pillow_format, quality=quality)
+    return target_path
+
+
+def _resolve_collision_path(candidate: Path, collision_mode: str, extension: str) -> Path:
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+
+    if collision_mode == "overwrite":
+        return candidate
+    if not candidate.exists():
+        return candidate
+    if collision_mode == "error":
+        raise FileExistsError(f"Target file already exists: {candidate}")
+    if collision_mode == "seconds":
+        second_name = _sanitize_path_component(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        candidate = candidate.with_name(f"{second_name}.{extension}")
+        if not candidate.exists():
+            return candidate
+
+    stem = candidate.stem
+    for index in range(2, 10000):
+        numbered = candidate.with_name(f"{stem}-{index}.{extension}")
+        if not numbered.exists():
+            return numbered
+
+    raise RuntimeError("Could not create a unique filename after many attempts.")
+
+
 class StripModelExtension:
     """Remove only the final known model extension from a loader/model name string."""
 
@@ -1824,28 +1886,7 @@ class SaveImageClean:
         collision_mode: str,
         extension: str,
     ) -> Path:
-        candidate = output_root / relative_path
-        candidate.parent.mkdir(parents=True, exist_ok=True)
-
-        if collision_mode == "overwrite":
-            return candidate
-        if not candidate.exists():
-            return candidate
-        if collision_mode == "error":
-            raise FileExistsError(f"Target file already exists: {candidate}")
-        if collision_mode == "seconds":
-            second_name = _sanitize_path_component(datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-            candidate = candidate.with_name(f"{second_name}.{extension}")
-            if not candidate.exists():
-                return candidate
-
-        stem = candidate.stem
-        for index in range(2, 10000):
-            numbered = candidate.with_name(f"{stem}-{index}.{extension}")
-            if not numbered.exists():
-                return numbered
-
-        raise RuntimeError("Could not create a unique filename after many attempts.")
+        return _resolve_collision_path(output_root / relative_path, collision_mode, extension)
 
     def save_images(
         self,
@@ -1871,10 +1912,6 @@ class SaveImageClean:
         format_info = IMAGE_FORMAT_INFO.get(image_format, IMAGE_FORMAT_INFO["PNG"])
         extension = format_info["extension"]
         pillow_format = format_info["pillow_format"]
-        # The widget clamps to 1-100 in the UI, but hand-edited or migrated workflow JSON can
-        # submit values outside that range directly. Pillow's WebP encoder raises ValueError on
-        # an out-of-range quality instead of clamping it, so enforce the documented range here.
-        image_quality = max(1, min(100, image_quality))
         # Workflow metadata uses PNG text chunks; JPEG/WebP have no equivalent
         # that ComfyUI's own "load workflow from image" feature can read back,
         # so non-PNG saves skip it rather than embed metadata nothing can use.
@@ -1952,22 +1989,7 @@ class SaveImageClean:
             if first_target_path is None:
                 first_target_path = target_path
 
-            pil_image = Image.fromarray(array)
-            if pillow_format == "PNG":
-                pil_image.save(target_path, format=pillow_format, pnginfo=metadata, compress_level=self.compress_level)
-            else:
-                if pillow_format == "JPEG" and pil_image.mode != "RGB":
-                    # JPEG has no alpha channel. Image.convert("RGB") on its own would just drop
-                    # the alpha data and keep whatever RGB values sit underneath transparent
-                    # pixels, which can show up as unexpected colors/fringing. Composite onto a
-                    # white background first so transparent areas flatten the way users expect.
-                    if "A" in pil_image.getbands():
-                        flattened = Image.new("RGB", pil_image.size, (255, 255, 255))
-                        flattened.paste(pil_image, mask=pil_image.convert("RGBA").getchannel("A"))
-                        pil_image = flattened
-                    else:
-                        pil_image = pil_image.convert("RGB")
-                pil_image.save(target_path, format=pillow_format, quality=image_quality)
+            _write_image_to_path(image, target_path, image_format, image_quality, metadata, compress_level=self.compress_level)
 
             saved.append(
                 {

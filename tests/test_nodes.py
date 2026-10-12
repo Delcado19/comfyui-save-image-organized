@@ -693,6 +693,37 @@ class DummyImage:
         return self._array
 
 
+def test_write_image_to_path_creates_missing_parent_directory(tmp_path):
+    target = tmp_path / "nested" / "dir" / "out.png"
+    image = DummyImage(np.zeros((2, 2, 3), dtype=np.float32))
+
+    result = nodes._write_image_to_path(image, target, "PNG", 95, None)
+
+    assert result == target
+    assert target.exists()
+
+
+def test_write_image_to_path_clamps_out_of_range_quality(tmp_path):
+    target = tmp_path / "out.webp"
+    image = DummyImage(np.ones((2, 2, 3), dtype=np.float32))
+
+    # WebP's encoder raises ValueError on an out-of-range quality instead of
+    # clamping it itself, so this would crash if _write_image_to_path did not
+    # clamp internally (not just at the original save_images() call site).
+    nodes._write_image_to_path(image, target, "WebP", 500, None)
+
+    assert target.exists()
+
+
+def test_resolve_collision_path_increments_existing_files(tmp_path):
+    existing = tmp_path / "example.png"
+    existing.write_bytes(b"first")
+
+    target = nodes._resolve_collision_path(existing, "increment", "png")
+
+    assert target == tmp_path / "example-2.png"
+
+
 def test_save_images_includes_detection_summary_in_ui_text(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)
