@@ -808,171 +808,67 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
+import { el, injectDesignTokens, buildSegmentedControl } from "./sic_components.mjs";
+
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
 
-let _formatButtonsCssInjected = false;
-function injectFormatButtonsCss() {
-    if (_formatButtonsCssInjected || document.getElementById("save-image-clean-format-css")) {
-        _formatButtonsCssInjected = true;
-        return;
-    }
-    _formatButtonsCssInjected = true;
-    const style = document.createElement("style");
-    style.id = "save-image-clean-format-css";
-    // :root vars here are global (this stylesheet is injected once into document.head)
-    // and are reused by the help-panel and template-builder widgets elsewhere in this file.
-    style.textContent = [
-        ":root{--sic-ease-out:cubic-bezier(0.23,1,0.32,1);--sic-ease:ease;}",
-        ".sic-fmt-row{display:flex;gap:4px;width:100%;box-sizing:border-box;padding:0 8px;}",
-        ".sic-fmt-btn{flex:1;padding:5px 0;font-size:11px;font-weight:600;border-radius:6px;",
-        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#b7b7b7;",
-        "cursor:pointer;font-family:inherit;",
-        "transition:transform 120ms var(--sic-ease-out), background 120ms var(--sic-ease), color 120ms var(--sic-ease), border-color 120ms var(--sic-ease);}",
-        ".sic-fmt-btn:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
-        ".sic-fmt-btn:active{transform:scale(0.97);}",
-        ".sic-fmt-btn.active{background:#4c86e0;border-color:#4c86e0;color:#fff;}",
-        ".sic-fmt-btn.active:hover{border-color:#5d93e6;}",
-    ].join("");
-    document.head.appendChild(style);
-}
-
-// A combo widget hidden this way (type swapped to "hidden", computeSize zeroed)
-// still holds its value and still serializes into widgets_values - only its
-// own draw/row height is suppressed. This is the standard way custom nodes
-// replace a stock widget's rendering without touching how ComfyUI persists it.
-function hideNativeWidget(widget) {
-    if (!widget || widget.__saveImageCleanHidden) {
-        return;
-    }
-    widget.__saveImageCleanHidden = true;
-    widget.computeSize = () => [0, -4];
-    widget.type = "hidden";
-    // comfyui_frontend_package 1.53.10 no longer suppresses a widget's own
-    // row from widget.type === "hidden" alone (confirmed live, 2026-10-12:
-    // save_mode kept rendering with type "hidden" + computeSize [0,-4]).
-    // ComfyUI's own built-in extensions (e.g. CreateBoundingBoxes) hide
-    // widgets via a dedicated `hidden` flag instead - mirrored here, with
-    // `.options.hidden` as the fallback storage the same code uses when no
-    // reactive widget store entry exists yet.
-    widget.hidden = true;
-    if (widget.options) {
-        widget.options.hidden = true;
-    }
-}
-
-function setActiveFormatButton(node, activeId) {
-    const buttons = node.__saveImageCleanFormatButtons;
-    if (!buttons) {
-        return;
-    }
-    for (const [id, button] of Object.entries(buttons)) {
-        button.classList.toggle("active", id === activeId);
-    }
-}
-
 function createFormatButtonsWidget(node) {
-    const formatWidget = getWidget(node, "image_format");
-    if (!formatWidget || node.__saveImageCleanFormatWidget) {
+    if (node.__saveImageCleanFormatWidget) {
         return node.__saveImageCleanFormatWidget;
     }
-
-    injectFormatButtonsCss();
-    hideNativeWidget(formatWidget);
-
-    const row = document.createElement("div");
-    row.className = "sic-fmt-row";
-
-    const buttons = {};
-    for (const id of IMAGE_FORMAT_IDS) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "sic-fmt-btn";
-        button.textContent = id;
-        button.title = `Save as ${id}`;
-        button.addEventListener("click", () => {
-            if (formatWidget.value === id) {
-                return;
-            }
-            formatWidget.value = id;
-            formatWidget.callback?.(id);
-            setActiveFormatButton(node, id);
-        });
-        row.appendChild(button);
-        buttons[id] = button;
+    injectDesignTokens();
+    const seg = buildSegmentedControl(node, "image_format", IMAGE_FORMAT_IDS, {
+        getTitle: (id) => `Save as ${id}`,
+    });
+    if (!seg) {
+        return null;
     }
-
-    const widget = node.addDOMWidget("save_image_clean_format_buttons", "custom", row, {
+    const widget = node.addDOMWidget("save_image_clean_format_buttons", "custom", seg.root, {
         getMinHeight: () => 26,
         getMaxHeight: () => 28,
         serialize: false,
         hideOnZoom: false,
         margin: 2,
     });
-
     node.__saveImageCleanFormatWidget = widget;
-    node.__saveImageCleanFormatButtons = buttons;
+    node.__saveImageCleanFormatSeg = seg;
     insertWidgetBefore(node, widget, "image_format");
-    setActiveFormatButton(node, formatWidget.value);
     return widget;
-}
-
-function setActiveSaveModeButton(node, activeId) {
-    const buttons = node.__saveImageCleanSaveModeButtons;
-    if (!buttons) {
-        return;
-    }
-    for (const [id, button] of Object.entries(buttons)) {
-        button.classList.toggle("active", id === activeId);
-    }
 }
 
 function createSaveModeToggleWidget(node) {
-    const modeWidget = getWidget(node, "save_mode");
-    if (!modeWidget || node.__saveImageCleanSaveModeWidget) {
+    if (node.__saveImageCleanSaveModeWidget) {
         return node.__saveImageCleanSaveModeWidget;
     }
-
-    injectFormatButtonsCss();
-    hideNativeWidget(modeWidget);
-
-    const row = document.createElement("div");
-    row.className = "sic-fmt-row";
-
-    const buttons = {};
-    for (const id of SAVE_MODE_IDS) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "sic-fmt-btn";
-        button.textContent = id;
-        button.title = id === "Preview"
+    injectDesignTokens();
+    const seg = buildSegmentedControl(node, "save_mode", SAVE_MODE_IDS, {
+        getTitle: (id) => (id === "Preview"
             ? "Show the result without saving; save individual images later"
-            : "Save immediately, as before";
-        button.addEventListener("click", () => {
-            if (modeWidget.value === id) {
-                return;
-            }
-            modeWidget.value = id;
-            modeWidget.callback?.(id);
-            setActiveSaveModeButton(node, id);
-        });
-        row.appendChild(button);
-        buttons[id] = button;
+            : "Save immediately, as before"),
+    });
+    if (!seg) {
+        return null;
     }
-
-    const widget = node.addDOMWidget("save_image_clean_save_mode_buttons", "custom", row, {
+    const widget = node.addDOMWidget("save_image_clean_save_mode_buttons", "custom", seg.root, {
         getMinHeight: () => 26,
         getMaxHeight: () => 28,
         serialize: false,
         hideOnZoom: false,
         margin: 2,
     });
-
     node.__saveImageCleanSaveModeWidget = widget;
-    node.__saveImageCleanSaveModeButtons = buttons;
+    node.__saveImageCleanSaveModeSeg = seg;
     insertWidgetBefore(node, widget, "save_mode");
-    setActiveSaveModeButton(node, modeWidget.value);
     return widget;
+}
+
+function setActiveFormatButton(node, activeId) {
+    node.__saveImageCleanFormatSeg?.setActive(activeId);
+}
+
+function setActiveSaveModeButton(node, activeId) {
+    node.__saveImageCleanSaveModeSeg?.setActive(activeId);
 }
 
 let _previewGridCssInjected = false;
