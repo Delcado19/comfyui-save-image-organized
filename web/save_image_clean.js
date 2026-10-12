@@ -15,6 +15,7 @@ const LABELS = {
     image_format: "Image Format",
     image_quality: "Image Quality",
     loader_priority: "Loader Priority",
+    save_mode: "Save Mode",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",
@@ -807,6 +808,7 @@ function buildLayoutExample(node, variables, now) {
 }
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
+const SAVE_MODE_IDS = ["Save", "Preview"];
 
 let _formatButtonsCssInjected = false;
 function injectFormatButtonsCss() {
@@ -900,6 +902,64 @@ function createFormatButtonsWidget(node) {
     node.__saveImageCleanFormatButtons = buttons;
     insertWidgetBefore(node, widget, "image_format");
     setActiveFormatButton(node, formatWidget.value);
+    return widget;
+}
+
+function setActiveSaveModeButton(node, activeId) {
+    const buttons = node.__saveImageCleanSaveModeButtons;
+    if (!buttons) {
+        return;
+    }
+    for (const [id, button] of Object.entries(buttons)) {
+        button.classList.toggle("active", id === activeId);
+    }
+}
+
+function createSaveModeToggleWidget(node) {
+    const modeWidget = getWidget(node, "save_mode");
+    if (!modeWidget || node.__saveImageCleanSaveModeWidget) {
+        return node.__saveImageCleanSaveModeWidget;
+    }
+
+    injectFormatButtonsCss();
+    hideNativeWidget(modeWidget);
+
+    const row = document.createElement("div");
+    row.className = "sic-fmt-row";
+
+    const buttons = {};
+    for (const id of SAVE_MODE_IDS) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "sic-fmt-btn";
+        button.textContent = id;
+        button.title = id === "Preview"
+            ? "Show the result without saving; save individual images later"
+            : "Save immediately, as before";
+        button.addEventListener("click", () => {
+            if (modeWidget.value === id) {
+                return;
+            }
+            modeWidget.value = id;
+            modeWidget.callback?.(id);
+            setActiveSaveModeButton(node, id);
+        });
+        row.appendChild(button);
+        buttons[id] = button;
+    }
+
+    const widget = node.addDOMWidget("save_image_clean_save_mode_buttons", "custom", row, {
+        getMinHeight: () => 26,
+        getMaxHeight: () => 28,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 2,
+    });
+
+    node.__saveImageCleanSaveModeWidget = widget;
+    node.__saveImageCleanSaveModeButtons = buttons;
+    insertWidgetBefore(node, widget, "save_mode");
+    setActiveSaveModeButton(node, modeWidget.value);
     return widget;
 }
 
@@ -1376,6 +1436,7 @@ function updateHelp(node) {
     ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
     ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
     setActiveFormatButton(node, getWidget(node, "image_format")?.value);
+    setActiveSaveModeButton(node, getWidget(node, "save_mode")?.value);
 
     if (lastRunInfo && !lastRunInfo.stale) {
         setHelperStatus(refs, "fresh");
@@ -1496,6 +1557,7 @@ app.registerExtension({
                 ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
                 ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
                 createFormatButtonsWidget(this);
+                createSaveModeToggleWidget(this);
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
@@ -1512,6 +1574,7 @@ app.registerExtension({
             ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
             createFormatButtonsWidget(this);
+            createSaveModeToggleWidget(this);
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
             updateHelp(this);
