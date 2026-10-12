@@ -21,6 +21,9 @@ htmlcov/
 .vscode/
 .idea/
 
+# Isolated git worktrees used for subagent-driven plan execution
+.worktrees/
+
 .DS_Store
 Thumbs.db
 
