@@ -1085,12 +1085,19 @@ function updatePreviewGrid(node, message) {
     }
 
     const entries = Array.isArray(message?.save_image_clean_preview) ? message.save_image_clean_preview : [];
+    // Was the grid showing before this update? Only a Preview->Save transition
+    // (grid visible -> hidden) needs to shrink the node back down; an ordinary
+    // repeated Save-mode run (grid already hidden, stays hidden) must leave
+    // node.size untouched, or it would fight a user's manual resize on every run.
+    const wasVisible = refs.container.style.display !== "none";
     refs.body.replaceChildren();
 
     if (!entries.length) {
         refs.container.style.display = "none";
-        node.setSize?.(node.computeSize());
-        node.setDirtyCanvas?.(true, true);
+        if (wasVisible) {
+            node.setSize?.(node.computeSize());
+            node.setDirtyCanvas?.(true, true);
+        }
         return;
     }
 
