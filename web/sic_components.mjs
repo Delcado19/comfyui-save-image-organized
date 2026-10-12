@@ -128,3 +128,90 @@ export function buildSegmentedControl(node, widgetName, optionIds, { getTitle } 
 
     return { widget, root, buttons, setActive };
 }
+
+let _dropdownCssInjected = false;
+function injectDropdownCss() {
+    if (_dropdownCssInjected || document.getElementById("sic-dropdown-css")) {
+        _dropdownCssInjected = true;
+        return;
+    }
+    _dropdownCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-dropdown-css";
+    style.textContent = [
+        ".sic-row{position:relative;display:flex;align-items:center;justify-content:space-between;",
+        "min-height:var(--sic-row-height);padding:0 var(--sic-space-md);gap:var(--sic-space-sm);",
+        "border-radius:var(--sic-radius);box-sizing:border-box;}",
+        ".sic-row:hover{background:rgba(255,255,255,0.03);}",
+        ".sic-row-label{font-size:var(--sic-font-base);color:#d7d7d7;pointer-events:none;}",
+        ".sic-row-value{display:flex;align-items:center;gap:4px;font-size:var(--sic-font-base);",
+        "color:#b7b7b7;pointer-events:none;white-space:nowrap;}",
+        ".sic-row-chevron{font-size:9px;opacity:0.7;}",
+        ".sic-row-select{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;",
+        "border:none;margin:0;padding:0;font-size:var(--sic-font-base);}",
+        ".sic-row-select:focus-visible ~ .sic-row-value,",
+        ".sic-row:has(.sic-row-select:focus-visible){outline:2px solid var(--sic-accent);outline-offset:-2px;border-radius:var(--sic-radius);}",
+        ".sic-row.disabled{opacity:0.45;}",
+        ".sic-row.disabled .sic-row-select{pointer-events:none;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function getWidget2(node, name) {
+    return (node.widgets || []).find((widget) => widget.name === name);
+}
+
+/**
+ * One native combo widget rendered as a flat "Label ... Value v" row. A real,
+ * fully transparent <select> sits on top of the row and does the actual work
+ * (keyboard nav, scroll-wheel, the OS's own dropdown list) — only its paint
+ * is hidden, so this keeps full native accessibility instead of hand-rolling
+ * a listbox. The native combo widget stays the data source.
+ */
+export function buildDropdownRow(node, widgetName, label, optionIds, { optionLabels } = {}) {
+    const widget = getWidget2(node, widgetName);
+    if (!widget) {
+        return null;
+    }
+    injectDesignTokens();
+    injectDropdownCss();
+    hideNativeWidget(widget);
+
+    const root = el("div", "sic-row");
+    const labelEl = el("span", "sic-row-label", label);
+    const valueWrap = el("span", "sic-row-value");
+    const valueText = el("span");
+    const chevron = el("span", "sic-row-chevron", "▾");
+    valueWrap.appendChild(valueText);
+    valueWrap.appendChild(chevron);
+
+    const select = document.createElement("select");
+    select.className = "sic-row-select";
+    for (const id of optionIds) {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = optionLabels?.[id] || id;
+        select.appendChild(option);
+    }
+    select.value = widget.value;
+
+    const render = () => {
+        valueText.textContent = optionLabels?.[widget.value] || widget.value;
+    };
+    render();
+
+    select.addEventListener("change", () => {
+        if (widget.value === select.value) {
+            return;
+        }
+        widget.value = select.value;
+        widget.callback?.(select.value);
+        render();
+    });
+
+    root.appendChild(labelEl);
+    root.appendChild(valueWrap);
+    root.appendChild(select);
+
+    return { widget, root, selectEl: select, valueEl: valueText };
+}

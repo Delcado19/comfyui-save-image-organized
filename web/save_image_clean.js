@@ -808,7 +808,7 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
-import { el, injectDesignTokens, buildSegmentedControl } from "./sic_components.mjs";
+import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow } from "./sic_components.mjs";
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
@@ -835,6 +835,53 @@ function createFormatButtonsWidget(node) {
     node.__saveImageCleanFormatSeg = seg;
     insertWidgetBefore(node, widget, "image_format");
     return widget;
+}
+
+const DROPDOWN_FIELDS = {
+    model_source: { label: "Model Name", options: MODEL_OPTIONS },
+    clip_source: { label: "Text Encoder", options: CLIP_OPTIONS },
+    collision_mode: {
+        label: "If File Exists",
+        options: ["increment", "overwrite", "error", "seconds"],
+        optionLabels: {
+            increment: "Increment number",
+            overwrite: "Overwrite",
+            error: "Error",
+            seconds: "Add seconds",
+        },
+    },
+    detection_info: {
+        label: "Detection Info",
+        options: ["Off", "Summary", "Verbose"],
+    },
+    loader_priority: {
+        label: "Loader Priority",
+        options: ["Nearest", "First Used"],
+    },
+};
+
+function createDropdownRowWidget(node, widgetName) {
+    const storeKey = `__saveImageCleanDropdown_${widgetName}`;
+    if (node[storeKey]) {
+        return node[storeKey];
+    }
+    const field = DROPDOWN_FIELDS[widgetName];
+    const row = buildDropdownRow(node, widgetName, field.label, field.options, {
+        optionLabels: field.optionLabels,
+    });
+    if (!row) {
+        return null;
+    }
+    const widget = node.addDOMWidget(`save_image_clean_dropdown_${widgetName}`, "custom", row.root, {
+        getMinHeight: () => 30,
+        getMaxHeight: () => 32,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+    node[storeKey] = { widget, row };
+    insertWidgetBefore(node, widget, widgetName);
+    return node[storeKey];
 }
 
 function createSaveModeToggleWidget(node) {
