@@ -1454,6 +1454,118 @@ def test_save_images_switching_back_to_save_clears_stale_preview_cache(workspace
     assert "switch-node" not in nodes._PREVIEW_CACHE
 
 
+def test_handle_save_now_writes_cached_entry_and_clears_it(tmp_path):
+    target = tmp_path / "out" / "save-now.png"
+    nodes._PREVIEW_CACHE["node-a"] = {
+        1: {
+            "image": DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+            "target_path": target,
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        }
+    }
+
+    result = nodes._handle_save_now("node-a", 1)
+
+    assert result == {"filename": "save-now.png", "file_path": str(target.resolve())}
+    assert target.exists()
+    assert "node-a" not in nodes._PREVIEW_CACHE
+
+
+def test_handle_save_now_raises_for_unknown_node(tmp_path):
+    with pytest.raises(nodes.PreviewNotFoundError):
+        nodes._handle_save_now("does-not-exist", 1)
+
+
+def test_handle_save_now_raises_for_wrong_batch_index_on_known_node(tmp_path):
+    nodes._PREVIEW_CACHE["node-known"] = {
+        1: {
+            "image": DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+            "target_path": tmp_path / "known.png",
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        }
+    }
+
+    with pytest.raises(nodes.PreviewNotFoundError):
+        nodes._handle_save_now("node-known", 2)
+
+
+def test_handle_save_now_raises_on_second_call_after_success(tmp_path):
+    target = tmp_path / "save-now-twice.png"
+    nodes._PREVIEW_CACHE["node-b"] = {
+        1: {
+            "image": DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+            "target_path": target,
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        }
+    }
+
+    nodes._handle_save_now("node-b", 1)
+    with pytest.raises(nodes.PreviewNotFoundError):
+        nodes._handle_save_now("node-b", 1)
+
+
+def test_handle_save_now_saving_one_batch_image_leaves_siblings_pending(tmp_path):
+    nodes._PREVIEW_CACHE["node-c"] = {
+        1: {
+            "image": DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+            "target_path": tmp_path / "first.png",
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        },
+        2: {
+            "image": DummyImage(np.ones((2, 2, 3), dtype=np.float32)),
+            "target_path": tmp_path / "second.png",
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        },
+    }
+
+    nodes._handle_save_now("node-c", 1)
+
+    assert "node-c" in nodes._PREVIEW_CACHE
+    assert 1 not in nodes._PREVIEW_CACHE["node-c"]
+    assert 2 in nodes._PREVIEW_CACHE["node-c"]
+    assert (tmp_path / "first.png").exists()
+    assert not (tmp_path / "second.png").exists()
+
+
+def test_handle_save_now_applies_collision_mode_at_save_time(tmp_path):
+    # Something now occupies the exact raw path that was cached at preview time
+    # (e.g. the node ran again outside Preview mode in between) -- save_now must
+    # still increment rather than silently overwrite it or crash.
+    cached_path = tmp_path / "collide.png"
+    cached_path.write_bytes(b"already here")
+    nodes._PREVIEW_CACHE["node-d"] = {
+        1: {
+            "image": DummyImage(np.zeros((2, 2, 3), dtype=np.float32)),
+            "target_path": cached_path,
+            "image_format": "PNG",
+            "image_quality": 95,
+            "metadata": None,
+            "collision_mode": "increment",
+        }
+    }
+
+    result = nodes._handle_save_now("node-d", 1)
+
+    assert result["filename"] == "collide-2.png"
+    assert (tmp_path / "collide-2.png").exists()
+    assert cached_path.read_bytes() == b"already here"  # untouched, not overwritten
+
+
 def test_save_images_collapses_duplicate_folder_for_checkpoint_loader(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

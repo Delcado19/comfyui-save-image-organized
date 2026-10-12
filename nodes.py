@@ -1304,6 +1304,39 @@ def _resolve_collision_path(candidate: Path, collision_mode: str, extension: str
     raise RuntimeError("Could not create a unique filename after many attempts.")
 
 
+class PreviewNotFoundError(Exception):
+    """Raised when a save-now request names a preview that is missing or already saved."""
+
+
+def _handle_save_now(node_id: str, batch_index: int) -> dict[str, str]:
+    node_cache = _PREVIEW_CACHE.get(node_id)
+    entry = node_cache.get(batch_index) if node_cache else None
+    if entry is None:
+        raise PreviewNotFoundError(
+            f"No pending preview for node {node_id!r}, batch index {batch_index}. Rerun the node."
+        )
+
+    # The raw path cached at preview time is never edited (see spec Non-Goals), but
+    # collision handling was deliberately skipped during the preview run itself, so
+    # it must run now, at the moment something actually gets written to disk.
+    extension = IMAGE_FORMAT_INFO.get(entry["image_format"], IMAGE_FORMAT_INFO["PNG"])["extension"]
+    resolved_path = _resolve_collision_path(entry["target_path"], entry["collision_mode"], extension)
+
+    target_path = _write_image_to_path(
+        entry["image"],
+        resolved_path,
+        entry["image_format"],
+        entry["image_quality"],
+        entry["metadata"],
+    )
+
+    del node_cache[batch_index]
+    if not node_cache:
+        del _PREVIEW_CACHE[node_id]
+
+    return {"filename": target_path.name, "file_path": str(target_path.resolve())}
+
+
 class StripModelExtension:
     """Remove only the final known model extension from a loader/model name string."""
 
@@ -2077,3 +2110,35 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "StripModelExtension": "Strip Model Extension",
     "SaveImageClean": "Save Image Organized",
 }
+
+
+# aiohttp and ComfyUI's `server` module are only present inside a real ComfyUI
+# install, not in this repo's test environment, so guard the import and route
+# registration to keep `import nodes` working under pytest.
+try:
+    from aiohttp import web
+    from server import PromptServer
+except ImportError:  # running outside a real ComfyUI install, e.g. under pytest
+    PromptServer = None
+    web = None
+
+
+if PromptServer is not None:
+
+    @PromptServer.instance.routes.post("/save_image_organized/save_now")
+    async def _save_image_organized_save_now(request):
+        payload = await request.json()
+        node_id = str(payload.get("node_id", ""))
+        try:
+            batch_index = int(payload.get("batch_index"))
+        except (TypeError, ValueError):
+            return web.json_response({"error": "batch_index must be an integer"}, status=400)
+
+        try:
+            result = _handle_save_now(node_id, batch_index)
+        except PreviewNotFoundError as exc:
+            return web.json_response({"error": str(exc)}, status=404)
+        except Exception as exc:  # noqa: BLE001 - surface the real write failure to the UI
+            return web.json_response({"error": str(exc)}, status=500)
+
+        return web.json_response(result)
