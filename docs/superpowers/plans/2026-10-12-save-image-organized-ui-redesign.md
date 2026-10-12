@@ -26,7 +26,7 @@
 Five failure modes the spec implies but which don't automatically fall out of "build each component" — each gets its test added to the task that owns the relevant code:
 
 1. **A workflow saved before this redesign still loads correctly** — `widgets_values` positional restore must land every old value on the right field after every native widget is hidden-and-rewrapped, not just the two that were already hidden before this plan. Covered by Task 8's manual verification (load a workflow saved before this plan's changes).
-2. **Converting a hidden-and-rewrapped widget to a graph input still works** (ComfyUI's "Convert to Input" on e.g. `model_source`) — if a custom row's overlay swallows the right-click context menu, this silently breaks. Covered by Task 3's verification.
+2. ~~Converting a hidden-and-rewrapped widget to a graph input still works (ComfyUI's "Convert to Input")~~ — resolved 2026-10-12 as not applicable: confirmed live that `comfyui_frontend_package` 1.53.10 no longer offers "Convert Widget to Input" in the right-click context menu for ANY widget, including a completely unmodified native `KSampler` node's `sampler_name` combo. This is a platform-wide UI change on this ComfyUI version, not something this redesign's dropdown-row overlay broke. No fix needed; later tasks' verification steps drop this check.
 3. **Rapid format toggling (PNG → JPEG → PNG) doesn't leave Image Quality/Export Metadata in a stuck disabled or stuck stale state** — the contextual show/hide must re-evaluate on every change, not just once at node creation. Covered by Task 9's verification.
 4. **A very long `path_template` or long detected model/text-encoder name doesn't blow out the node width or get silently clipped with no way to see the rest** — covered by Task 6's verification (paste a 200-character template, confirm `title=` full-value tooltip and no horizontal overflow of the node).
 5. **Resizing the node smaller than its content, then larger again, doesn't leave stale/clipped DOM** — floor-only sizing must recover correctly in both directions, not just grow. Covered by Task 10's verification.
@@ -1328,7 +1328,7 @@ Expected: no output, exit code 0.
 
 - [ ] **Step 4: Manual verification**
 
-Copy to the live install, hard-refresh, reload the workflow. Confirm against the spec's target information architecture: SAVE LAYOUT → FILENAME → OUTPUT → (preview grid when in Preview mode) → ERWEITERT gear row → AUSGABEPFAD, in that order, with consistent spacing (one `gap` value, no overlaps). Then specifically check **Review Focus item 1**: open a workflow JSON saved *before* this task (e.g. from `Screenshot 2026-10-12 181929.png`'s session, or any workflow file the user already has with this node in it) and confirm every field restores its old value correctly — this is the compatibility-critical check for this task. Then **Review Focus item 2**: right-click the Model Name row and confirm "Convert Widget to Input" (or equivalent) is still offered and still works.
+Copy to the live install, hard-refresh, reload the workflow. Confirm against the spec's target information architecture: SAVE LAYOUT → FILENAME → OUTPUT → (preview grid when in Preview mode) → ERWEITERT gear row → AUSGABEPFAD, in that order, with consistent spacing (one `gap` value, no overlaps). Then specifically check **Review Focus item 1**: open a workflow JSON saved *before* this task (e.g. from `Screenshot 2026-10-12 181929.png`'s session, or any workflow file the user already has with this node in it) and confirm every field restores its old value correctly — this is the compatibility-critical check for this task. Review Focus item 2 (Convert Widget to Input) was resolved in Task 3 as not applicable on this ComfyUI version (confirmed absent even on unmodified native nodes) — no check needed here.
 
 - [ ] **Step 5: Commit**
 
@@ -1340,8 +1340,7 @@ Replaces the independent addDOMWidget-per-section sequence with a
 single root widget and real CSS flex layout, composed from the
 component factories built in Tasks 2-7, in the SAVE LAYOUT / FILENAME
 / OUTPUT / ERWEITERT / AUSGABEPFAD architecture from the design spec.
-Old saved workflows verified to restore correctly; Convert-to-Input
-still works on the rebuilt rows."
+Old saved workflows verified to restore correctly."
 ```
 
 ---
