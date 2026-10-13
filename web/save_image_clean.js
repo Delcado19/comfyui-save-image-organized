@@ -1750,6 +1750,7 @@ app.registerExtension({
                 createFormatButtonsWidget(this);
                 createSaveModeToggleWidget(this);
                 createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
+                createSwitchRowWidget(this, "export_workflow_metadata", "Export Workflow Metadata"); // Task 4: styled pill switch
                 createPreviewGridWidget(this);
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
@@ -1769,6 +1770,7 @@ app.registerExtension({
             createFormatButtonsWidget(this);
             createSaveModeToggleWidget(this);
             createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
+            createSwitchRowWidget(this, "export_workflow_metadata", "Export Workflow Metadata"); // Task 4: styled pill switch
             createPreviewGridWidget(this);
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
