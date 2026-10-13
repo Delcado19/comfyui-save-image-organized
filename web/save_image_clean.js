@@ -778,6 +778,14 @@ function injectPreviewGridCss() {
         ".sic-preview-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;}",
         ".sic-preview-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.2);}",
+        // Single-image run (the common case): fill the available node width
+        // instead of staying at the fixed grid-thumbnail size - a preview
+        // node you can't make out the image on defeats its own purpose
+        // (user request 2026-10-13). Batches of 2+ keep the compact grid.
+        ".sic-preview-grid-body.sic-preview-single{flex-wrap:nowrap;}",
+        ".sic-preview-grid-body.sic-preview-single .sic-preview-cell{width:100%;}",
+        ".sic-preview-grid-body.sic-preview-single .sic-preview-thumb{",
+        "aspect-ratio:auto;width:100%;height:auto;max-height:420px;object-fit:contain;}",
         ".sic-preview-save-btn{width:100%;padding:3px 0;font-size:10px;font-weight:600;border-radius:5px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#cfcfcf;",
         "cursor:pointer;font-family:inherit;",
@@ -800,7 +808,7 @@ function buildPreviewImageUrl(entry) {
     return api.apiURL(`/view?${params.toString()}`);
 }
 
-function buildPreviewCell(node, entry) {
+function buildPreviewCell(node, entry, { showSaveButton }) {
     const cell = document.createElement("div");
     cell.className = "sic-preview-cell";
 
@@ -808,6 +816,13 @@ function buildPreviewCell(node, entry) {
     img.className = "sic-preview-thumb";
     img.src = buildPreviewImageUrl(entry);
     img.alt = `Preview ${entry.batch_index}`;
+    cell.appendChild(img);
+
+    // Save mode already saves every image on its own; the per-thumbnail
+    // Save button only makes sense in Preview mode (user request 2026-10-13).
+    if (!showSaveButton) {
+        return cell;
+    }
 
     const saveBtn = document.createElement("button");
     saveBtn.type = "button";
@@ -846,7 +861,6 @@ function buildPreviewCell(node, entry) {
         }
     });
 
-    cell.appendChild(img);
     cell.appendChild(saveBtn);
     cell.appendChild(statusEl);
     return cell;
@@ -867,8 +881,10 @@ function updatePreviewGrid(node, message) {
         return;
     }
 
+    const showSaveButton = getWidget(node, "save_mode")?.value !== "Save";
+    refs.body.classList.toggle("sic-preview-single", entries.length === 1);
     for (const entry of entries) {
-        refs.body.appendChild(buildPreviewCell(node, entry));
+        refs.body.appendChild(buildPreviewCell(node, entry, { showSaveButton }));
     }
     refs.container.style.display = "flex";
     // The native per-node thumbnail strip is driven by node.imgs, populated by
@@ -1013,6 +1029,18 @@ function injectAdvancedPanelCss() {
 // nodes.py's INPUT_TYPES tooltip for loader_priority, per the spec's
 // instruction to surface it as a visible description line (Pixaroma-style)
 // instead of only a hover title.
+function addAdvancedRow(body, rowEl) {
+    const wrap = document.createElement("div");
+    wrap.className = "sic-adv-row";
+    wrap.appendChild(rowEl);
+    body.appendChild(wrap);
+    return wrap;
+}
+
+// Advanced Settings now holds every secondary control (user request,
+// 2026-10-13 live QA): source/encoder naming, collision handling, detection
+// verbosity, metadata export, quality and the detection snapshot - the main
+// card only keeps path/filename/output-format/mode so the node stays short.
 function createAdvancedPanel(node) {
     if (node.__saveImageCleanAdvancedPanel) {
         return node.__saveImageCleanAdvancedPanel;
@@ -1064,6 +1092,36 @@ function createAdvancedPanel(node) {
     loaderRow.appendChild(loaderDesc);
     body.appendChild(loaderRow);
 
+    const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
+    node.__saveImageCleanModelRow = modelRow;
+    if (modelRow) addAdvancedRow(body, modelRow.root);
+    const modelFolderRow = buildTextRow(node, "model_folder", { placeholder: "Custom Model Name" });
+    node.__saveImageCleanModelFolderRow = modelFolderRow;
+    if (modelFolderRow) addAdvancedRow(body, modelFolderRow.root);
+
+    const clipRow = buildDropdownRow(node, "clip_source", "Text Encoder", CLIP_OPTIONS);
+    node.__saveImageCleanClipRow = clipRow;
+    if (clipRow) addAdvancedRow(body, clipRow.root);
+    const clipFolderRow = buildTextRow(node, "clip_folder", { placeholder: "Custom Text Encoder Name" });
+    node.__saveImageCleanClipFolderRow = clipFolderRow;
+    if (clipFolderRow) addAdvancedRow(body, clipFolderRow.root);
+
+    const collisionRow = buildDropdownRow(node, "collision_mode", "If File Exists",
+        ["increment", "overwrite", "error", "seconds"],
+        { optionLabels: { increment: "Increment number", overwrite: "Overwrite", error: "Error", seconds: "Add seconds" } });
+    if (collisionRow) addAdvancedRow(body, collisionRow.root);
+
+    const detectionRow = buildDropdownRow(node, "detection_info", "Detection Info", ["Off", "Summary", "Verbose"]);
+    if (detectionRow) addAdvancedRow(body, detectionRow.root);
+
+    const qualityRow = buildSliderRow(node, "image_quality", "Image Quality", { min: 1, max: 100 });
+    node.__saveImageCleanQualityRow = qualityRow;
+    if (qualityRow) addAdvancedRow(body, qualityRow.root);
+
+    const metadataRow = buildSwitchRow(node, "export_workflow_metadata", "Export Workflow Metadata");
+    node.__saveImageCleanMetadataRow = metadataRow;
+    if (metadataRow) addAdvancedRow(body, metadataRow.root);
+
     panel.appendChild(header);
     panel.appendChild(body);
     document.body.appendChild(panel);
@@ -1087,7 +1145,11 @@ function createAdvancedPanel(node) {
         closeTemplateBuilderPanel(panel);
     });
 
-    node.__saveImageCleanAdvancedPanel = { trigger, panel, loaderDropdown };
+    node.__saveImageCleanAdvancedPanel = {
+        trigger, panel, body, loaderDropdown,
+        modelRow, modelFolderRow, clipRow, clipFolderRow,
+        collisionRow, detectionRow, qualityRow, metadataRow,
+    };
     return node.__saveImageCleanAdvancedPanel;
 }
 
@@ -1593,6 +1655,10 @@ function injectRootCss() {
         "padding:0 var(--sic-space-md);}",
         ".sic-eyebrow{font-size:var(--sic-font-section);font-weight:600;letter-spacing:0.03em;",
         "text-transform:uppercase;color:#9d9d9d;}",
+        // Output/Mode as two side-by-side groups (user request 2026-10-13,
+        // Pixaroma-style), each keeping its own .sic-section layout/eyebrow.
+        ".sic-output-mode-row{display:flex;gap:var(--sic-space-lg);}",
+        ".sic-output-mode-row>.sic-section{flex:1;min-width:0;}",
     ].join("");
     document.head.appendChild(style);
 }
@@ -1640,63 +1706,45 @@ function buildNodeUI(node) {
     const inner = el("div", "sic-inner");
     root.appendChild(inner);
 
-    // --- SAVE LAYOUT ---
+    // --- SAVE LAYOUT (minimal: path + top folder; everything else moved to
+    // Advanced Settings per 2026-10-13 live QA) ---
     const saveLayoutSection = buildSection("SAVE LAYOUT");
     const pathBuilder = createTemplateBuilderWidget(node, "path_template", "Build Path");
-    saveLayoutSection.appendChild(buildHeadingRow("Ordnerstruktur", pathBuilder?.trigger));
+    saveLayoutSection.appendChild(buildHeadingRow("Folder Structure", pathBuilder?.trigger));
     const pathRow = buildTextRow(node, "path_template");
     if (pathRow) saveLayoutSection.appendChild(pathRow.root);
-    const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
-    node.__saveImageCleanModelRow = modelRow;
-    if (modelRow) saveLayoutSection.appendChild(modelRow.root);
-    const clipRow = buildDropdownRow(node, "clip_source", "Text Encoder", CLIP_OPTIONS);
-    node.__saveImageCleanClipRow = clipRow;
-    if (clipRow) saveLayoutSection.appendChild(clipRow.root);
     const subfolderRow = buildTextRow(node, "subfolder", { placeholder: "Top Folder" });
     if (subfolderRow) saveLayoutSection.appendChild(subfolderRow.root);
-    const modelFolderRow = buildTextRow(node, "model_folder", { placeholder: "Custom Model Name" });
-    node.__saveImageCleanModelFolderRow = modelFolderRow;
-    const clipFolderRow = buildTextRow(node, "clip_folder", { placeholder: "Custom Text Encoder Name" });
-    node.__saveImageCleanClipFolderRow = clipFolderRow;
-    if (modelFolderRow) saveLayoutSection.appendChild(modelFolderRow.root);
-    if (clipFolderRow) saveLayoutSection.appendChild(clipFolderRow.root);
     inner.appendChild(saveLayoutSection);
 
-    // --- FILENAME ---
+    // --- FILENAME (minimal: filename only) ---
     const filenameSection = buildSection("FILENAME");
     const filenameBuilder = createTemplateBuilderWidget(node, "filename_datetime", "Build Filename");
-    filenameSection.appendChild(buildHeadingRow("Dateiname", filenameBuilder?.trigger));
+    filenameSection.appendChild(buildHeadingRow("Filename", filenameBuilder?.trigger));
     const filenameRow = buildTextRow(node, "filename_datetime");
     if (filenameRow) filenameSection.appendChild(filenameRow.root);
-    const collisionRow = buildDropdownRow(node, "collision_mode", "Datei vorhanden",
-        ["increment", "overwrite", "error", "seconds"],
-        { optionLabels: { increment: "Increment number", overwrite: "Overwrite", error: "Error", seconds: "Add seconds" } });
-    if (collisionRow) filenameSection.appendChild(collisionRow.root);
-    const detectionRow = buildDropdownRow(node, "detection_info", "Detection-Informationen", ["Off", "Summary", "Verbose"]);
-    if (detectionRow) filenameSection.appendChild(detectionRow.root);
     inner.appendChild(filenameSection);
 
-    // --- OUTPUT ---
+    // --- OUTPUT + MODE, two groups side by side (user request 2026-10-13) ---
+    const outputModeRow = el("div", "sic-output-mode-row");
     const outputSection = buildSection("OUTPUT");
     const formatSeg = buildSegmentedControl(node, "image_format", IMAGE_FORMAT_IDS, {
         getTitle: (id) => `Save as ${id}`,
     });
     node.__saveImageCleanFormatSeg = formatSeg;
     if (formatSeg) outputSection.appendChild(formatSeg.root);
-    const qualityRow = buildSliderRow(node, "image_quality", "Image Quality", { min: 1, max: 100 });
-    node.__saveImageCleanQualityRow = qualityRow;
-    if (qualityRow) outputSection.appendChild(qualityRow.root);
-    const metadataRow = buildSwitchRow(node, "export_workflow_metadata", "Export Workflow Metadata");
-    node.__saveImageCleanMetadataRow = metadataRow;
-    if (metadataRow) outputSection.appendChild(metadataRow.root);
+    outputModeRow.appendChild(outputSection);
+
+    const modeSection = buildSection("MODE");
     const saveModeSeg = buildSegmentedControl(node, "save_mode", SAVE_MODE_IDS, {
         getTitle: (id) => (id === "Preview"
             ? "Show the result without saving; save individual images later"
             : "Save immediately, as before"),
     });
     node.__saveImageCleanSaveModeSeg = saveModeSeg;
-    if (saveModeSeg) outputSection.appendChild(saveModeSeg.root);
-    inner.appendChild(outputSection);
+    if (saveModeSeg) modeSection.appendChild(saveModeSeg.root);
+    outputModeRow.appendChild(modeSection);
+    inner.appendChild(outputModeRow);
 
     // --- Preview grid (Preview-mode only), existing internals reused ---
     injectPreviewGridCss();
@@ -1707,23 +1755,36 @@ function buildNodeUI(node) {
     node.__saveImageCleanPreviewGridRefs = { container: gridContainer, body: gridBody };
     inner.appendChild(gridContainer);
 
-    // --- ERWEITERT (gear panel trigger lives in its own small row) ---
+    // --- Example Output, moved below the preview grid toward the node
+    // bottom (user request 2026-10-13); its Detection Snapshot sub-section
+    // is re-parented into the Advanced panel below, same refs either way. ---
+    const helpRoot = buildHelpPanelContent(node);
+    inner.appendChild(helpRoot);
+
+    // --- Advanced Settings trigger row ---
     const advanced = createAdvancedPanel(node);
     const advRow = el("div", "sic-section-head");
-    const advLabel = el("span", "sic-eyebrow", "ERWEITERT");
+    const advLabel = el("span", "sic-eyebrow", "ADVANCED");
     advRow.appendChild(advLabel);
     advRow.appendChild(advanced.trigger);
     inner.appendChild(advRow);
 
-    // --- AUSGABEPFAD, existing internals reused ---
-    const helpRoot = buildHelpPanelContent(node);
-    inner.appendChild(helpRoot);
+    const helpRefs = node.__saveImageCleanHelpRefs;
+    if (helpRefs) {
+        advanced.body.appendChild(helpRefs.detailsTitleEl);
+        advanced.body.appendChild(helpRefs.detailsEl);
+    }
 
     const rootWidget = node.addDOMWidget("save_image_clean_root", "custom", root, {
         getMinHeight: () => measureRootFloor(node, inner),
         serialize: false,
         hideOnZoom: false,
-        margin: 0,
+        // Non-zero margin (matches --sic-space-outer) so the DOM widget
+        // doesn't extend flush to the node's bottom-right corner - found
+        // live 2026-10-13: margin:0 let this widget's own content cover the
+        // canvas-drawn resize handle, leaving only the top edge (title bar,
+        // not covered by any DOM overlay) able to start a resize drag.
+        margin: 14,
     });
     // Plan code originally omitted this line (caught before committing, not
     // live-verified): comfyui_frontend_package 1.53.10's
@@ -1745,9 +1806,10 @@ function buildNodeUI(node) {
     // runs on every relevant pass, including once after configure()'s own
     // restore completes, so it re-runs every row's sync() there too.
     node.__saveImageCleanSyncers = [
-        modelRow, clipRow, qualityRow, metadataRow,
-        pathRow, subfolderRow, modelFolderRow, clipFolderRow, filenameRow,
-        collisionRow, detectionRow, advanced.loaderDropdown,
+        pathRow, subfolderRow, filenameRow,
+        advanced.modelRow, advanced.clipRow, advanced.modelFolderRow, advanced.clipFolderRow,
+        advanced.collisionRow, advanced.detectionRow, advanced.qualityRow, advanced.metadataRow,
+        advanced.loaderDropdown,
     ].filter(Boolean);
 }
 
