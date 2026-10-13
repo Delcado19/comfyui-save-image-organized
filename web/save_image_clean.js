@@ -1731,6 +1731,8 @@ function buildNodeUI(node) {
     const root = el("div", "sic-root");
     const inner = el("div", "sic-inner");
     root.appendChild(inner);
+    // Kept for updateContextualVisibility's sticky-floor shrink check below.
+    node.__saveImageCleanInnerEl = inner;
 
     // --- SAVE LAYOUT (minimal: path + top folder; everything else moved to
     // Advanced Settings per 2026-10-13 live QA) ---
@@ -1877,13 +1879,26 @@ function updateContextualVisibility(node) {
         metadataRow.root.classList.toggle("disabled", formatValue !== "PNG");
     }
 
-    // No manual setSize() here - the root DOM widget's getMinHeight (see
-    // measureRootFloor) already grows the node for contextual show/hide,
-    // same floor-only pattern as Task 10. Found live 2026-10-13: calling
-    // node.setSize() on every widget edit replaced node.size with a new
-    // array on each call, which fights litegraph's own in-progress resize
-    // drag (it mutates the array reference captured at drag-start) - the
-    // node became unresizable and lost its corner resize handle entirely.
+    // Growing is already handled by the root DOM widget's getMinHeight
+    // (see measureRootFloor) every frame - no call needed here for that
+    // direction. Shrinking is not: litegraph never shrinks a node on its
+    // own when getMinHeight decreases, so switching from Preview (image +
+    // Save button) to Save mode left a tall empty gap where that content
+    // used to be (found live 2026-10-13). A naive unconditional setSize()
+    // was tried and reverted earlier this session - it replaced node.size
+    // with a new array on every edit and broke manual corner-drag resize.
+    // This version only shrinks when the node is still exactly at the
+    // floor WE last measured (i.e. nobody has manually resized it away
+    // from that floor since) and mutates node.size[1] in place rather than
+    // replacing the array, so an in-progress manual resize is never fought.
+    const innerEl = node.__saveImageCleanInnerEl;
+    if (innerEl && node.size) {
+        const floor = measureRootFloor(node, innerEl);
+        if (node.size[1] === node.__saveImageCleanLastFloor) {
+            node.size[1] = floor;
+        }
+        node.__saveImageCleanLastFloor = floor;
+    }
     node.setDirtyCanvas?.(true, true);
 }
 
@@ -1934,6 +1949,13 @@ app.registerExtension({
             setLastRunStateFromMessage(this, message);
             updateHelp(this);
             updatePreviewGrid(this, message);
+            // Was missing here (found live 2026-10-13): this is exactly
+            // where the preview grid's visibility/height changes the most
+            // (Preview mode run -> image+button shown; Save mode run ->
+            // grid hidden), so it's exactly where updateContextualVisibility's
+            // sticky-floor shrink check needs to run too, not just on
+            // onNodeCreated/configure.
+            updateContextualVisibility(this);
             return result;
         };
 
