@@ -401,19 +401,29 @@ function getWidget5(node, name) {
 }
 
 /**
- * Wraps an EXISTING native STRING widget's real <input> element (ComfyUI
- * already gives text widgets a real DOM input) in a styled row that also
- * shows the full value as a title= tooltip and never clips with no way to
- * see the rest, resolving the "Save Layout truncated" complaint without
- * replacing the native text-editing behavior at all.
+ * Builds a styled <input> for a native STRING widget and makes it the row's
+ * editable control, wired both ways to `widget.value`.
  *
- * hideNativeWidget() still runs here even though the native widget's real
- * DOM input is reused as-is (not hidden visually) - the native STRING
- * widget keeps re-positioning that same <input> every frame during node
- * drag/resize unless its own widget entry is marked hidden, which fights
- * with this row's own addDOMWidget position updates and made every node's
- * drag/resize choppy for several seconds after load (confirmed live by
- * removing just this wiring and seeing it clear up).
+ * Earlier versions of this function reused `widget.inputEl` on the
+ * assumption that ComfyUI eagerly creates a persistent backing <input> for
+ * every STRING widget (asserted by the plan, never actually live-verified
+ * because browser access was blocked all of that session). Found live
+ * 2026-10-13, after two rounds of user bug reports: `widget.inputEl` is NOT
+ * reliably populated for single-line (multiline:false) STRING widgets in
+ * this comfyui_frontend_package version, regardless of timing - it failed
+ * identically from the synchronous onNodeCreated path, from onNodeCreated
+ * deferred one requestAnimationFrame, AND from configure()'s own pre-existing
+ * rAF defer. All 5 of this node's single-line STRING widgets (path_template,
+ * filename_datetime, subfolder, model_folder, clip_folder) hit this every
+ * time, so it isn't a race - this builder no longer depends on it at all: it
+ * creates its own <input>, seeds it from widget.value, and writes back to
+ * widget.value on input. `widget.inputEl` is still backfilled with this
+ * element afterwards so any other code reading it (insertTokenIntoWidget's
+ * cursor-position insert, hookWidgetUpdates' own inputEl-based listeners)
+ * keeps working unchanged.
+ *
+ * hideNativeWidget() still runs to collapse the native widget's own row to
+ * zero height (confirmed independently needed for smooth drag/resize, Task 1).
  *
  * hideNativeWidget() also drops comfyui_frontend_package 1.53.10's own
  * marker for "this widget has a live DOM element", so hovering this row
@@ -428,7 +438,7 @@ function getWidget5(node, name) {
  */
 export function buildTextRow(node, widgetName, { placeholder } = {}) {
     const widget = getWidget5(node, widgetName);
-    if (!widget || !widget.inputEl) {
+    if (!widget) {
         return null;
     }
     injectDesignTokens();
@@ -436,26 +446,35 @@ export function buildTextRow(node, widgetName, { placeholder } = {}) {
     hideNativeWidget(widget);
 
     const root = el("div", "sic-text-row");
-    const inputEl = widget.inputEl;
-    inputEl.classList.add("sic-text-input");
+    const inputEl = document.createElement("input");
+    inputEl.type = "text";
+    inputEl.className = "sic-text-input";
+    inputEl.value = widget.value ?? "";
     if (placeholder) {
         inputEl.placeholder = placeholder;
     }
+    // Compatibility shim - see the function doc comment above.
+    widget.inputEl = inputEl;
 
     const syncTitle = () => {
         inputEl.title = inputEl.value;
         widget.tooltip = inputEl.value;
     };
+    inputEl.addEventListener("input", () => {
+        widget.value = inputEl.value;
+        syncTitle();
+    });
     syncTitle();
-    inputEl.addEventListener("input", syncTitle);
 
     root.appendChild(inputEl);
-    // Final-review finding (2026-10-13): inputEl IS the native widget's own
-    // DOM element, so configure() already keeps its .value correct on
-    // workflow load - but the title=/widget.tooltip snapshot above was taken
-    // once at build time (onNodeCreated, default value) and never re-synced
-    // after a later configure() restore, leaving the tooltip stale even
-    // though the visible/edited value is already right. sync just re-runs
-    // the same syncTitle against whatever inputEl.value configure() set.
-    return { widget, root, inputEl, sync: syncTitle };
+    // configure()'s workflow-load restore writes widget.value directly with
+    // a plain assignment (no callback, no input event - same class of bug as
+    // the Final Review's C1 finding for the other row types), so sync() must
+    // pull widget.value back into this owned inputEl, not just re-run
+    // syncTitle against whatever inputEl already shows.
+    const sync = () => {
+        inputEl.value = widget.value ?? "";
+        syncTitle();
+    };
+    return { widget, root, inputEl, sync };
 }
