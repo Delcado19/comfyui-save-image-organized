@@ -1731,8 +1731,6 @@ function buildNodeUI(node) {
     const root = el("div", "sic-root");
     const inner = el("div", "sic-inner");
     root.appendChild(inner);
-    // Kept for updateContextualVisibility's sticky-floor shrink check below.
-    node.__saveImageCleanInnerEl = inner;
 
     // --- SAVE LAYOUT (minimal: path + top folder; everything else moved to
     // Advanced Settings per 2026-10-13 live QA) ---
@@ -1879,26 +1877,18 @@ function updateContextualVisibility(node) {
         metadataRow.root.classList.toggle("disabled", formatValue !== "PNG");
     }
 
-    // Growing is already handled by the root DOM widget's getMinHeight
-    // (see measureRootFloor) every frame - no call needed here for that
-    // direction. Shrinking is not: litegraph never shrinks a node on its
-    // own when getMinHeight decreases, so switching from Preview (image +
-    // Save button) to Save mode left a tall empty gap where that content
-    // used to be (found live 2026-10-13). A naive unconditional setSize()
-    // was tried and reverted earlier this session - it replaced node.size
-    // with a new array on every edit and broke manual corner-drag resize.
-    // This version only shrinks when the node is still exactly at the
-    // floor WE last measured (i.e. nobody has manually resized it away
-    // from that floor since) and mutates node.size[1] in place rather than
-    // replacing the array, so an in-progress manual resize is never fought.
-    const innerEl = node.__saveImageCleanInnerEl;
-    if (innerEl && node.size) {
-        const floor = measureRootFloor(node, innerEl);
-        if (node.size[1] === node.__saveImageCleanLastFloor) {
-            node.size[1] = floor;
-        }
-        node.__saveImageCleanLastFloor = floor;
-    }
+    // REVERTED 2026-10-13: the node.size[1]-only shrink tried here caused
+    // the node to render far wider than its content immediately after a
+    // mode switch (reported live, screenshot evidence) even though this
+    // code never touches size[0] and no getMinWidth-style hook exists in
+    // the installed frontend bundle (checked directly, not guessed) that
+    // could tie DOM content back to node width. Cause not yet proven, but
+    // the timing correlation is strong enough that shipping it further
+    // isn't worth the risk - reverted to no auto-shrink (the known, lesser
+    // issue: a leftover empty gap after a mode switch) until this is
+    // understood. No manual setSize() call here at all - see commit
+    // 14c8d27's finding: calling it on every widget edit replaces
+    // node.size with a new array and breaks manual corner-drag resize.
     node.setDirtyCanvas?.(true, true);
 }
 
