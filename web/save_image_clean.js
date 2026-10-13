@@ -1258,6 +1258,112 @@ function makeDraggable(panel, handle) {
     });
 }
 
+let _advancedPanelCssInjected = false;
+function injectAdvancedPanelCss() {
+    if (_advancedPanelCssInjected || document.getElementById("sic-advanced-css")) {
+        _advancedPanelCssInjected = true;
+        return;
+    }
+    _advancedPanelCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-advanced-css";
+    style.textContent = [
+        ".sic-adv-trigger{flex:none;width:24px;height:24px;border-radius:var(--sic-radius);",
+        "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);",
+        "color:#b7b7b7;cursor:pointer;font-size:13px;line-height:1;",
+        "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
+        ".sic-adv-trigger:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        ".sic-adv-trigger:active{transform:scale(0.95);}",
+        ".sic-adv-row{display:flex;flex-direction:column;gap:3px;padding:6px 0;}",
+        ".sic-adv-row-head{display:flex;align-items:center;justify-content:space-between;}",
+        ".sic-adv-row-label{font-size:12px;font-weight:600;color:#e4e4e4;}",
+        ".sic-adv-row-desc{font-size:10px;line-height:1.4;color:#8f8f8f;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+// Loader Priority's description text below is copied verbatim from
+// nodes.py's INPUT_TYPES tooltip for loader_priority, per the spec's
+// instruction to surface it as a visible description line (Pixaroma-style)
+// instead of only a hover title.
+function createAdvancedPanel(node) {
+    if (node.__saveImageCleanAdvancedPanel) {
+        return node.__saveImageCleanAdvancedPanel;
+    }
+    injectDesignTokens();
+    injectTemplateBuilderCss();
+    injectAdvancedPanelCss();
+
+    const trigger = document.createElement("button");
+    trigger.type = "button";
+    trigger.className = "sic-adv-trigger";
+    trigger.textContent = "⚙"; // gear
+    trigger.title = "Advanced settings";
+
+    const panel = document.createElement("div");
+    panel.className = "sic-builder-panel";
+
+    const header = document.createElement("div");
+    header.className = "sic-builder-header";
+    const title = document.createElement("span");
+    title.textContent = "Advanced Settings";
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "sic-builder-close";
+    closeBtn.textContent = "✕";
+    closeBtn.addEventListener("click", () => closeTemplateBuilderPanel(panel));
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    const body = document.createElement("div");
+    body.className = "sic-builder-body";
+
+    const loaderRow = document.createElement("div");
+    loaderRow.className = "sic-adv-row";
+    const loaderHead = document.createElement("div");
+    loaderHead.className = "sic-adv-row-head";
+    const loaderDropdown = buildDropdownRow(node, "loader_priority", "Loader Priority", ["Nearest", "First Used"]);
+    if (loaderDropdown) {
+        loaderHead.appendChild(loaderDropdown.root);
+    }
+    const loaderDesc = document.createElement("div");
+    loaderDesc.className = "sic-adv-row-desc";
+    loaderDesc.textContent =
+        "How to pick a model/text-encoder when more than one loader feeds this save. " +
+        "Nearest picks the loader with the fewest upstream links (right for most single-pass " +
+        "workflows). First Used picks the loader furthest upstream, i.e. the first one applied " +
+        "in a multi-stage pipeline such as a base pass refined by a second model.";
+    loaderRow.appendChild(loaderHead);
+    loaderRow.appendChild(loaderDesc);
+    body.appendChild(loaderRow);
+
+    panel.appendChild(header);
+    panel.appendChild(body);
+    document.body.appendChild(panel);
+    makeDraggable(panel, header);
+
+    trigger.addEventListener("click", () => {
+        if (panel.classList.contains("open")) {
+            closeTemplateBuilderPanel(panel);
+            return;
+        }
+        openTemplateBuilderPanel(panel, trigger);
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        if (!panel.classList.contains("open")) {
+            return;
+        }
+        if (panel.contains(event.target) || trigger.contains(event.target)) {
+            return;
+        }
+        closeTemplateBuilderPanel(panel);
+    });
+
+    node.__saveImageCleanAdvancedPanel = { trigger, panel };
+    return node.__saveImageCleanAdvancedPanel;
+}
+
 function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
     const targetWidget = getWidget(node, widgetName);
     const triggerKey = `__saveImageCleanBuilder_${widgetName}_trigger`;
