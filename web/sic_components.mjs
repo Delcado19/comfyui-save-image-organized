@@ -283,3 +283,69 @@ export function buildSwitchRow(node, widgetName, label) {
 
     return { widget, root, checkboxEl: checkbox };
 }
+
+let _sliderCssInjected = false;
+function injectSliderCss() {
+    if (_sliderCssInjected || document.getElementById("sic-slider-css")) {
+        _sliderCssInjected = true;
+        return;
+    }
+    _sliderCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-slider-css";
+    style.textContent = [
+        ".sic-slider-row{display:flex;flex-direction:column;gap:2px;",
+        "padding:4px var(--sic-space-md);box-sizing:border-box;}",
+        ".sic-slider-head{display:flex;align-items:center;justify-content:space-between;}",
+        ".sic-slider-label{font-size:var(--sic-font-base);color:#d7d7d7;}",
+        ".sic-slider-value{font-size:var(--sic-font-base);color:var(--sic-accent);min-width:26px;text-align:right;}",
+        ".sic-slider-input{width:100%;accent-color:var(--sic-accent);}",
+        ".sic-slider-row.disabled{opacity:0.45;pointer-events:none;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function getWidget4(node, name) {
+    return (node.widgets || []).find((widget) => widget.name === name);
+}
+
+/**
+ * One native INT-slider widget rendered via a real <input type=range>,
+ * directly CSS-styleable (accent-color), so no transparent-overlay trick is
+ * needed the way combo/boolean widgets require.
+ */
+export function buildSliderRow(node, widgetName, label, { min = 1, max = 100 } = {}) {
+    const widget = getWidget4(node, widgetName);
+    if (!widget) {
+        return null;
+    }
+    injectDesignTokens();
+    injectSliderCss();
+    hideNativeWidget(widget);
+
+    const root = el("div", "sic-slider-row");
+    const head = el("div", "sic-slider-head");
+    const labelEl = el("span", "sic-slider-label", label);
+    const valueEl = el("span", "sic-slider-value", String(widget.value));
+    head.appendChild(labelEl);
+    head.appendChild(valueEl);
+
+    const input = document.createElement("input");
+    input.type = "range";
+    input.className = "sic-slider-input";
+    input.min = String(min);
+    input.max = String(max);
+    input.value = String(widget.value);
+
+    input.addEventListener("input", () => {
+        const next = Number(input.value);
+        widget.value = next;
+        widget.callback?.(next);
+        valueEl.textContent = String(next);
+    });
+
+    root.appendChild(head);
+    root.appendChild(input);
+
+    return { widget, root, inputEl: input, valueEl };
+}

@@ -815,7 +815,7 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
-import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow } from "./sic_components.mjs";
+import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow, buildSliderRow } from "./sic_components.mjs";
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
@@ -905,6 +905,28 @@ function createSwitchRowWidget(node, widgetName, label) {
     const widget = node.addDOMWidget(`save_image_clean_switch_${widgetName}`, "custom", row.root, {
         getMinHeight: () => 30,
         getMaxHeight: () => 32,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+    widget.serialize = false; // see ensureSectionLabel's comment above
+    node[storeKey] = { widget, row };
+    insertWidgetBefore(node, widget, widgetName);
+    return node[storeKey];
+}
+
+function createSliderRowWidget(node, widgetName, label, opts) {
+    const storeKey = `__saveImageCleanSlider_${widgetName}`;
+    if (node[storeKey]) {
+        return node[storeKey];
+    }
+    const row = buildSliderRow(node, widgetName, label, opts);
+    if (!row) {
+        return null;
+    }
+    const widget = node.addDOMWidget(`save_image_clean_slider_${widgetName}`, "custom", row.root, {
+        getMinHeight: () => 40,
+        getMaxHeight: () => 44,
         serialize: false,
         hideOnZoom: false,
         margin: 0,
