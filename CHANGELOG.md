@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-13
+
 ### Added
 
 - `IMAGES` output, passing the saved images through unchanged so this node can sit mid-workflow instead of only at the end of a graph
