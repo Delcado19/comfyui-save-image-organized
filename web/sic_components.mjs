@@ -349,3 +349,81 @@ export function buildSliderRow(node, widgetName, label, { min = 1, max = 100 } =
 
     return { widget, root, inputEl: input, valueEl };
 }
+
+let _textRowCssInjected = false;
+function injectTextRowCss() {
+    if (_textRowCssInjected || document.getElementById("sic-textrow-css")) {
+        _textRowCssInjected = true;
+        return;
+    }
+    _textRowCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-textrow-css";
+    style.textContent = [
+        ".sic-text-row{padding:0 var(--sic-space-md);box-sizing:border-box;}",
+        ".sic-text-input{width:100%;box-sizing:border-box;min-height:var(--sic-row-height);",
+        "padding:0 8px;font-size:var(--sic-font-base);font-family:Consolas,'Courier New',monospace;",
+        "color:#f0f0f0;background:rgba(0,0,0,0.18);border:1px solid rgba(255,255,255,0.1);",
+        "border-radius:var(--sic-radius);outline:none;overflow:hidden;text-overflow:ellipsis;",
+        "transition:border-color 120ms var(--sic-ease);}",
+        ".sic-text-input:focus{border-color:var(--sic-accent);}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function getWidget5(node, name) {
+    return (node.widgets || []).find((widget) => widget.name === name);
+}
+
+/**
+ * Wraps an EXISTING native STRING widget's real <input> element (ComfyUI
+ * already gives text widgets a real DOM input) in a styled row that also
+ * shows the full value as a title= tooltip and never clips with no way to
+ * see the rest, resolving the "Save Layout truncated" complaint without
+ * replacing the native text-editing behavior at all.
+ *
+ * hideNativeWidget() still runs here even though the native widget's real
+ * DOM input is reused as-is (not hidden visually) - the native STRING
+ * widget keeps re-positioning that same <input> every frame during node
+ * drag/resize unless its own widget entry is marked hidden, which fights
+ * with this row's own addDOMWidget position updates and made every node's
+ * drag/resize choppy for several seconds after load (confirmed live by
+ * removing just this wiring and seeing it clear up).
+ *
+ * hideNativeWidget() also drops comfyui_frontend_package 1.53.10's own
+ * marker for "this widget has a live DOM element", so hovering this row
+ * falls back to the canvas-level widget tooltip (which reads nodes.py's
+ * static INPUT_TYPES description, e.g. "Main save layout...") instead of
+ * this <input>'s native title= tooltip - confirmed live: hovering showed
+ * the static description, not the path. That fallback tooltip checks the
+ * widget's own `.tooltip` property FIRST, before the static description,
+ * so mirroring the live value onto `widget.tooltip` (not just inputEl's
+ * title=) fixes both tooltip paths at once regardless of which one wins
+ * the hover.
+ */
+export function buildTextRow(node, widgetName, { placeholder } = {}) {
+    const widget = getWidget5(node, widgetName);
+    if (!widget || !widget.inputEl) {
+        return null;
+    }
+    injectDesignTokens();
+    injectTextRowCss();
+    hideNativeWidget(widget);
+
+    const root = el("div", "sic-text-row");
+    const inputEl = widget.inputEl;
+    inputEl.classList.add("sic-text-input");
+    if (placeholder) {
+        inputEl.placeholder = placeholder;
+    }
+
+    const syncTitle = () => {
+        inputEl.title = inputEl.value;
+        widget.tooltip = inputEl.value;
+    };
+    syncTitle();
+    inputEl.addEventListener("input", syncTitle);
+
+    root.appendChild(inputEl);
+    return { widget, root, inputEl };
+}

@@ -815,7 +815,7 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
-import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow, buildSliderRow } from "./sic_components.mjs";
+import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow, buildSliderRow, buildTextRow } from "./sic_components.mjs";
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
@@ -927,6 +927,28 @@ function createSliderRowWidget(node, widgetName, label, opts) {
     const widget = node.addDOMWidget(`save_image_clean_slider_${widgetName}`, "custom", row.root, {
         getMinHeight: () => 40,
         getMaxHeight: () => 44,
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+    widget.serialize = false; // see ensureSectionLabel's comment above
+    node[storeKey] = { widget, row };
+    insertWidgetBefore(node, widget, widgetName);
+    return node[storeKey];
+}
+
+function createTextRowWidget(node, widgetName, opts) {
+    const storeKey = `__saveImageCleanTextRow_${widgetName}`;
+    if (node[storeKey]) {
+        return node[storeKey];
+    }
+    const row = buildTextRow(node, widgetName, opts);
+    if (!row) {
+        return null;
+    }
+    const widget = node.addDOMWidget(`save_image_clean_textrow_${widgetName}`, "custom", row.root, {
+        getMinHeight: () => 34,
+        getMaxHeight: () => 36,
         serialize: false,
         hideOnZoom: false,
         margin: 0,
@@ -1727,6 +1749,7 @@ app.registerExtension({
                 ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
                 createFormatButtonsWidget(this);
                 createSaveModeToggleWidget(this);
+                createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
                 createPreviewGridWidget(this);
                 createHelpPanelWidget(this);
                 hookWidgetUpdates(this);
@@ -1745,6 +1768,7 @@ app.registerExtension({
             ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
             createFormatButtonsWidget(this);
             createSaveModeToggleWidget(this);
+            createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
             createPreviewGridWidget(this);
             createHelpPanelWidget(this);
             hookWidgetUpdates(this);
