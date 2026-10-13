@@ -1548,6 +1548,7 @@ function hookWidgetUpdates(node) {
             const result = originalCallback?.apply(this, arguments);
             markLastRunStateStale(node);
             updateHelp(node);
+            updateContextualVisibility(node);
             return result;
         };
 
@@ -1555,10 +1556,12 @@ function hookWidgetUpdates(node) {
             widget.inputEl.addEventListener("input", () => {
                 markLastRunStateStale(node);
                 updateHelp(node);
+                updateContextualVisibility(node);
             });
             widget.inputEl.addEventListener("change", () => {
                 markLastRunStateStale(node);
                 updateHelp(node);
+                updateContextualVisibility(node);
             });
         }
 
@@ -1641,13 +1644,17 @@ function buildNodeUI(node) {
     const pathRow = buildTextRow(node, "path_template");
     if (pathRow) saveLayoutSection.appendChild(pathRow.root);
     const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
+    node.__saveImageCleanModelRow = modelRow;
     if (modelRow) saveLayoutSection.appendChild(modelRow.root);
     const clipRow = buildDropdownRow(node, "clip_source", "Text Encoder", CLIP_OPTIONS);
+    node.__saveImageCleanClipRow = clipRow;
     if (clipRow) saveLayoutSection.appendChild(clipRow.root);
     const subfolderRow = buildTextRow(node, "subfolder", { placeholder: "Top Folder" });
     if (subfolderRow) saveLayoutSection.appendChild(subfolderRow.root);
     const modelFolderRow = buildTextRow(node, "model_folder", { placeholder: "Custom Model Name" });
+    node.__saveImageCleanModelFolderRow = modelFolderRow;
     const clipFolderRow = buildTextRow(node, "clip_folder", { placeholder: "Custom Text Encoder Name" });
+    node.__saveImageCleanClipFolderRow = clipFolderRow;
     if (modelFolderRow) saveLayoutSection.appendChild(modelFolderRow.root);
     if (clipFolderRow) saveLayoutSection.appendChild(clipFolderRow.root);
     inner.appendChild(saveLayoutSection);
@@ -1726,6 +1733,48 @@ function buildNodeUI(node) {
     rootWidget.serialize = false;
 }
 
+function setRowDisabled(row, disabled) {
+    if (!row) {
+        return;
+    }
+    row.root.classList.toggle("disabled", disabled);
+    row.root.style.display = disabled && row.root.dataset.hideWhenDisabled === "true" ? "none" : "";
+}
+
+function updateContextualVisibility(node) {
+    const modelSourceValue = getWidget(node, "model_source")?.value;
+    const clipSourceValue = getWidget(node, "clip_source")?.value;
+    const formatValue = getWidget(node, "image_format")?.value;
+
+    const modelFolderRow = node.__saveImageCleanModelFolderRow;
+    if (modelFolderRow) {
+        modelFolderRow.root.dataset.hideWhenDisabled = "true";
+        setRowDisabled(modelFolderRow, modelSourceValue !== "Custom");
+    }
+    const clipFolderRow = node.__saveImageCleanClipFolderRow;
+    if (clipFolderRow) {
+        clipFolderRow.root.dataset.hideWhenDisabled = "true";
+        setRowDisabled(clipFolderRow, clipSourceValue !== "Custom");
+    }
+
+    const qualityRow = node.__saveImageCleanQualityRow;
+    if (qualityRow) {
+        qualityRow.inputEl.disabled = formatValue === "PNG";
+        qualityRow.root.classList.toggle("disabled", formatValue === "PNG");
+    }
+    const metadataRow = node.__saveImageCleanMetadataRow;
+    if (metadataRow) {
+        metadataRow.checkboxEl.disabled = formatValue !== "PNG";
+        metadataRow.root.classList.toggle("disabled", formatValue !== "PNG");
+    }
+
+    const newSize = node.computeSize();
+    newSize[0] = Math.max(newSize[0], node.size[0]);
+    newSize[1] = Math.max(newSize[1], node.size[1]);
+    node.setSize?.(newSize);
+    node.setDirtyCanvas?.(true, true);
+}
+
 app.registerExtension({
     name: "comfyui-save-image-organized.save-image-organized-ux",
     async beforeRegisterNodeDef(nodeType, nodeData) {
@@ -1741,6 +1790,7 @@ app.registerExtension({
                 buildNodeUI(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
+                updateContextualVisibility(this);
             });
             return result;
         };
@@ -1752,6 +1802,7 @@ app.registerExtension({
             buildNodeUI(this);
             hookWidgetUpdates(this);
             updateHelp(this);
+            updateContextualVisibility(this);
             return result;
         };
 
