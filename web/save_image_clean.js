@@ -1033,19 +1033,37 @@ function injectAdvancedPanelCss() {
         "transition:transform 120ms var(--sic-ease-out), border-color 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
         ".sic-adv-trigger:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
         ".sic-adv-trigger:active{transform:scale(0.95);}",
-        ".sic-adv-row{display:flex;flex-direction:column;gap:3px;padding:6px 0;}",
+        ".sic-adv-row{display:flex;flex-direction:column;gap:3px;padding:5px 0;}",
+        ".sic-adv-row-desc{font-size:10px;line-height:1.35;color:#8f8f8f;padding:0 var(--sic-space-md);}",
     ].join("");
     document.head.appendChild(style);
 }
 
-// Loader Priority's description text below is copied verbatim from
-// nodes.py's INPUT_TYPES tooltip for loader_priority, per the spec's
-// instruction to surface it as a visible description line (Pixaroma-style)
-// instead of only a hover title.
-function addAdvancedRow(body, rowEl) {
+// Every Advanced Settings entry now gets a one-line visible description
+// (user request 2026-10-13, after an earlier round moved Loader Priority's
+// into a tooltip for consistency with the others, which had none - the user
+// wanted the opposite: short text on every row instead of on none). Text is
+// a shortened, same-voice version of nodes.py's own INPUT_TYPES tooltip for
+// that field, not invented wording.
+//
+// elements can be more than one node (e.g. a dropdown plus its conditional
+// Custom-name field) so they share ONE .sic-adv-row wrapper - found live
+// 2026-10-13: wrapping a paired dropdown+field in two separate rows left an
+// empty wrapper (padding only) in the layout whenever setRowDisabled hid the
+// inner field via display:none, which read as a stray gap (user request:
+// "kompakter anordnen").
+function addAdvancedRow(body, elements, descText) {
     const wrap = document.createElement("div");
     wrap.className = "sic-adv-row";
-    wrap.appendChild(rowEl);
+    for (const el of [].concat(elements)) {
+        wrap.appendChild(el);
+    }
+    if (descText) {
+        const desc = document.createElement("div");
+        desc.className = "sic-adv-row-desc";
+        desc.textContent = descText;
+        wrap.appendChild(desc);
+    }
     body.appendChild(wrap);
     return wrap;
 }
@@ -1088,46 +1106,58 @@ function createAdvancedPanel(node) {
 
     const loaderDropdown = buildDropdownRow(node, "loader_priority", "Loader Priority", ["Nearest", "First Used"]);
     if (loaderDropdown) {
-        // Was a permanent 3-sentence paragraph below the row while every
-        // other Advanced Settings row has no description at all (user
-        // request 2026-10-13: inconsistent). Moved to a hover tooltip and
-        // cut to one sentence - offering-help.md: "Keep your tips to one or
-        // two sentences" - now this row matches the others until hovered.
-        loaderDropdown.root.title =
+        addAdvancedRow(body, loaderDropdown.root,
             "Nearest: fewest upstream links, right for most single-pass workflows. " +
-            "First Used: furthest upstream, e.g. a base pass refined by a second model.";
-        addAdvancedRow(body, loaderDropdown.root);
+            "First Used: furthest upstream, e.g. a base pass refined by a second model.");
     }
 
     const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
     node.__saveImageCleanModelRow = modelRow;
-    if (modelRow) addAdvancedRow(body, modelRow.root);
     const modelFolderRow = buildTextRow(node, "model_folder", { placeholder: "Custom Model Name" });
     node.__saveImageCleanModelFolderRow = modelFolderRow;
-    if (modelFolderRow) addAdvancedRow(body, modelFolderRow.root);
+    if (modelRow) {
+        addAdvancedRow(body, [modelRow.root, modelFolderRow?.root].filter(Boolean),
+            "How the model name should look - Friendly is easiest for most people, " +
+            "Custom uses the name typed below.");
+    }
 
     const clipRow = buildDropdownRow(node, "clip_source", "Text Encoder", CLIP_OPTIONS);
     node.__saveImageCleanClipRow = clipRow;
-    if (clipRow) addAdvancedRow(body, clipRow.root);
     const clipFolderRow = buildTextRow(node, "clip_folder", { placeholder: "Custom Text Encoder Name" });
     node.__saveImageCleanClipFolderRow = clipFolderRow;
-    if (clipFolderRow) addAdvancedRow(body, clipFolderRow.root);
+    if (clipRow) {
+        addAdvancedRow(body, [clipRow.root, clipFolderRow?.root].filter(Boolean),
+            "How the text encoder name should look - Friendly is easiest for most people, " +
+            "Custom uses the name typed below.");
+    }
 
     const collisionRow = buildDropdownRow(node, "collision_mode", "If File Exists",
         ["increment", "overwrite", "error", "seconds"],
         { optionLabels: { increment: "Increment number", overwrite: "Overwrite", error: "Error", seconds: "Add seconds" } });
-    if (collisionRow) addAdvancedRow(body, collisionRow.root);
+    if (collisionRow) {
+        addAdvancedRow(body, collisionRow.root,
+            "What to do if the target filename already exists - Increment is the safest default.");
+    }
 
     const detectionRow = buildDropdownRow(node, "detection_info", "Detection Info", ["Off", "Summary", "Verbose"]);
-    if (detectionRow) addAdvancedRow(body, detectionRow.root);
+    if (detectionRow) {
+        addAdvancedRow(body, detectionRow.root,
+            "Optional detection summary in the node output - use Summary or Verbose to see " +
+            "which model/text encoder were detected.");
+    }
 
     const qualityRow = buildSliderRow(node, "image_quality", "Image Quality", { min: 1, max: 100 });
     node.__saveImageCleanQualityRow = qualityRow;
-    if (qualityRow) addAdvancedRow(body, qualityRow.root);
+    if (qualityRow) {
+        addAdvancedRow(body, qualityRow.root, "JPEG/WebP quality - ignored when Image Format is PNG.");
+    }
 
     const metadataRow = buildSwitchRow(node, "export_workflow_metadata", "Export Workflow Metadata");
     node.__saveImageCleanMetadataRow = metadataRow;
-    if (metadataRow) addAdvancedRow(body, metadataRow.root);
+    if (metadataRow) {
+        addAdvancedRow(body, metadataRow.root,
+            "Stores prompt/workflow metadata in the PNG - turn off for clean PNG files without it.");
+    }
 
     panel.appendChild(header);
     panel.appendChild(body);
