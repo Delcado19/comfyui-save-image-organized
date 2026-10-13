@@ -7,16 +7,13 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - `IMAGES` output, passing the saved images through unchanged so this node can sit mid-workflow instead of only at the end of a graph
-- Full visual redesign of the node body, grouped into SAVE LAYOUT / FILENAME / OUTPUT / ERWEITERT (Advanced) / AUSGABEPFAD (Example Output) sections:
-  - `Image Format` renders as a row of `PNG`/`JPEG`/`WebP` buttons instead of a dropdown; `Image Quality` renders as a styled slider with a live numeric readout
-  - `Model Name`, `Text Encoder`, `If File Exists`, and `Detection Info` render as flat dropdown rows instead of the native combo widget
-  - `Export Workflow Metadata` renders as a labeled pill switch instead of the native checkbox
-  - `Save Layout`, `Filename`, `Top Folder`, `Custom Model Name`, and `Custom Text Encoder Name` render as styled text rows that show the full value as a tooltip on hover instead of clipping silently
-  - `Loader Priority` moved into a new gear-icon "Advanced settings" floating panel, with its description shown as visible text instead of only a hover tooltip
-  - `Custom Model Name`/`Custom Text Encoder Name` now only appear when their source dropdown is set to `Custom`; `Image Quality` and `Export Workflow Metadata` enable or disable based on the selected image format
+- Full visual redesign of the node body, all labels in English. The main card only shows `Folder Structure` (path template) + `Top Folder`, `Filename`, and the `Output`/`Mode` button groups, so the node stays short:
+  - `Image Format` (`PNG`/`JPEG`/`WebP`) and `Save`/`Preview` mode each render as a compact pill-shaped button group, side by side in one row, instead of a dropdown and a native toggle
+  - Every other control lives behind the gear-icon `Advanced Settings` panel: `Model Name`/`Text Encoder` (each with its `Custom ...Name` field, shown only when that dropdown is set to `Custom`), `If File Exists`, `Detection Info`, `Image Quality` (a styled slider with a live numeric readout), `Export Workflow Metadata` (a labeled pill switch), `Loader Priority`, and the Detection Snapshot detail - each with a one-line description. `Image Quality` and `Export Workflow Metadata` enable or disable based on the selected image format
+  - `Folder Structure`, `Filename`, `Top Folder`, `Custom Model Name`, and `Custom Text Encoder Name` render as styled text rows that show the full value as a tooltip on hover instead of clipping silently
   - Every row above still writes to the same underlying widget values in the same order, so existing saved workflows restore unchanged
-- `Build Path` and `Build Filename` buttons next to `Save Layout` and `Filename`, opening a floating, draggable window with click-to-insert chips for every supported template variable, filter, and date preset, plus a live preview. Nothing is written to those fields except what you click; typing still works exactly as before
-- `Save`/`Preview` mode toggle. `Save` behaves exactly as before. `Preview` shows the result without writing anything to the final path; each image gets its own `Save` button in a preview grid, writing it later to the path already resolved when the node ran
+- `Build Path…` and `Build Filename…` buttons next to `Folder Structure` and `Filename`, opening a floating, draggable window with click-to-insert chips for every supported template variable, filter, and date preset, plus a live preview. Nothing is written to those fields except what you click; typing still works exactly as before
+- `Save`/`Preview` mode toggle. `Save` behaves exactly as before. `Preview` shows the result without writing anything to the final path; a single-image result fills the available node width instead of a small thumbnail, and each image gets its own `Save` button in the preview grid (hidden entirely in `Save` mode, since that mode already writes every image on its own), writing it later to the path already resolved when the node ran
 
 ## [0.7.2] - 2026-08-13
 

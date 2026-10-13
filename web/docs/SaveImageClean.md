@@ -34,6 +34,20 @@ If `Top Folder` is empty, no extra folder is added.
 
 For multi-image batches, `%BATCH%` automatically adds `_1-of-4`, `_2-of-4`, and so on. For single-image saves, `%BATCH%` is empty.
 
+## Where To Find Things On The Node
+
+The main card only shows what you'll change most often:
+
+- `Folder Structure` (path template) and `Top Folder`
+- `Filename`
+- `Output` format (`PNG`/`JPEG`/`WebP`) and `Mode` (`Save`/`Preview`), as two button groups side by side
+- the preview image (in `Preview` mode) and `Example Output`
+
+Everything else lives behind the gear icon (`Advanced Settings`), each with a one-line description:
+`Model Name`/`Text Encoder` (with their `Custom ...Name` fields, shown only when set to `Custom`),
+`If File Exists`, `Detection Info`, `Image Quality`, `Export Workflow Metadata`, `Loader Priority`,
+and the Detection Snapshot detail.
+
 ## What The Main Fields Mean
 
 ### Save Layout
@@ -188,7 +202,7 @@ Quality for `JPEG`/`WebP` output, `1`-`100`, shown as a slider. Ignored when `Im
 
 ### Loader Priority
 
-Click the gear icon in the node's `ERWEITERT` (Advanced) section to open this setting.
+Click the gear icon to open the `Advanced Settings` panel and find this setting there.
 When more than one model loader feeds a save (for example a base pass whose
 output is re-encoded and refined by a second model), this decides which
 loader's name is used:
@@ -204,7 +218,10 @@ loader's name is used:
 
 `Save` (default) writes every image immediately. `Preview` shows the result using ComfyUI's own
 built-in temporary-image mechanism — the same one every `Preview Image` node already uses, not a new save
-location of our own — and gives each image its own `Save` button so you can write it later, to the path already shown when the node ran. A parked
+location of our own. A single-image result fills the available node width instead of a small
+thumbnail; a batch shows as a compact grid. Each image gets its own `Save` button, shown only in
+`Preview` mode (omitted in `Save` mode, since that mode already writes every image on its own) so
+you can write it later, to the path already shown when the node ran. A parked
 preview disappears the next time the node runs again or ComfyUI restarts; there is no separate
 discard action.
 
@@ -224,7 +241,7 @@ itself is the only place to see and save a pending preview.
 
 ## Building A Path Or Filename By Clicking
 
-`Build Path` and `Build Filename` on the node open a separate floating window with click-to-insert
+`Build Path…` and `Build Filename…` on the node open a separate floating window with click-to-insert
 chips for the variables below, plus filters and date presets, and a live preview. The window is
 draggable and floats over the canvas rather than living inside the node, since the node has no
 room for a full token palette. Typing the fields by hand still works as before; clicking a chip

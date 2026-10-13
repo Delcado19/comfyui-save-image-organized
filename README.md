@@ -158,7 +158,7 @@ When detection comes from the workflow, the output also includes the upstream lo
 
 If a save node sits on a postprocessing-only branch with no sampler or loader upstream, Detection Info will say that no workflow loader was found on that save branch. In that case the node falls back to the default placeholders unless you provide custom names.
 
-If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current design is `Primary only`: no combined multi-loader names are generated. Which loader wins is controlled by the `Loader Priority` setting (click the gear icon in the node's `ERWEITERT`/Advanced section to open it): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current design is `Primary only`: no combined multi-loader names are generated. Which loader wins is controlled by the `Loader Priority` setting (click the gear icon to open the `Advanced Settings` panel): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
 
 ### Workflow Metadata
 
@@ -184,10 +184,12 @@ ignored for PNG.
 
 `Save` (default) writes every image immediately, exactly as before. `Preview` stores the result in
 ComfyUI's temp folder, like `Preview Image` does, without writing anything to the final path yet.
-Each image gets its own `Save` button in a preview grid that's part of the node's own widget
-stack; clicking it writes that one image to the path that was already resolved when the node ran.
-Nothing is written until you click `Save` on an image, and a parked preview is dropped the next
-time the node runs or ComfyUI restarts — there is no separate "discard" action.
+A single-image result fills the available node width instead of a small thumbnail; a batch shows
+as a compact grid. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
+`Save` mode, since that mode already writes every image on its own); clicking it writes that one
+image to the path that was already resolved when the node ran. Nothing is written until you click
+`Save` on an image, and a parked preview is dropped the next time the node runs or ComfyUI
+restarts — there is no separate "discard" action.
 
 ### Outputs
 
@@ -200,11 +202,11 @@ time the node runs or ComfyUI restarts — there is no separate "discard" action
 
 ### Building A Path Or Filename By Clicking
 
-`Build Path` (next to `Save Layout`) and `Build Filename` (next to `Filename`) open a floating
-window with click-to-insert chips for every template variable, filter, and date preset below,
-plus a live preview of the result. It is a separate, draggable window rather than part of the
-node, since the node itself has no room for a full token palette. Clicking a chip inserts it at
-the cursor in the corresponding field; typing by hand still works exactly as before.
+`Build Path…` (next to `Folder Structure`) and `Build Filename…` (next to `Filename`) open a
+floating window with click-to-insert chips for every template variable, filter, and date preset
+below, plus a live preview of the result. It is a separate, draggable window rather than part of
+the node, since the node itself has no room for a full token palette. Clicking a chip inserts it
+at the cursor in the corresponding field; typing by hand still works exactly as before.
 
 ### Detailed Variables
 

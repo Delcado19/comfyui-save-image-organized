@@ -156,7 +156,7 @@ When detection comes from the workflow, the output also includes the upstream lo
 
 If the current save node only sees a postprocessing branch and no sampler or loader upstream, Detection Info will report that no workflow loader was found on that save branch. In that case the node uses the default placeholders unless you provide custom names.
 
-If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced. `Loader Priority` (in the node's `ERWEITERT`/Advanced gear panel) picks which one: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced. `Loader Priority` (in the node's gear-icon `Advanced Settings` panel) picks which one: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
 
 ### Export Workflow Metadata
 
@@ -194,8 +194,10 @@ its resolved path immediately when the node runs.
 temporary-image mechanism (the same one `Preview Image` uses) instead of a save location of our own.
 This node adds no new temp folder or disk-accumulation logic beyond what every other preview node in
 ComfyUI already does.
-Each image in the batch gets its own `Save` button, shown directly under its thumbnail. Clicking it
-writes that image to the path that was already resolved when the node ran, using the `Image Format`,
+A single-image result fills the available node width instead of a small thumbnail; a batch shows
+as a compact grid. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
+`Save` mode, since that mode already writes every image on its own). Clicking it writes that image
+to the path that was already resolved when the node ran, using the `Image Format`,
 `Image Quality`, and `Export Workflow Metadata` settings active at that time, not whatever they are
 when you click `Save`.
 
@@ -209,7 +211,7 @@ node itself is the only place to see and save a pending preview.
 
 ### Loader Priority
 
-Click the gear icon in the node's `ERWEITERT` (Advanced) section to open this setting. Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
+Click the gear icon to open the `Advanced Settings` panel and find this setting there. Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
 
 ## Outputs
 
@@ -262,8 +264,8 @@ until you click `Save` on an image — see Save And Preview Modes above.
 
 ## Building A Path Or Filename By Clicking
 
-Instead of typing every `%TOKEN%` by hand, click `Build Path` (next to `Save Layout`) or
-`Build Filename` (next to `Filename`) on the node. Each opens a separate floating window — not
+Instead of typing every `%TOKEN%` by hand, click `Build Path…` (next to `Folder Structure`) or
+`Build Filename…` (next to `Filename`) on the node. Each opens a separate floating window — not
 part of the node itself, since the node has no spare width for a full token palette — with
 click-to-insert chips grouped exactly as Main/Convenience/Detailed above, plus the three filters
 and a few common date presets, and a live preview of the resulting path or filename. The window
