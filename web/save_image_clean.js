@@ -859,19 +859,11 @@ function updatePreviewGrid(node, message) {
     }
 
     const entries = Array.isArray(message?.save_image_clean_preview) ? message.save_image_clean_preview : [];
-    // Was the grid showing before this update? Only a Preview->Save transition
-    // (grid visible -> hidden) needs to shrink the node back down; an ordinary
-    // repeated Save-mode run (grid already hidden, stays hidden) must leave
-    // node.size untouched, or it would fight a user's manual resize on every run.
-    const wasVisible = refs.container.style.display !== "none";
     refs.body.replaceChildren();
 
     if (!entries.length) {
         refs.container.style.display = "none";
-        if (wasVisible) {
-            node.setSize?.(node.computeSize());
-            node.setDirtyCanvas?.(true, true);
-        }
+        node.setDirtyCanvas?.(true, true);
         return;
     }
 
@@ -885,10 +877,6 @@ function updatePreviewGrid(node, message) {
     // save_image_clean_preview key) so they never reach node.imgs in the first
     // place; this clears it defensively in case that ever changes upstream.
     node.imgs = [];
-    const newSize = node.computeSize();
-    newSize[0] = Math.max(newSize[0], node.size[0]);
-    newSize[1] = Math.max(newSize[1], node.size[1]);
-    node.setSize?.(newSize);
     node.setDirtyCanvas?.(true, true);
 }
 
@@ -1515,10 +1503,6 @@ function updateHelp(node) {
     }
     refs.titleEl.textContent = "Example Output";
 
-    const newSize = node.computeSize();
-    newSize[0] = Math.max(newSize[0], node.size[0]);
-    newSize[1] = Math.max(newSize[1], node.size[1], 404);
-    node.setSize?.(newSize);
     node.setDirtyCanvas?.(true, true);
 }
 
@@ -1618,11 +1602,14 @@ function buildHeadingRow(headingText, triggerEl) {
     return row;
 }
 
-// Floor-only sizing per Task 10 - real implementation lands there. This stub
-// keeps buildNodeUI runnable in the meantime (Task 8's own completion
-// contract: node --check must pass with buildNodeUI wired in).
 function measureRootFloor(node, inner) {
-    return Math.max(inner.scrollHeight || 0, 200);
+    // FLOOR only, no getMaxHeight and no custom computeSize override (the
+    // Pixaroma-proven pattern, index.js:1017-1020 in ComfyUI-Pixaroma) - the
+    // node grows freely and a user's manual resize is never fought. Rounded
+    // to a 4px grid purely so the floor doesn't jitter by 1px between calls
+    // as sub-pixel layout rounding varies.
+    const measured = inner.scrollHeight || 0;
+    return Math.max(Math.round(measured / 4) * 4, 160);
 }
 
 function buildNodeUI(node) {
