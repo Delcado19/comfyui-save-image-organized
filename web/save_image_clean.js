@@ -1660,23 +1660,20 @@ function injectRootCss() {
     const style = document.createElement("style");
     style.id = "sic-root-css";
     style.textContent = [
-        // REVISED 2026-10-13 (live evidence + a second opinion, after three
-        // rounds of sizing patches that didn't hold): Task 1 only tested
-        // collapse/expand against the Pixaroma-documented display:block
-        // gotcha, never a manual width-resize drag - and manual width
-        // resize turned out not to track node.size[0] in either direction
-        // (shrinking a widened node left the content narrow with a dead
-        // zone on the right; other sequences left content overflowing the
-        // frame). Adopted Pixaroma's own save_image/ui.mjs pattern wholesale
-        // instead of re-deriving a fix: .sic-inner is absolutely positioned
-        // or edge-pinned (inset:0) inside .sic-root, so content size can
-        // never influence container size in either direction - only
-        // node.size (via the DOM widget's actual box) ever determines
-        // .sic-root's size, and content just fills it, clipped by
-        // overflow:hidden if it doesn't fit. See also computeLayoutSize
-        // below (buildNodeUI), Pixaroma's companion piece for width.
-        ".sic-root{position:relative;width:100%;flex:1 1 0;min-height:0;box-sizing:border-box;overflow:hidden;}",
-        ".sic-inner{position:absolute;inset:0;display:flex;flex-direction:column;min-width:0;overflow:hidden;",
+        // Task 1 confirmed live (2026-10-12, comfyui_frontend_package
+        // 1.53.10) that the Pixaroma-documented display:block-on-rebuild
+        // gotcha does NOT reproduce on this ComfyUI version (collapse/
+        // expand and resize both rendered correctly) - so the absolutely-
+        // positioned inner-layer escape hatch is skipped; a plain flex
+        // column on .sic-inner is sufficient (see the spec's Open Items).
+        // overflow:hidden as a safety net (found live 2026-10-13 via the
+        // preview-grid min-width:auto bug above): litegraph draws the
+        // node's own boundary independently of this DOM widget's actual
+        // rendered size, so any future layout bug that pushes content wider
+        // than the node would otherwise bleed past its right edge with
+        // nothing to clip it, instead of just looking wrong internally.
+        ".sic-root{width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;}",
+        ".sic-inner{display:flex;flex-direction:column;min-width:0;",
         "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;}",
         ".sic-section{display:flex;flex-direction:column;gap:var(--sic-space-sm);}",
         ".sic-section-head{display:flex;align-items:center;justify-content:space-between;",
@@ -1817,17 +1814,6 @@ function buildNodeUI(node) {
         // canvas-drawn resize handle, leaving only the top edge (title bar,
         // not covered by any DOM overlay) able to start a resize drag.
         margin: 14,
-    });
-    // Pixaroma's save_image/index.js sets this alongside getMinHeight
-    // (`computeLayoutSize` -> `{minHeight, minWidth}`), unconditionally, not
-    // behind any renderer check - mirrored here rather than re-derived.
-    // minWidth: 1 imposes no width floor of our own, so node.size[0] is
-    // free to drive the widget's actual width in both directions; combined
-    // with .sic-inner's position:absolute;inset:0 above, this is what
-    // actually fixes content no longer tracking manual width resize.
-    rootWidget.computeLayoutSize = () => ({
-        minHeight: measureRootFloor(node, inner),
-        minWidth: 1,
     });
     // Plan code originally omitted this line (caught before committing, not
     // live-verified): comfyui_frontend_package 1.53.10's
