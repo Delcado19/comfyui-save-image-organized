@@ -773,10 +773,20 @@ function injectPreviewGridCss() {
     const style = document.createElement("style");
     style.id = "save-image-clean-preview-grid-css";
     style.textContent = [
-        ".sic-preview-grid{display:flex;flex-direction:column;}",
-        ".sic-preview-grid-body{display:flex;flex-wrap:wrap;gap:8px;padding:6px 8px;}",
-        ".sic-preview-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;}",
-        ".sic-preview-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;",
+        // min-width:0 on every flex level below (grid -> body -> cell) -
+        // found live 2026-10-13: a flex item's default min-width is "auto",
+        // which for a flex item containing a replaced element (the <img>)
+        // resolves to the IMAGE'S OWN INTRINSIC PIXEL WIDTH, not 0 and not
+        // the width:100% rule below. A generated image (e.g. 1024px wide)
+        // then forces .sic-preview-cell, .sic-preview-grid-body and the
+        // whole .sic-inner column wider than the node itself, bleeding the
+        // image/Save button/Example Output past the node's own right edge
+        // (litegraph draws the node boundary independently of DOM layout,
+        // so overflowing DOM content isn't clipped by anything on its own).
+        ".sic-preview-grid{display:flex;flex-direction:column;min-width:0;}",
+        ".sic-preview-grid-body{display:flex;flex-wrap:wrap;gap:8px;padding:6px 8px;min-width:0;}",
+        ".sic-preview-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;min-width:0;}",
+        ".sic-preview-thumb{width:100%;max-width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.2);}",
         // Single-image run (the common case): fill the available node width
         // instead of staying at the fixed grid-thumbnail size - a preview
@@ -786,6 +796,12 @@ function injectPreviewGridCss() {
         ".sic-preview-grid-body.sic-preview-single .sic-preview-cell{width:100%;}",
         ".sic-preview-grid-body.sic-preview-single .sic-preview-thumb{",
         "aspect-ratio:auto;width:100%;height:auto;max-height:420px;object-fit:contain;}",
+        // The Save button's width:100% matched the 92px grid thumbnail fine,
+        // but inherited the single-image thumb's full card width too,
+        // reading as oversized (user request 2026-10-13) - natural width,
+        // centered, same size regardless of how wide the image above it is.
+        ".sic-preview-grid-body.sic-preview-single .sic-preview-save-btn{",
+        "width:auto;align-self:center;padding:5px 24px;font-size:var(--sic-font-base);}",
         ".sic-preview-save-btn{width:100%;padding:3px 0;font-size:10px;font-weight:600;border-radius:5px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.05);color:#cfcfcf;",
         "cursor:pointer;font-family:inherit;",
@@ -1018,9 +1034,6 @@ function injectAdvancedPanelCss() {
         ".sic-adv-trigger:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
         ".sic-adv-trigger:active{transform:scale(0.95);}",
         ".sic-adv-row{display:flex;flex-direction:column;gap:3px;padding:6px 0;}",
-        ".sic-adv-row-head{display:flex;align-items:center;justify-content:space-between;}",
-        ".sic-adv-row-label{font-size:12px;font-weight:600;color:#e4e4e4;}",
-        ".sic-adv-row-desc{font-size:10px;line-height:1.4;color:#8f8f8f;}",
     ].join("");
     document.head.appendChild(style);
 }
@@ -1073,24 +1086,18 @@ function createAdvancedPanel(node) {
     const body = document.createElement("div");
     body.className = "sic-builder-body";
 
-    const loaderRow = document.createElement("div");
-    loaderRow.className = "sic-adv-row";
-    const loaderHead = document.createElement("div");
-    loaderHead.className = "sic-adv-row-head";
     const loaderDropdown = buildDropdownRow(node, "loader_priority", "Loader Priority", ["Nearest", "First Used"]);
     if (loaderDropdown) {
-        loaderHead.appendChild(loaderDropdown.root);
+        // Was a permanent 3-sentence paragraph below the row while every
+        // other Advanced Settings row has no description at all (user
+        // request 2026-10-13: inconsistent). Moved to a hover tooltip and
+        // cut to one sentence - offering-help.md: "Keep your tips to one or
+        // two sentences" - now this row matches the others until hovered.
+        loaderDropdown.root.title =
+            "Nearest: fewest upstream links, right for most single-pass workflows. " +
+            "First Used: furthest upstream, e.g. a base pass refined by a second model.";
+        addAdvancedRow(body, loaderDropdown.root);
     }
-    const loaderDesc = document.createElement("div");
-    loaderDesc.className = "sic-adv-row-desc";
-    loaderDesc.textContent =
-        "How to pick a model/text-encoder when more than one loader feeds this save. " +
-        "Nearest picks the loader with the fewest upstream links (right for most single-pass " +
-        "workflows). First Used picks the loader furthest upstream, i.e. the first one applied " +
-        "in a multi-stage pipeline such as a base pass refined by a second model.";
-    loaderRow.appendChild(loaderHead);
-    loaderRow.appendChild(loaderDesc);
-    body.appendChild(loaderRow);
 
     const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
     node.__saveImageCleanModelRow = modelRow;
@@ -1169,7 +1176,12 @@ function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
     const trigger = document.createElement("button");
     trigger.type = "button";
     trigger.className = "sic-builder-trigger";
-    trigger.textContent = "✎ Build";
+    // Trailing ellipsis + a tooltip naming what it builds (user request
+    // 2026-10-13: "Build" alone didn't signal it opens another view).
+    // buttons.md - Desktop (macOS): "Append a trailing ellipsis to the
+    // title when a push button opens another window, view, or app."
+    trigger.textContent = "✎ Build…";
+    trigger.title = triggerLabel;
 
     const panel = document.createElement("div");
     panel.className = "sic-builder-panel";
@@ -1337,13 +1349,20 @@ function buildHelpPanelContent(node) {
             "color:#f5f5f5",
             "background:rgba(0,0,0,0.18)",
             "border-radius:8px",
-            "padding:10px 12px 11px 12px",
+            "padding:10px 12px 11px 11px",
             "min-height:28px",
             "box-sizing:border-box",
             "white-space:nowrap",
             "overflow:hidden",
             "text-overflow:ellipsis",
-            "border:1px solid transparent",
+            "cursor:default",
+            // Status color used to live on all four sides as border-color,
+            // which reads exactly like an editable field's :focus ring -
+            // user request 2026-10-13: this read-only preview looked
+            // editable. A left accent strip keeps the same fresh/stale
+            // color signal without borrowing input-focus visual language.
+            "border:none",
+            "border-left:3px solid transparent",
             "transition:border-color 160ms var(--sic-ease)",
             // Final-review finding (2026-10-13): the parent container sets
             // pointer-events:none so the help panel never intercepts clicks
@@ -1647,18 +1666,25 @@ function injectRootCss() {
         // expand and resize both rendered correctly) - so the absolutely-
         // positioned inner-layer escape hatch is skipped; a plain flex
         // column on .sic-inner is sufficient (see the spec's Open Items).
-        ".sic-root{width:100%;box-sizing:border-box;}",
-        ".sic-inner{display:flex;flex-direction:column;",
+        // overflow:hidden as a safety net (found live 2026-10-13 via the
+        // preview-grid min-width:auto bug above): litegraph draws the
+        // node's own boundary independently of this DOM widget's actual
+        // rendered size, so any future layout bug that pushes content wider
+        // than the node would otherwise bleed past its right edge with
+        // nothing to clip it, instead of just looking wrong internally.
+        ".sic-root{width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;}",
+        ".sic-inner{display:flex;flex-direction:column;min-width:0;",
         "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;}",
         ".sic-section{display:flex;flex-direction:column;gap:var(--sic-space-sm);}",
         ".sic-section-head{display:flex;align-items:center;justify-content:space-between;",
         "padding:0 var(--sic-space-md);}",
         ".sic-eyebrow{font-size:var(--sic-font-section);font-weight:600;letter-spacing:0.03em;",
         "text-transform:uppercase;color:#9d9d9d;}",
-        // Output/Mode as two side-by-side groups (user request 2026-10-13,
-        // Pixaroma-style), each keeping its own .sic-section layout/eyebrow.
-        ".sic-output-mode-row{display:flex;gap:var(--sic-space-lg);}",
-        ".sic-output-mode-row>.sic-section{flex:1;min-width:0;}",
+        // Output/Mode: one wrapping row of pill groups at natural width,
+        // packed left (Pixaroma's .pix-si-btnrow, user request 2026-10-13) -
+        // no more flex:1 columns forcing the groups to equal widths.
+        ".sic-output-mode-row{display:flex;flex-wrap:wrap;gap:var(--sic-space-md);",
+        "align-items:center;padding:0 var(--sic-space-md);}",
     ].join("");
     document.head.appendChild(style);
 }
@@ -1725,25 +1751,28 @@ function buildNodeUI(node) {
     if (filenameRow) filenameSection.appendChild(filenameRow.root);
     inner.appendChild(filenameSection);
 
-    // --- OUTPUT + MODE, two groups side by side (user request 2026-10-13) ---
+    // --- OUTPUT + MODE, one wrapping row of pill groups at natural width
+    // (Pixaroma's save_image/ui.mjs .pix-si-btnrow pattern, named by the
+    // user as the reference 2026-10-13) - dropped the separate "OUTPUT"/
+    // "MODE" eyebrow sections stretched to equal flex:1 widths, which forced
+    // the 3-option format group and the 2-option mode group into mismatched
+    // segment sizes for no reason; each pill group's tooltip (getTitle)
+    // already carries the labeling Pixaroma also relies on instead of a
+    // heading. ---
     const outputModeRow = el("div", "sic-output-mode-row");
-    const outputSection = buildSection("OUTPUT");
     const formatSeg = buildSegmentedControl(node, "image_format", IMAGE_FORMAT_IDS, {
         getTitle: (id) => `Save as ${id}`,
     });
     node.__saveImageCleanFormatSeg = formatSeg;
-    if (formatSeg) outputSection.appendChild(formatSeg.root);
-    outputModeRow.appendChild(outputSection);
+    if (formatSeg) outputModeRow.appendChild(formatSeg.root);
 
-    const modeSection = buildSection("MODE");
     const saveModeSeg = buildSegmentedControl(node, "save_mode", SAVE_MODE_IDS, {
         getTitle: (id) => (id === "Preview"
             ? "Show the result without saving; save individual images later"
             : "Save immediately, as before"),
     });
     node.__saveImageCleanSaveModeSeg = saveModeSeg;
-    if (saveModeSeg) modeSection.appendChild(saveModeSeg.root);
-    outputModeRow.appendChild(modeSection);
+    if (saveModeSeg) outputModeRow.appendChild(saveModeSeg.root);
     inner.appendChild(outputModeRow);
 
     // --- Preview grid (Preview-mode only), existing internals reused ---

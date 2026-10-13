@@ -70,16 +70,23 @@ function injectSegmentedCss() {
     const style = document.createElement("style");
     style.id = "sic-seg-css";
     style.textContent = [
-        ".sic-seg-row{display:flex;gap:4px;width:100%;box-sizing:border-box;}",
-        ".sic-seg-btn{flex:1;padding:5px 0;min-height:var(--sic-btn-min);font-size:var(--sic-font-base);font-weight:600;",
-        "border-radius:var(--sic-radius);border:1px solid rgba(255,255,255,0.14);",
-        "background:rgba(255,255,255,0.04);color:#b7b7b7;cursor:pointer;font-family:inherit;",
-        "transition:transform 120ms var(--sic-ease-out), background 120ms var(--sic-ease), color 120ms var(--sic-ease), border-color 120ms var(--sic-ease);}",
-        ".sic-seg-btn:hover{border-color:rgba(142,183,255,0.5);color:#e3e3e3;}",
+        // Pill-shaped group at natural width (Pixaroma's ComfyUI-Pixaroma
+        // save_image/ui.mjs .pix-si-seg pattern, named by the user as the
+        // reference to match 2026-10-13): one rounded, clipped container
+        // with borderless segments inside, instead of each segment stretched
+        // to flex:1 with its own border. Two of these side by side (format,
+        // mode) no longer fight over equal-width columns when one group has
+        // more options than the other - each is only as wide as its labels.
+        ".sic-seg-row{display:inline-flex;flex:0 0 auto;border:1px solid rgba(255,255,255,0.14);",
+        "border-radius:var(--sic-radius-pill);overflow:hidden;}",
+        ".sic-seg-btn{flex:0 0 auto;padding:6px 14px;min-height:var(--sic-btn-min);font-size:var(--sic-font-base);font-weight:600;",
+        "border:none;background:rgba(255,255,255,0.04);color:#b7b7b7;cursor:pointer;font-family:inherit;",
+        "transition:transform 120ms var(--sic-ease-out), background 120ms var(--sic-ease), color 120ms var(--sic-ease);}",
+        ".sic-seg-btn:hover{background:rgba(255,255,255,0.09);color:#e3e3e3;}",
         ".sic-seg-btn:active{transform:scale(0.97);}",
-        ".sic-seg-btn:focus-visible{outline:2px solid var(--sic-accent);outline-offset:1px;}",
-        ".sic-seg-btn.active{background:var(--sic-accent);border-color:var(--sic-accent);color:#fff;}",
-        ".sic-seg-btn.active:hover{border-color:var(--sic-accent-hover);}",
+        ".sic-seg-btn:focus-visible{outline:2px solid var(--sic-accent);outline-offset:-2px;}",
+        ".sic-seg-btn.active{background:var(--sic-accent);color:#fff;}",
+        ".sic-seg-btn.active:hover{background:var(--sic-accent-hover);}",
     ].join("");
     document.head.appendChild(style);
 }
