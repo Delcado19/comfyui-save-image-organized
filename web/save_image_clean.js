@@ -1815,6 +1815,29 @@ function buildNodeUI(node) {
         // not covered by any DOM overlay) able to start a resize drag.
         margin: 14,
     });
+    // Found live 2026-10-13, confirmed via DevTools (not guessed - this is
+    // after 7 earlier attempts at this node's width tracking): ComfyUI's
+    // per-frame DOM-widget positioner (GraphView bundle, hooked into
+    // onDrawForeground) computes this widget's on-screen width as
+    // `(widget.width ?? node.width) - margin*2`. addDOMWidget sets
+    // `widget.width` ONCE, to the node's width at creation time, and NEVER
+    // updates it again on resize - confirmed live: rootWidget.width stayed
+    // frozen at the node's original width (364.4) while node.width/
+    // node.size[0] correctly tracked a live resize (913.77 = 913.77).
+    // Since widget.width is never undefined once set, it always wins over
+    // the (already correctly live) node.width fallback. Fix: make the
+    // property undefined again instead of feeding it node.size[0]
+    // ourselves - an own value here risks being read elsewhere as a
+    // minimum-width floor (the same one-way-ratchet failure class as the
+    // height setSize() bug fixed earlier this session), where returning
+    // undefined just restores the normal, already-correct node.width
+    // fallback. A no-op setter avoids breaking whatever internal write set
+    // the original static value.
+    Object.defineProperty(rootWidget, "width", {
+        get: () => undefined,
+        set: () => {},
+        configurable: true,
+    });
     // Plan code originally omitted this line (caught before committing, not
     // live-verified): comfyui_frontend_package 1.53.10's
     // serialiseWidgetValues()/widgets_values restore both check
