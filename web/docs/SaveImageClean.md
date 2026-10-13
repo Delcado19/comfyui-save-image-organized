@@ -188,6 +188,7 @@ Quality for `JPEG`/`WebP` output, `1`-`100`, shown as a slider. Ignored when `Im
 
 ### Loader Priority
 
+Click the gear icon in the node's `ERWEITERT` (Advanced) section to open this setting.
 When more than one model loader feeds a save (for example a base pass whose
 output is re-encoded and refined by a second model), this decides which
 loader's name is used:

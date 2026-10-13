@@ -158,7 +158,7 @@ When detection comes from the workflow, the output also includes the upstream lo
 
 If a save node sits on a postprocessing-only branch with no sampler or loader upstream, Detection Info will say that no workflow loader was found on that save branch. In that case the node falls back to the default placeholders unless you provide custom names.
 
-If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current design is `Primary only`: no combined multi-loader names are generated. Which loader wins is controlled by the `Loader Priority` widget: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current design is `Primary only`: no combined multi-loader names are generated. Which loader wins is controlled by the `Loader Priority` setting (click the gear icon in the node's `ERWEITERT`/Advanced section to open it): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
 
 ### Workflow Metadata
 

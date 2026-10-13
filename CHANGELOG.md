@@ -7,7 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - `IMAGES` output, passing the saved images through unchanged so this node can sit mid-workflow instead of only at the end of a graph
-- `Image Format` now renders as a row of `PNG`/`JPEG`/`WebP` buttons instead of a dropdown; `Image Quality` now renders as a slider. Both still store the same widget values, so existing workflows are unaffected
+- Full visual redesign of the node body, grouped into SAVE LAYOUT / FILENAME / OUTPUT / ERWEITERT (Advanced) / AUSGABEPFAD (Example Output) sections:
+  - `Image Format` renders as a row of `PNG`/`JPEG`/`WebP` buttons instead of a dropdown; `Image Quality` renders as a styled slider with a live numeric readout
+  - `Model Name`, `Text Encoder`, `If File Exists`, and `Detection Info` render as flat dropdown rows instead of the native combo widget
+  - `Export Workflow Metadata` renders as a labeled pill switch instead of the native checkbox
+  - `Save Layout`, `Filename`, `Top Folder`, `Custom Model Name`, and `Custom Text Encoder Name` render as styled text rows that show the full value as a tooltip on hover instead of clipping silently
+  - `Loader Priority` moved into a new gear-icon "Advanced settings" floating panel, with its description shown as visible text instead of only a hover tooltip
+  - `Custom Model Name`/`Custom Text Encoder Name` now only appear when their source dropdown is set to `Custom`; `Image Quality` and `Export Workflow Metadata` enable or disable based on the selected image format
+  - Every row above still writes to the same underlying widget values in the same order, so existing saved workflows restore unchanged
 - `Build Path` and `Build Filename` buttons next to `Save Layout` and `Filename`, opening a floating, draggable window with click-to-insert chips for every supported template variable, filter, and date preset, plus a live preview. Nothing is written to those fields except what you click; typing still works exactly as before
 - `Save`/`Preview` mode toggle. `Save` behaves exactly as before. `Preview` shows the result without writing anything to the final path; each image gets its own `Save` button in a preview grid, writing it later to the path already resolved when the node ran
 

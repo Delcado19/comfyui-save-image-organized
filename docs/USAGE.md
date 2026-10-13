@@ -156,7 +156,7 @@ When detection comes from the workflow, the output also includes the upstream lo
 
 If the current save node only sees a postprocessing branch and no sampler or loader upstream, Detection Info will report that no workflow loader was found on that save branch. In that case the node uses the default placeholders unless you provide custom names.
 
-If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced. `Loader Priority` picks which one: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
+If multiple model or text-encoder loaders are visible upstream, the node still resolves to one active model name and one active text-encoder name. The current behavior is `Primary only`: no combined multi-loader names are produced. `Loader Priority` (in the node's `ERWEITERT`/Advanced gear panel) picks which one: `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream, e.g. the base model in a base-plus-refiner pipeline.
 
 ### Export Workflow Metadata
 
@@ -209,7 +209,7 @@ node itself is the only place to see and save a pending preview.
 
 ### Loader Priority
 
-Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
+Click the gear icon in the node's `ERWEITERT` (Advanced) section to open this setting. Decides which loader wins when more than one model loader feeds a save (see the multi-loader note above): `Nearest` (default) picks the loader with the fewest upstream links, `First Used` picks the one furthest upstream.
 
 ## Outputs
 
