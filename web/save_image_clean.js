@@ -1087,7 +1087,7 @@ function createAdvancedPanel(node) {
         closeTemplateBuilderPanel(panel);
     });
 
-    node.__saveImageCleanAdvancedPanel = { trigger, panel };
+    node.__saveImageCleanAdvancedPanel = { trigger, panel, loaderDropdown };
     return node.__saveImageCleanAdvancedPanel;
 }
 
@@ -1283,6 +1283,13 @@ function buildHelpPanelContent(node) {
             "text-overflow:ellipsis",
             "border:1px solid transparent",
             "transition:border-color 160ms var(--sic-ease)",
+            // Final-review finding (2026-10-13): the parent container sets
+            // pointer-events:none so the help panel never intercepts clicks
+            // meant for the node underneath; that also silently blocked this
+            // element's own title= tooltip from ever firing, leaving a long
+            // resolved path clipped with no way to see the rest (Review
+            // Focus item 4). Re-enabled on just this element.
+            "pointer-events:auto",
         ].join(";");
         return valueEl;
     };
@@ -1451,6 +1458,9 @@ function updateHelp(node) {
 
     setActiveFormatButton(node, getWidget(node, "image_format")?.value);
     setActiveSaveModeButton(node, getWidget(node, "save_mode")?.value);
+    for (const row of node.__saveImageCleanSyncers || []) {
+        row.sync?.();
+    }
 
     if (lastRunInfo && !lastRunInfo.stale) {
         setHelperStatus(refs, "fresh");
@@ -1482,6 +1492,12 @@ function updateHelp(node) {
                 ? "rgba(240, 190, 71, 0.28)"
                 : "transparent";
     }
+    // Final-review finding (2026-10-13): nowrap+ellipsis clips a long
+    // resolved path with no indication there's more - mirror the full text
+    // into title= (now reachable since pointer-events is re-enabled above)
+    // so hovering shows it, the same resting-state-truncation fix Task 6
+    // already applied to the text-row inputs.
+    refs.outputValueEl.title = refs.outputValueEl.textContent;
 
     const snapshotLines = buildDetectionSnapshotLines(detectionSnapshot);
     const detailLines = snapshotLines.length ? snapshotLines : lastRunInfo?.details || [];
@@ -1718,6 +1734,21 @@ function buildNodeUI(node) {
     // for every other custom widget). Without this, the single root widget
     // would itself get counted as a real positional widgets_values slot.
     rootWidget.serialize = false;
+
+    // Final-review finding (2026-10-13, static analysis against the
+    // installed frontend bundle): onNodeCreated builds every row above from
+    // each native widget's DEFAULT value. When a saved workflow loads
+    // instead, configure() restores the real values with a plain assignment
+    // (no callback, no input event), so the dropdowns/switch/slider/tooltips
+    // built here keep showing their defaults even though the underlying
+    // widget.value (and therefore the save) is already correct. updateHelp
+    // runs on every relevant pass, including once after configure()'s own
+    // restore completes, so it re-runs every row's sync() there too.
+    node.__saveImageCleanSyncers = [
+        modelRow, clipRow, qualityRow, metadataRow,
+        pathRow, subfolderRow, modelFolderRow, clipFolderRow, filenameRow,
+        collisionRow, detectionRow, advanced.loaderDropdown,
+    ].filter(Boolean);
 }
 
 function setRowDisabled(row, disabled) {
@@ -1807,6 +1838,13 @@ app.registerExtension({
             const result = onRemoved?.apply(this, arguments);
             this.__saveImageCleanBuilder_path_template_panel?.remove();
             this.__saveImageCleanBuilder_filename_datetime_panel?.remove();
+            // Final-review finding (2026-10-13): createAdvancedPanel (Task 7)
+            // appends its panel to document.body the same way the two
+            // template-builder panels above do, but onRemoved never cleaned
+            // it up - every add/remove cycle left another detached floating
+            // panel on screen, and a panel left open when its node is
+            // deleted kept writing to a dead node's widget.
+            this.__saveImageCleanAdvancedPanel?.panel.remove();
             return result;
         };
     },

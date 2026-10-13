@@ -1539,7 +1539,7 @@ Expected: no output, exit code 0.
 
 - [ ] **Step 5: Manual verification**
 
-Copy to the live install, hard-refresh. **Review Focus item 5**: drag-resize the node much smaller than its content, then drag it back larger — confirm no clipped/stale DOM in either direction. Switch to Preview mode and run the workflow (grid appears, node grows); switch back to Save mode (grid disappears, node shrinks back down) — confirm this still works now that the manual `setSize` calls are gone. Toggle Model Name to "Custom" and back — confirm the node height adjusts to the Custom Name row appearing/disappearing (this is what Step 3 above determines, resolve it here).
+Copy to the live install, hard-refresh. **Review Focus item 5**: drag-resize the node much smaller than its content, then drag it back larger — confirm no clipped/stale DOM in either direction. Switch to Preview mode and run the workflow (grid appears, node grows); switch back to Save mode (grid disappears) — confirm the grid content/space is gone (correction, found in final review 2026-10-13: floor-only sizing is a FLOOR, so a user-enlarged node does not auto-shrink back down on its own the way the original "node shrinks back down" wording implied — only a node still at its floor height shrinks when content leaves; don't read a merely-unshrunk larger node as a bug). Toggle Model Name to "Custom" and back — confirm the node height adjusts to the Custom Name row appearing/disappearing (this is what Step 3 above determines, resolve it here).
 
 - [ ] **Step 6: Commit**
 

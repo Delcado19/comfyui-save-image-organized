@@ -213,7 +213,20 @@ export function buildDropdownRow(node, widgetName, label, optionIds, { optionLab
     root.appendChild(valueWrap);
     root.appendChild(select);
 
-    return { widget, root, selectEl: select, valueEl: valueText };
+    // Final-review finding (2026-10-13): onNodeCreated builds this row from
+    // widget.value's default BEFORE configure() restores a saved workflow's
+    // real value (plain assignment, no callback/input event - confirmed by
+    // reading the installed frontend bundle). Without this resync, a loaded
+    // workflow's dropdown shows the default option while the real widget
+    // value (and therefore the save) is already correct - buildNodeUI
+    // collects this into node.__saveImageCleanSyncers, called from
+    // updateHelp on every relevant pass including the post-configure one.
+    const sync = () => {
+        select.value = widget.value;
+        render();
+    };
+
+    return { widget, root, selectEl: select, valueEl: valueText, sync };
 }
 
 let _switchCssInjected = false;
@@ -281,7 +294,13 @@ export function buildSwitchRow(node, widgetName, label) {
     root.appendChild(track);
     root.appendChild(checkbox);
 
-    return { widget, root, checkboxEl: checkbox };
+    // See buildDropdownRow's sync comment - same post-configure resync gap.
+    const sync = () => {
+        checkbox.checked = Boolean(widget.value);
+        render();
+    };
+
+    return { widget, root, checkboxEl: checkbox, sync };
 }
 
 let _sliderCssInjected = false;
@@ -347,7 +366,13 @@ export function buildSliderRow(node, widgetName, label, { min = 1, max = 100 } =
     root.appendChild(head);
     root.appendChild(input);
 
-    return { widget, root, inputEl: input, valueEl };
+    // See buildDropdownRow's sync comment - same post-configure resync gap.
+    const sync = () => {
+        input.value = String(widget.value);
+        valueEl.textContent = String(widget.value);
+    };
+
+    return { widget, root, inputEl: input, valueEl, sync };
 }
 
 let _textRowCssInjected = false;
@@ -425,5 +450,12 @@ export function buildTextRow(node, widgetName, { placeholder } = {}) {
     inputEl.addEventListener("input", syncTitle);
 
     root.appendChild(inputEl);
-    return { widget, root, inputEl };
+    // Final-review finding (2026-10-13): inputEl IS the native widget's own
+    // DOM element, so configure() already keeps its .value correct on
+    // workflow load - but the title=/widget.tooltip snapshot above was taken
+    // once at build time (onNodeCreated, default value) and never re-synced
+    // after a later configure() restore, leaving the tooltip stale even
+    // though the visible/edited value is already right. sync just re-runs
+    // the same syncTitle against whatever inputEl.value configure() set.
+    return { widget, root, inputEl, sync: syncTitle };
 }
