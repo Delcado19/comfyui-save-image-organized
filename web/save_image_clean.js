@@ -176,19 +176,6 @@ function setFriendlyLabels(node) {
     }
 }
 
-function insertWidgetBefore(node, widget, targetName) {
-    const widgets = node.widgets || [];
-    const widgetIndex = widgets.indexOf(widget);
-    const targetIndex = widgets.findIndex((item) => item?.name === targetName);
-    if (widgetIndex === -1 || targetIndex === -1 || widgetIndex === targetIndex - 1) {
-        return;
-    }
-
-    widgets.splice(widgetIndex, 1);
-    const newTargetIndex = widgets.findIndex((item) => item?.name === targetName);
-    widgets.splice(Math.max(newTargetIndex, 0), 0, widget);
-}
-
 function insertTokenIntoWidget(node, widgetName, token) {
     const widget = getWidget(node, widgetName);
     const inputEl = widget?.inputEl;
@@ -200,58 +187,6 @@ function insertTokenIntoWidget(node, widgetName, token) {
     inputEl.focus();
     inputEl.setRangeText(token, start, end, "end");
     inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-}
-
-function ensureSectionLabel(node, key, text, targetName, actionEl = null) {
-    const storeKey = `__saveImageCleanSection_${key}`;
-    if (node[storeKey]) {
-        insertWidgetBefore(node, node[storeKey], targetName);
-        return node[storeKey];
-    }
-
-    const element = document.createElement("div");
-    element.style.cssText = [
-        "display:flex",
-        "align-items:center",
-        "justify-content:space-between",
-        "gap:8px",
-        "padding:0 8px",
-        "margin:2px 0 3px 0",
-    ].join(";");
-
-    const labelEl = document.createElement("span");
-    labelEl.textContent = text;
-    labelEl.style.cssText = [
-        "font-size:10px",
-        "font-weight:600",
-        "letter-spacing:0.03em",
-        "text-transform:uppercase",
-        "color:#9d9d9d",
-        "pointer-events:none",
-    ].join(";");
-    element.appendChild(labelEl);
-
-    if (actionEl) {
-        element.appendChild(actionEl);
-    }
-
-    const widget = node.addDOMWidget(`save_image_clean_section_${key}`, "custom", element, {
-        getMinHeight: () => 22,
-        getMaxHeight: () => 24,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-    // comfyui_frontend_package 1.53.10's serialiseWidgetValues()/widgets_values
-    // restore both check widget.serialize === false directly - the
-    // addDOMWidget options.serialize flag above is never copied there, so
-    // every custom DOM widget must set this explicitly or it gets counted
-    // as a real positional slot in widgets_values (confirmed live, 2026-10-12:
-    // this shifted every field after a custom widget by one position on load).
-    widget.serialize = false;
-    node[storeKey] = widget;
-    insertWidgetBefore(node, widget, targetName);
-    return widget;
 }
 
 function stripKnownExtension(value) {
@@ -820,172 +755,6 @@ import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildS
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
 
-function createFormatButtonsWidget(node) {
-    if (node.__saveImageCleanFormatWidget) {
-        return node.__saveImageCleanFormatWidget;
-    }
-    injectDesignTokens();
-    const seg = buildSegmentedControl(node, "image_format", IMAGE_FORMAT_IDS, {
-        getTitle: (id) => `Save as ${id}`,
-    });
-    if (!seg) {
-        return null;
-    }
-    const widget = node.addDOMWidget("save_image_clean_format_buttons", "custom", seg.root, {
-        getMinHeight: () => 26,
-        getMaxHeight: () => 28,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 2,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node.__saveImageCleanFormatWidget = widget;
-    node.__saveImageCleanFormatSeg = seg;
-    insertWidgetBefore(node, widget, "image_format");
-    return widget;
-}
-
-const DROPDOWN_FIELDS = {
-    model_source: { label: "Model Name", options: MODEL_OPTIONS },
-    clip_source: { label: "Text Encoder", options: CLIP_OPTIONS },
-    collision_mode: {
-        label: "If File Exists",
-        options: ["increment", "overwrite", "error", "seconds"],
-        optionLabels: {
-            increment: "Increment number",
-            overwrite: "Overwrite",
-            error: "Error",
-            seconds: "Add seconds",
-        },
-    },
-    detection_info: {
-        label: "Detection Info",
-        options: ["Off", "Summary", "Verbose"],
-    },
-    loader_priority: {
-        label: "Loader Priority",
-        options: ["Nearest", "First Used"],
-    },
-};
-
-function createDropdownRowWidget(node, widgetName) {
-    const storeKey = `__saveImageCleanDropdown_${widgetName}`;
-    if (node[storeKey]) {
-        return node[storeKey];
-    }
-    const field = DROPDOWN_FIELDS[widgetName];
-    const row = buildDropdownRow(node, widgetName, field.label, field.options, {
-        optionLabels: field.optionLabels,
-    });
-    if (!row) {
-        return null;
-    }
-    const widget = node.addDOMWidget(`save_image_clean_dropdown_${widgetName}`, "custom", row.root, {
-        getMinHeight: () => 30,
-        getMaxHeight: () => 32,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node[storeKey] = { widget, row };
-    insertWidgetBefore(node, widget, widgetName);
-    return node[storeKey];
-}
-
-function createSwitchRowWidget(node, widgetName, label) {
-    const storeKey = `__saveImageCleanSwitch_${widgetName}`;
-    if (node[storeKey]) {
-        return node[storeKey];
-    }
-    const row = buildSwitchRow(node, widgetName, label);
-    if (!row) {
-        return null;
-    }
-    const widget = node.addDOMWidget(`save_image_clean_switch_${widgetName}`, "custom", row.root, {
-        getMinHeight: () => 30,
-        getMaxHeight: () => 32,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node[storeKey] = { widget, row };
-    insertWidgetBefore(node, widget, widgetName);
-    return node[storeKey];
-}
-
-function createSliderRowWidget(node, widgetName, label, opts) {
-    const storeKey = `__saveImageCleanSlider_${widgetName}`;
-    if (node[storeKey]) {
-        return node[storeKey];
-    }
-    const row = buildSliderRow(node, widgetName, label, opts);
-    if (!row) {
-        return null;
-    }
-    const widget = node.addDOMWidget(`save_image_clean_slider_${widgetName}`, "custom", row.root, {
-        getMinHeight: () => 40,
-        getMaxHeight: () => 44,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node[storeKey] = { widget, row };
-    insertWidgetBefore(node, widget, widgetName);
-    return node[storeKey];
-}
-
-function createTextRowWidget(node, widgetName, opts) {
-    const storeKey = `__saveImageCleanTextRow_${widgetName}`;
-    if (node[storeKey]) {
-        return node[storeKey];
-    }
-    const row = buildTextRow(node, widgetName, opts);
-    if (!row) {
-        return null;
-    }
-    const widget = node.addDOMWidget(`save_image_clean_textrow_${widgetName}`, "custom", row.root, {
-        getMinHeight: () => 34,
-        getMaxHeight: () => 36,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 0,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node[storeKey] = { widget, row };
-    insertWidgetBefore(node, widget, widgetName);
-    return node[storeKey];
-}
-
-function createSaveModeToggleWidget(node) {
-    if (node.__saveImageCleanSaveModeWidget) {
-        return node.__saveImageCleanSaveModeWidget;
-    }
-    injectDesignTokens();
-    const seg = buildSegmentedControl(node, "save_mode", SAVE_MODE_IDS, {
-        getTitle: (id) => (id === "Preview"
-            ? "Show the result without saving; save individual images later"
-            : "Save immediately, as before"),
-    });
-    if (!seg) {
-        return null;
-    }
-    const widget = node.addDOMWidget("save_image_clean_save_mode_buttons", "custom", seg.root, {
-        getMinHeight: () => 26,
-        getMaxHeight: () => 28,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 2,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-    node.__saveImageCleanSaveModeWidget = widget;
-    node.__saveImageCleanSaveModeSeg = seg;
-    insertWidgetBefore(node, widget, "save_mode");
-    return widget;
-}
-
 function setActiveFormatButton(node, activeId) {
     node.__saveImageCleanFormatSeg?.setActive(activeId);
 }
@@ -1081,36 +850,6 @@ function buildPreviewCell(node, entry) {
     cell.appendChild(saveBtn);
     cell.appendChild(statusEl);
     return cell;
-}
-
-function createPreviewGridWidget(node) {
-    if (node.__saveImageCleanPreviewGridRefs) {
-        return node.__saveImageCleanPreviewGridRefs;
-    }
-
-    injectPreviewGridCss();
-
-    const container = document.createElement("div");
-    container.className = "sic-preview-grid";
-    container.style.display = "none";
-
-    const body = document.createElement("div");
-    body.className = "sic-preview-grid-body";
-    container.appendChild(body);
-
-    const widget = node.addDOMWidget("save_image_clean_preview_grid", "custom", container, {
-        getMinHeight: () => (container.style.display === "none" ? 0 : 130),
-        getMaxHeight: () => (container.style.display === "none" ? 0 : 260),
-        serialize: false,
-        hideOnZoom: false,
-        margin: 4,
-    });
-    widget.serialize = false; // see ensureSectionLabel's comment above
-
-    const refs = { widget, container, body };
-    node.__saveImageCleanPreviewGridRefs = refs;
-    insertWidgetBefore(node, widget, "save_mode");
-    return refs;
 }
 
 function updatePreviewGrid(node, message) {
@@ -1477,11 +1216,11 @@ function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
     return { trigger, panel };
 }
 
-function createHelpPanelWidget(node) {
-    if (node.__saveImageCleanHelpWidget) {
-        return node.__saveImageCleanHelpWidget;
-    }
-
+// Extracted from the pre-Task-8 createHelpPanelWidget: same element
+// construction and node.__saveImageCleanHelpRefs assignment, but returns the
+// built container instead of also calling node.addDOMWidget itself - Task 8's
+// single root widget is the only addDOMWidget call left in the whole file.
+function buildHelpPanelContent(node) {
     const container = document.createElement("div");
     container.style.cssText = [
         "display:flex",
@@ -1602,16 +1341,8 @@ function createHelpPanelWidget(node) {
         detailsTitleEl,
         detailsEl,
     };
-    node.__saveImageCleanHelpWidget = node.addDOMWidget("save_image_clean_help", "custom", container, {
-        getMinHeight: () => 90,
-        getMaxHeight: () => 104,
-        serialize: false,
-        hideOnZoom: false,
-        margin: 8,
-    });
-    node.__saveImageCleanHelpWidget.serialize = false; // see ensureSectionLabel's comment above
 
-    return node.__saveImageCleanHelpWidget;
+    return container;
 }
 
 function clearLastRunState(node) {
@@ -1730,8 +1461,6 @@ function updateHelp(node) {
     const useLegacyOrder = saveLayout === "";
     const variables = buildVariables(node, now, detectionSnapshot);
 
-    ensureSectionLabel(node, "save_layout", "Save Layout", "path_template");
-    ensureSectionLabel(node, "filename", "Filename", "filename_datetime");
     setActiveFormatButton(node, getWidget(node, "image_format")?.value);
     setActiveSaveModeButton(node, getWidget(node, "save_mode")?.value);
 
@@ -1837,6 +1566,166 @@ function hookWidgetUpdates(node) {
     }
 }
 
+let _rootCssInjected = false;
+function injectRootCss() {
+    if (_rootCssInjected || document.getElementById("sic-root-css")) {
+        _rootCssInjected = true;
+        return;
+    }
+    _rootCssInjected = true;
+    const style = document.createElement("style");
+    style.id = "sic-root-css";
+    style.textContent = [
+        // Task 1 confirmed live (2026-10-12, comfyui_frontend_package
+        // 1.53.10) that the Pixaroma-documented display:block-on-rebuild
+        // gotcha does NOT reproduce on this ComfyUI version (collapse/
+        // expand and resize both rendered correctly) - so the absolutely-
+        // positioned inner-layer escape hatch is skipped; a plain flex
+        // column on .sic-inner is sufficient (see the spec's Open Items).
+        ".sic-root{width:100%;box-sizing:border-box;}",
+        ".sic-inner{display:flex;flex-direction:column;",
+        "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;}",
+        ".sic-section{display:flex;flex-direction:column;gap:var(--sic-space-sm);}",
+        ".sic-section-head{display:flex;align-items:center;justify-content:space-between;",
+        "padding:0 var(--sic-space-md);}",
+        ".sic-eyebrow{font-size:var(--sic-font-section);font-weight:600;letter-spacing:0.03em;",
+        "text-transform:uppercase;color:#9d9d9d;}",
+    ].join("");
+    document.head.appendChild(style);
+}
+
+function buildSection(eyebrowText) {
+    const section = el("div", "sic-section");
+    if (eyebrowText) {
+        const eyebrow = el("div", "sic-eyebrow", eyebrowText);
+        eyebrow.style.cssText = "padding:0 var(--sic-space-md);";
+        section.appendChild(eyebrow);
+    }
+    return section;
+}
+
+function buildHeadingRow(headingText, triggerEl) {
+    const row = el("div", "sic-section-head");
+    const heading = el("span", null, headingText);
+    heading.style.cssText = "font-size:13px;font-weight:600;color:#f0f0f0;";
+    row.appendChild(heading);
+    if (triggerEl) {
+        row.appendChild(triggerEl);
+    }
+    return row;
+}
+
+// Floor-only sizing per Task 10 - real implementation lands there. This stub
+// keeps buildNodeUI runnable in the meantime (Task 8's own completion
+// contract: node --check must pass with buildNodeUI wired in).
+function measureRootFloor(node, inner) {
+    return Math.max(inner.scrollHeight || 0, 200);
+}
+
+function buildNodeUI(node) {
+    if (node.__saveImageCleanRootBuilt) {
+        return;
+    }
+    node.__saveImageCleanRootBuilt = true;
+    injectDesignTokens();
+    injectRootCss();
+
+    const root = el("div", "sic-root");
+    const inner = el("div", "sic-inner");
+    root.appendChild(inner);
+
+    // --- SAVE LAYOUT ---
+    const saveLayoutSection = buildSection("SAVE LAYOUT");
+    const pathBuilder = createTemplateBuilderWidget(node, "path_template", "Build Path");
+    saveLayoutSection.appendChild(buildHeadingRow("Ordnerstruktur", pathBuilder?.trigger));
+    const pathRow = buildTextRow(node, "path_template");
+    if (pathRow) saveLayoutSection.appendChild(pathRow.root);
+    const modelRow = buildDropdownRow(node, "model_source", "Model Name", MODEL_OPTIONS);
+    if (modelRow) saveLayoutSection.appendChild(modelRow.root);
+    const clipRow = buildDropdownRow(node, "clip_source", "Text Encoder", CLIP_OPTIONS);
+    if (clipRow) saveLayoutSection.appendChild(clipRow.root);
+    const subfolderRow = buildTextRow(node, "subfolder", { placeholder: "Top Folder" });
+    if (subfolderRow) saveLayoutSection.appendChild(subfolderRow.root);
+    const modelFolderRow = buildTextRow(node, "model_folder", { placeholder: "Custom Model Name" });
+    const clipFolderRow = buildTextRow(node, "clip_folder", { placeholder: "Custom Text Encoder Name" });
+    if (modelFolderRow) saveLayoutSection.appendChild(modelFolderRow.root);
+    if (clipFolderRow) saveLayoutSection.appendChild(clipFolderRow.root);
+    inner.appendChild(saveLayoutSection);
+
+    // --- FILENAME ---
+    const filenameSection = buildSection("FILENAME");
+    const filenameBuilder = createTemplateBuilderWidget(node, "filename_datetime", "Build Filename");
+    filenameSection.appendChild(buildHeadingRow("Dateiname", filenameBuilder?.trigger));
+    const filenameRow = buildTextRow(node, "filename_datetime");
+    if (filenameRow) filenameSection.appendChild(filenameRow.root);
+    const collisionRow = buildDropdownRow(node, "collision_mode", "Datei vorhanden",
+        ["increment", "overwrite", "error", "seconds"],
+        { optionLabels: { increment: "Increment number", overwrite: "Overwrite", error: "Error", seconds: "Add seconds" } });
+    if (collisionRow) filenameSection.appendChild(collisionRow.root);
+    const detectionRow = buildDropdownRow(node, "detection_info", "Detection-Informationen", ["Off", "Summary", "Verbose"]);
+    if (detectionRow) filenameSection.appendChild(detectionRow.root);
+    inner.appendChild(filenameSection);
+
+    // --- OUTPUT ---
+    const outputSection = buildSection("OUTPUT");
+    const formatSeg = buildSegmentedControl(node, "image_format", IMAGE_FORMAT_IDS, {
+        getTitle: (id) => `Save as ${id}`,
+    });
+    node.__saveImageCleanFormatSeg = formatSeg;
+    if (formatSeg) outputSection.appendChild(formatSeg.root);
+    const qualityRow = buildSliderRow(node, "image_quality", "Image Quality", { min: 1, max: 100 });
+    node.__saveImageCleanQualityRow = qualityRow;
+    if (qualityRow) outputSection.appendChild(qualityRow.root);
+    const metadataRow = buildSwitchRow(node, "export_workflow_metadata", "Export Workflow Metadata");
+    node.__saveImageCleanMetadataRow = metadataRow;
+    if (metadataRow) outputSection.appendChild(metadataRow.root);
+    const saveModeSeg = buildSegmentedControl(node, "save_mode", SAVE_MODE_IDS, {
+        getTitle: (id) => (id === "Preview"
+            ? "Show the result without saving; save individual images later"
+            : "Save immediately, as before"),
+    });
+    node.__saveImageCleanSaveModeSeg = saveModeSeg;
+    if (saveModeSeg) outputSection.appendChild(saveModeSeg.root);
+    inner.appendChild(outputSection);
+
+    // --- Preview grid (Preview-mode only), existing internals reused ---
+    injectPreviewGridCss();
+    const gridContainer = el("div", "sic-preview-grid");
+    gridContainer.style.display = "none";
+    const gridBody = el("div", "sic-preview-grid-body");
+    gridContainer.appendChild(gridBody);
+    node.__saveImageCleanPreviewGridRefs = { container: gridContainer, body: gridBody };
+    inner.appendChild(gridContainer);
+
+    // --- ERWEITERT (gear panel trigger lives in its own small row) ---
+    const advanced = createAdvancedPanel(node);
+    const advRow = el("div", "sic-section-head");
+    const advLabel = el("span", "sic-eyebrow", "ERWEITERT");
+    advRow.appendChild(advLabel);
+    advRow.appendChild(advanced.trigger);
+    inner.appendChild(advRow);
+
+    // --- AUSGABEPFAD, existing internals reused ---
+    const helpRoot = buildHelpPanelContent(node);
+    inner.appendChild(helpRoot);
+
+    const rootWidget = node.addDOMWidget("save_image_clean_root", "custom", root, {
+        getMinHeight: () => measureRootFloor(node, inner),
+        serialize: false,
+        hideOnZoom: false,
+        margin: 0,
+    });
+    // Plan code originally omitted this line (caught before committing, not
+    // live-verified): comfyui_frontend_package 1.53.10's
+    // serialiseWidgetValues()/widgets_values restore both check
+    // widget.serialize === false directly - the addDOMWidget options.serialize
+    // flag above is never copied there (same root cause as the 2026-10-12
+    // widgets_values corruption bug this plan's earlier tasks already fixed
+    // for every other custom widget). Without this, the single root widget
+    // would itself get counted as a real positional widgets_values slot.
+    rootWidget.serialize = false;
+}
+
 app.registerExtension({
     name: "comfyui-save-image-organized.save-image-organized-ux",
     async beforeRegisterNodeDef(nodeType, nodeData) {
@@ -1849,16 +1738,7 @@ app.registerExtension({
             const result = onConfigure?.apply(this, arguments);
             requestAnimationFrame(() => {
                 setFriendlyLabels(this);
-                const pathBuilder = createTemplateBuilderWidget(this, "path_template", "Build Path");
-                const filenameBuilder = createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
-                ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
-                ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
-                createFormatButtonsWidget(this);
-                createSaveModeToggleWidget(this);
-                createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
-                createSwitchRowWidget(this, "export_workflow_metadata", "Export Workflow Metadata"); // Task 4: styled pill switch
-                createPreviewGridWidget(this);
-                createHelpPanelWidget(this);
+                buildNodeUI(this);
                 hookWidgetUpdates(this);
                 updateHelp(this);
             });
@@ -1869,16 +1749,7 @@ app.registerExtension({
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
             setFriendlyLabels(this);
-            const pathBuilder = createTemplateBuilderWidget(this, "path_template", "Build Path");
-            const filenameBuilder = createTemplateBuilderWidget(this, "filename_datetime", "Build Filename");
-            ensureSectionLabel(this, "save_layout", "Save Layout", "path_template", pathBuilder?.trigger);
-            ensureSectionLabel(this, "filename", "Filename", "filename_datetime", filenameBuilder?.trigger);
-            createFormatButtonsWidget(this);
-            createSaveModeToggleWidget(this);
-            createTextRowWidget(this, "path_template"); // Task 6: styled row for Save Layout; Filename/Top Folder/Custom Names follow in Task 8's buildNodeUI
-            createSwitchRowWidget(this, "export_workflow_metadata", "Export Workflow Metadata"); // Task 4: styled pill switch
-            createPreviewGridWidget(this);
-            createHelpPanelWidget(this);
+            buildNodeUI(this);
             hookWidgetUpdates(this);
             updateHelp(this);
             return result;
