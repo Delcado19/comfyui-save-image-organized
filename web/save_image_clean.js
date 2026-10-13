@@ -1786,10 +1786,13 @@ function updateContextualVisibility(node) {
         metadataRow.root.classList.toggle("disabled", formatValue !== "PNG");
     }
 
-    const newSize = node.computeSize();
-    newSize[0] = Math.max(newSize[0], node.size[0]);
-    newSize[1] = Math.max(newSize[1], node.size[1]);
-    node.setSize?.(newSize);
+    // No manual setSize() here - the root DOM widget's getMinHeight (see
+    // measureRootFloor) already grows the node for contextual show/hide,
+    // same floor-only pattern as Task 10. Found live 2026-10-13: calling
+    // node.setSize() on every widget edit replaced node.size with a new
+    // array on each call, which fights litegraph's own in-progress resize
+    // drag (it mutates the array reference captured at drag-start) - the
+    // node became unresizable and lost its corner resize handle entirely.
     node.setDirtyCanvas?.(true, true);
 }
 
@@ -1816,11 +1819,21 @@ app.registerExtension({
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
-            setFriendlyLabels(this);
-            buildNodeUI(this);
-            hookWidgetUpdates(this);
-            updateHelp(this);
-            updateContextualVisibility(this);
+            // Deferred to match `configure()` below: on a freshly-dropped
+            // node, ComfyUI's native STRING widgets (path_template,
+            // filename_datetime, subfolder, model_folder, clip_folder) do
+            // not have `.inputEl` populated yet at this synchronous point,
+            // so buildTextRow()'s `!widget.inputEl` guard silently skips
+            // them - they stay un-hidden native widgets instead of custom
+            // rows (found live 2026-10-13: all 5 text fields leaking above
+            // the custom UI on a fresh node). One frame later it's ready.
+            requestAnimationFrame(() => {
+                setFriendlyLabels(this);
+                buildNodeUI(this);
+                hookWidgetUpdates(this);
+                updateHelp(this);
+                updateContextualVisibility(this);
+            });
             return result;
         };
 
