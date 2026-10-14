@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-14
+
 ### Fixed
 
 - `Preview`-mode single-image thumbnail now fills the available node height instead of staying capped at a fixed 420px, so enlarging the node zooms the image instead of leaving blank space below `Example Output`

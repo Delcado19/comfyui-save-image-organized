@@ -43,7 +43,7 @@ Use this role for all Git operations in this repository.
 For release verification, prefer:
 
 ```powershell
-H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection
+G:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag <tag> --github --workflows --fail-on-unresolved-detection
 ```
 
 ## Release Pipeline Agent
@@ -57,10 +57,10 @@ Use this role to prepare and publish a complete release.
 3. Run all checks in order:
    ```powershell
    node --check web\save_image_clean.js
-   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m py_compile nodes.py
-   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m pytest
-   H:\ComfyUI-Easy-Install\python_embeded\python.exe -m ruff check .
-   H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --workflows
+   G:\ComfyUI-Easy-Install\python_embeded\python.exe -m py_compile nodes.py
+   G:\ComfyUI-Easy-Install\python_embeded\python.exe -m pytest
+   G:\ComfyUI-Easy-Install\python_embeded\python.exe -m ruff check .
+   G:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --workflows
    ```
 4. Update `CHANGELOG.md`: move `[Unreleased]` entries to `[X.Y.Z] - YYYY-MM-DD`.
 5. Update `version` in `pyproject.toml`.
@@ -71,7 +71,7 @@ Use this role to prepare and publish a complete release.
 10. Create GitHub Release with the new `CHANGELOG.md` section as notes.
 11. Run the final gate:
     ```powershell
-    H:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag vX.Y.Z --github --workflows --fail-on-unresolved-detection
+    G:\ComfyUI-Easy-Install\python_embeded\python.exe tools\check_release_ready.py --tag vX.Y.Z --github --workflows --fail-on-unresolved-detection
     ```
 
 ### Autonomy

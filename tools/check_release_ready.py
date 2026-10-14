@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_PYTHON = Path(r"H:\ComfyUI-Easy-Install\python_embeded\python.exe")
+DEFAULT_PYTHON = Path(r"G:\ComfyUI-Easy-Install\python_embeded\python.exe")
 
 
 @dataclass
