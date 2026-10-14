@@ -443,7 +443,7 @@ function getWidget5(node, name) {
  * title=) fixes both tooltip paths at once regardless of which one wins
  * the hover.
  */
-export function buildTextRow(node, widgetName, { placeholder } = {}) {
+export function buildTextRow(node, widgetName, { placeholder, tokenLabel } = {}) {
     const widget = getWidget5(node, widgetName);
     if (!widget) {
         return null;
@@ -463,9 +463,16 @@ export function buildTextRow(node, widgetName, { placeholder } = {}) {
     // Compatibility shim - see the function doc comment above.
     widget.inputEl = inputEl;
 
+    // tokenLabel (e.g. "%TOP_FOLDER%") keeps the hover tooltip naming which
+    // template token this row fills once it has a value and its placeholder
+    // text is no longer visible (user report 2026-10-14: a filled-in row
+    // like "SDXL 1.0" gave no hint it was %TOP_FOLDER%).
     const syncTitle = () => {
-        inputEl.title = inputEl.value;
-        widget.tooltip = inputEl.value;
+        const title = tokenLabel
+            ? (inputEl.value ? `${tokenLabel} → ${inputEl.value}` : tokenLabel)
+            : inputEl.value;
+        inputEl.title = title;
+        widget.tooltip = title;
     };
     inputEl.addEventListener("input", () => {
         widget.value = inputEl.value;

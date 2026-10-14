@@ -2073,6 +2073,11 @@ class SaveImageClean:
                         "type": "temp",
                         "node_id": node_key,
                         "run_token": preview_run_token,
+                        # Forwarded so the preview-mode thumbnail can show a
+                        # "WxH" readout without re-deriving it client-side
+                        # (user request 2026-10-14).
+                        "width": image_width,
+                        "height": image_height,
                     }
                 )
                 continue

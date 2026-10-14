@@ -783,19 +783,27 @@ function injectPreviewGridCss() {
         // image/Save button/Example Output past the node's own right edge
         // (litegraph draws the node boundary independently of DOM layout,
         // so overflowing DOM content isn't clipped by anything on its own).
-        ".sic-preview-grid{display:flex;flex-direction:column;min-width:0;}",
+        // flex:1/min-height:0 down this whole chain (grid -> body -> cell ->
+        // thumb) so extra height from a manual node resize goes INTO the
+        // image instead of sitting as dead space below it (user report
+        // 2026-10-14: a tall node left a big empty gap with the image still
+        // capped at its old fixed max-height). display:none when there's no
+        // preview means flex:1 costs nothing in that state.
+        ".sic-preview-grid{display:flex;flex-direction:column;min-width:0;flex:1;min-height:0;}",
         ".sic-preview-grid-body{display:flex;flex-wrap:wrap;gap:8px;padding:6px 8px;min-width:0;}",
         ".sic-preview-cell{display:flex;flex-direction:column;align-items:center;gap:4px;width:92px;min-width:0;}",
         ".sic-preview-thumb{width:100%;max-width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;",
         "border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.2);}",
+        ".sic-preview-dims{font-size:9px;color:#9d9d9d;}",
         // Single-image run (the common case): fill the available node width
-        // instead of staying at the fixed grid-thumbnail size - a preview
+        // AND height instead of staying at a fixed max-height - a preview
         // node you can't make out the image on defeats its own purpose
-        // (user request 2026-10-13). Batches of 2+ keep the compact grid.
-        ".sic-preview-grid-body.sic-preview-single{flex-wrap:nowrap;}",
-        ".sic-preview-grid-body.sic-preview-single .sic-preview-cell{width:100%;}",
+        // (user request 2026-10-13, enlarged on 2026-10-14). Batches of 2+
+        // keep the compact grid.
+        ".sic-preview-grid-body.sic-preview-single{flex-wrap:nowrap;flex:1;min-height:0;}",
+        ".sic-preview-grid-body.sic-preview-single .sic-preview-cell{width:100%;flex:1;min-height:0;}",
         ".sic-preview-grid-body.sic-preview-single .sic-preview-thumb{",
-        "aspect-ratio:auto;width:100%;height:auto;max-height:420px;object-fit:contain;}",
+        "aspect-ratio:auto;width:100%;height:100%;flex:1;min-height:0;object-fit:contain;}",
         // The Save button's width:100% matched the 92px grid thumbnail fine,
         // but inherited the single-image thumb's full card width too,
         // reading as oversized (user request 2026-10-13) - natural width,
@@ -833,6 +841,13 @@ function buildPreviewCell(node, entry, { showSaveButton }) {
     img.src = buildPreviewImageUrl(entry);
     img.alt = `Preview ${entry.batch_index}`;
     cell.appendChild(img);
+
+    // Pixel size readout (user request 2026-10-14) - nodes.py already
+    // measures width/height per image for the path template, so this just
+    // forwards it rather than re-deriving it from the loaded <img>.
+    if (entry.width && entry.height) {
+        cell.appendChild(el("div", "sic-preview-dims", `${entry.width}×${entry.height}`));
+    }
 
     // Save mode already saves every image on its own; the per-thumbnail
     // Save button only makes sense in Preview mode (user request 2026-10-13).
@@ -1702,8 +1717,13 @@ function injectRootCss() {
         // rendered size, so any future layout bug that pushes content wider
         // than the node would otherwise bleed past its right edge with
         // nothing to clip it, instead of just looking wrong internally.
-        ".sic-root{width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;}",
-        ".sic-inner{display:flex;flex-direction:column;min-width:0;",
+        // height:100% on both (user report 2026-10-14: enlarging the node by
+        // hand left a dead gray gap below Example Output/Advanced instead of
+        // growing the preview image) - without it, .sic-inner only ever sizes
+        // to its own content height, so a node resized taller than that
+        // content just shows empty canvas below a short, unstretched column.
+        ".sic-root{width:100%;height:100%;max-width:100%;box-sizing:border-box;overflow:hidden;}",
+        ".sic-inner{display:flex;flex-direction:column;min-width:0;height:100%;",
         "gap:var(--sic-space-lg);padding:var(--sic-space-outer) var(--sic-space-md);box-sizing:border-box;}",
         ".sic-section{display:flex;flex-direction:column;gap:var(--sic-space-sm);}",
         ".sic-section-head{display:flex;align-items:center;justify-content:space-between;",
@@ -1769,17 +1789,31 @@ function buildNodeUI(node) {
     saveLayoutSection.appendChild(buildHeadingRow("Folder Structure", pathBuilder?.trigger));
     const pathRow = buildTextRow(node, "path_template");
     if (pathRow) saveLayoutSection.appendChild(pathRow.root);
-    const subfolderRow = buildTextRow(node, "subfolder", { placeholder: "Top Folder" });
+    const subfolderRow = buildTextRow(node, "subfolder", { placeholder: "Top Folder", tokenLabel: "%TOP_FOLDER%" });
     if (subfolderRow) saveLayoutSection.appendChild(subfolderRow.root);
     inner.appendChild(saveLayoutSection);
 
     // --- FILENAME (minimal: filename only) ---
-    const filenameSection = buildSection("FILENAME");
+    // No "FILENAME" eyebrow here (unlike SAVE LAYOUT's "Folder Structure"
+    // heading, which reads as a distinct label): the heading row right below
+    // already says "Filename", so the eyebrow was just the same word printed
+    // twice (user report 2026-10-14).
+    const filenameSection = buildSection();
     const filenameBuilder = createTemplateBuilderWidget(node, "filename_datetime", "Build Filename");
     filenameSection.appendChild(buildHeadingRow("Filename", filenameBuilder?.trigger));
     const filenameRow = buildTextRow(node, "filename_datetime");
     if (filenameRow) filenameSection.appendChild(filenameRow.root);
     inner.appendChild(filenameSection);
+
+    // --- Advanced Settings trigger row (moved up here, 2026-10-14 user
+    // report: it used to sit after Example Output near the node's bottom,
+    // disconnected from the rest of the settings it toggles) ---
+    const advanced = createAdvancedPanel(node);
+    const advRow = el("div", "sic-section-head");
+    const advLabel = el("span", "sic-eyebrow", "ADVANCED");
+    advRow.appendChild(advLabel);
+    advRow.appendChild(advanced.trigger);
+    inner.appendChild(advRow);
 
     // --- OUTPUT + MODE, one wrapping row of pill groups at natural width
     // (Pixaroma's save_image/ui.mjs .pix-si-btnrow pattern, named by the
@@ -1819,14 +1853,6 @@ function buildNodeUI(node) {
     // is re-parented into the Advanced panel below, same refs either way. ---
     const helpRoot = buildHelpPanelContent(node);
     inner.appendChild(helpRoot);
-
-    // --- Advanced Settings trigger row ---
-    const advanced = createAdvancedPanel(node);
-    const advRow = el("div", "sic-section-head");
-    const advLabel = el("span", "sic-eyebrow", "ADVANCED");
-    advRow.appendChild(advLabel);
-    advRow.appendChild(advanced.trigger);
-    inner.appendChild(advRow);
 
     const helpRefs = node.__saveImageCleanHelpRefs;
     if (helpRefs) {

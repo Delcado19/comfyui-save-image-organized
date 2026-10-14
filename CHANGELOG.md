@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `Preview`-mode single-image thumbnail now fills the available node height instead of staying capped at a fixed 420px, so enlarging the node zooms the image instead of leaving blank space below `Example Output`
+- `Advanced Settings` (gear icon) moved up to directly under `Filename`, above the `Image Format`/`Save`/`Preview` button row, instead of sitting disconnected near the node's bottom
+- Removed the redundant `FILENAME` section label that repeated the `Filename` heading directly below it
+- `Top Folder`'s hover tooltip now shows `%TOP_FOLDER% → <value>` instead of just the typed value, so it stays identifiable once filled in
+- `Preview`-mode thumbnails now show the image's pixel size (e.g. `1280×720`)
+
 ## [0.8.0] - 2026-10-13
 
 ### Added
