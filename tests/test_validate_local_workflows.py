@@ -210,6 +210,23 @@ def test_scan_workflows_detects_saved_ui_workflow(workspace_tmp_path):
     assert rows[0].text_encoder == "SDXL/Anubis XL_v1.safetensors"
 
 
+def test_scan_workflows_ignores_json_inside_hidden_tool_directories(workspace_tmp_path):
+    # Regression test: a workflows folder that is itself a git repo (e.g. a
+    # synced workflow collection) can contain .claude/.remember/.git metadata
+    # JSON that isn't a ComfyUI workflow at all. Those used to be scanned and
+    # reported as "unsupported JSON workflow format" errors.
+    (workspace_tmp_path / "workflow.json").write_text(json.dumps(_ui_workflow()), encoding="utf-8")
+    hidden_dir = workspace_tmp_path / ".claude"
+    hidden_dir.mkdir()
+    (hidden_dir / "settings.local.json").write_text(json.dumps({"permissions": {}}), encoding="utf-8")
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert errors == []
+    assert len(rows) == 1
+    assert rows[0].status == "OK"
+
+
 def test_scan_workflows_follows_unnamed_reroute_inputs(workspace_tmp_path):
     (workspace_tmp_path / "workflow.json").write_text(
         json.dumps(_ui_workflow_with_unnamed_reroute()),

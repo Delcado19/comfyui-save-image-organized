@@ -8,6 +8,7 @@ __pycache__/
 .venv-tests/
 venv/
 env/
+uv.lock
 
 .pytest_cache/
 .pytest-tmp/

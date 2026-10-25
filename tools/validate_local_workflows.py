@@ -182,7 +182,18 @@ def workflow_to_prompt(data: Any) -> dict[str, dict[str, Any]]:
 
 
 def _iter_json_files(root: Path) -> list[Path]:
-    return sorted(path for path in root.rglob("*.json") if path.is_file() and not path.name.startswith("."))
+    # Tool metadata directories such as .claude/.remember/.git can live inside a
+    # workflows folder (e.g. a git-tracked workflow collection) without holding
+    # any actual ComfyUI workflow JSON, so skip hidden directory components -
+    # not just hidden filenames - to avoid "unsupported JSON workflow format"
+    # false positives on their config/cache files.
+    return sorted(
+        path
+        for path in root.rglob("*.json")
+        if path.is_file()
+        and not path.name.startswith(".")
+        and not any(part.startswith(".") for part in path.relative_to(root).parts[:-1])
+    )
 
 
 def _find_save_ids(prompt: dict[str, dict[str, Any]]) -> list[str]:
