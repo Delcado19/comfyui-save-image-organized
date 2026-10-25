@@ -213,9 +213,16 @@ def scan_workflows(workflow_root: Path, *, limit: int | None = None) -> tuple[li
 
     for path in _iter_json_files(workflow_root):
         try:
-            prompt = workflow_to_prompt(_read_json(path))
-        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            data = _read_json(path)
+        except (OSError, json.JSONDecodeError) as exc:
             errors.append(f"{path}: {exc}")
+            continue
+        try:
+            prompt = workflow_to_prompt(data)
+        except ValueError:
+            # Not a ComfyUI workflow at all (e.g. a prompt-tag library or other
+            # plain JSON data file saved next to real workflows) - not a
+            # validator error, just skip it.
             continue
 
         save_ids = _find_save_ids(prompt)

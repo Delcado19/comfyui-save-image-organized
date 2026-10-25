@@ -227,6 +227,30 @@ def test_scan_workflows_ignores_json_inside_hidden_tool_directories(workspace_tm
     assert rows[0].status == "OK"
 
 
+def test_scan_workflows_skips_non_workflow_json_without_reporting_an_error(workspace_tmp_path):
+    # A plain JSON data file (e.g. a prompt-tag library) can sit next to real
+    # workflows without being one. That's not a validator error, just skip it.
+    (workspace_tmp_path / "workflow.json").write_text(json.dumps(_ui_workflow()), encoding="utf-8")
+    (workspace_tmp_path / "prompt-tags.json").write_text(
+        json.dumps({"version": 1, "categories": ["Styles"]}), encoding="utf-8"
+    )
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert errors == []
+    assert len(rows) == 1
+
+
+def test_scan_workflows_still_reports_malformed_json_as_an_error(workspace_tmp_path):
+    (workspace_tmp_path / "broken.json").write_text("{not valid json", encoding="utf-8")
+
+    rows, errors = scan_workflows(workspace_tmp_path)
+
+    assert rows == []
+    assert len(errors) == 1
+    assert "broken.json" in errors[0]
+
+
 def test_scan_workflows_follows_unnamed_reroute_inputs(workspace_tmp_path):
     (workspace_tmp_path / "workflow.json").write_text(
         json.dumps(_ui_workflow_with_unnamed_reroute()),
