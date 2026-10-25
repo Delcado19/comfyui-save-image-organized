@@ -1238,9 +1238,21 @@ def _render_path_template(template: str, variables: dict[str, str], now: datetim
     return rendered
 
 
-def _render_filename_value(pattern: str, now: datetime) -> str:
+def _render_filename_value(pattern: str, now: datetime, variables: dict[str, str] | None = None) -> str:
     rendered = DATE_TOKEN_RE.sub(lambda match: _render_date_format(match.group(1), now), pattern or "")
     rendered = _replace_strftime_tokens(rendered, now)
+    if variables:
+        # The Filename field can use the same %VARIABLE% tokens as the Output Path
+        # Template (e.g. %SAMPLER%, %SEED%). Resolve them here too, otherwise they
+        # survive into the composed %FILENAME% value and get flagged as "unknown
+        # placeholders" by _render_path_template instead of being rendered.
+        def replace_variable(match: re.Match[str]) -> str:
+            value = variables.get(match.group(1))
+            if value is None:
+                return match.group(0)
+            return _apply_template_filters(value, _parse_template_filters(match.group(2), match.group(0)))
+
+        rendered = VARIABLE_TOKEN_RE.sub(replace_variable, rendered)
     return _sanitize_path_component(rendered)
 
 
@@ -1462,7 +1474,8 @@ class SaveImageClean:
                         "default": DEFAULT_FILENAME_PATTERN,
                         "tooltip": (
                             "Filename pattern. The default is year-month-day_hour-minute-second. "
-                            "Supports plain text, %date:...%, and the small %strftime:...% subset."
+                            "Supports plain text, %date:...%, the small %strftime:...% subset, and "
+                            "the same %VARIABLE% tokens as the Output Path Template (e.g. %SEED%, %SAMPLER%)."
                         ),
                     },
                 ),
@@ -1716,10 +1729,12 @@ class SaveImageClean:
             "BATCH_INDEX": str(batch_index),
             "BATCH_SIZE": str(batch_size),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
-            "FILENAME": _render_filename_value(filename_datetime or DEFAULT_FILENAME_PATTERN, now),
         }
         variables["MODEL_NAME"] = _resolve_selected_variable(model_source, variables, kind="model")
         variables["TEXT_ENCODER_NAME"] = _resolve_selected_variable(clip_source, variables, kind="clip")
+        # MODEL_NAME/TEXT_ENCODER_NAME must already be in `variables` before this call so
+        # the Filename field can also use them (same %VARIABLE% tokens as the path template).
+        variables["FILENAME"] = _render_filename_value(filename_datetime or DEFAULT_FILENAME_PATTERN, now, variables)
 
         detection_state = {
             "RAW_ACTIVE_MODEL_NAME": active_names["ACTIVE_UNET"] or "",

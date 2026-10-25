@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-10-25
+
+### Fixed
+
+- `Filename` field now resolves `%VARIABLE%` tokens (`%SEED%`, `%SAMPLER%`, `%SCHEDULER%`, `%MODEL_NAME%`, `%TEXT_ENCODER_NAME%`, etc. - every chip in both the "Build Path" and "Build Filename" panels), the same as the Output Path Template. Previously it only rendered `%date:...%`/`%strftime:...%` and left other tokens as literal text, which then surfaced as a confusing `Unknown path template placeholders` error once that text was inserted into `%FILENAME%`
+
 ## [0.8.1] - 2026-10-14
 
 ### Fixed

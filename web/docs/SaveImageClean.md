@@ -126,6 +126,8 @@ folder nested inside an identical one (`my-checkpoint/file.png`, not
 ### Filename
 
 This controls the filename only, without the file extension (`.png`, `.jpg`, or `.webp`, depending on `Image Format`).
+Supports `%date:...%`, `%strftime:...%`, and the same `%VARIABLE%` tokens as the Output Path Template
+(e.g. `%SEED%`, `%SAMPLER%`, `%SCHEDULER%`).
 
 Default:
 

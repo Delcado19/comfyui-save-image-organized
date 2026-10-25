@@ -111,7 +111,8 @@ one folder nested inside an identical one (`my-checkpoint/file.png`, not
 
 ### Filename
 
-Controls what `%FILENAME%` becomes.
+Controls what `%FILENAME%` becomes. Supports `%date:...%`, `%strftime:...%`, and the same
+`%VARIABLE%` tokens as the Output Path Template (e.g. `%SEED%`, `%SAMPLER%`, `%SCHEDULER%`).
 
 Default:
 

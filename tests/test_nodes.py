@@ -1332,6 +1332,90 @@ def test_save_images_supports_convenience_variables(workspace_tmp_path):
     assert payload["denoise"] == "0.75"
 
 
+def test_save_images_resolves_convenience_variables_inside_filename_field(workspace_tmp_path):
+    # Regression test: the Filename field previously only resolved %date:...% and
+    # %strftime:...% tokens, so %SAMPLER%/%SCHEDULER%/%SEED% typed there survived
+    # unresolved into %FILENAME% and the path-template renderer rejected them as
+    # "Unknown path template placeholders" even though they are valid variables.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+    prompt = {
+        "1": {
+            "class_type": "SaveImageClean",
+            "inputs": {"images": ["2", 0]},
+        },
+        "2": {
+            "class_type": "KSampler",
+            "inputs": {
+                "seed": 7,
+                "sampler_name": "euler",
+                "scheduler": "simple",
+            },
+        },
+    }
+
+    result = saver.save_images(
+        images=images,
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        filename_datetime="shot-%SCHEDULER%-%SAMPLER%-%SEED%",
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    assert result["ui"]["images"][0]["filename"] == "shot-simple-euler-7.png"
+
+
+def test_save_images_resolves_every_builder_chip_variable_in_filename_field(workspace_tmp_path):
+    # Regression test: MODEL_NAME/TEXT_ENCODER_NAME are computed from the other
+    # variables (via _resolve_selected_variable) and were being assigned *after*
+    # FILENAME was rendered, so those two "Build Filename" chips silently failed
+    # to resolve even though every other chip worked. Exercise every chip offered
+    # by both the "Build Path" and "Build Filename" panels (web/save_image_clean.js
+    # TEMPLATE_BUILDER_GROUPS) at once, typed into the Filename field.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+    prompt = {
+        "1": {"class_type": "SaveImageClean", "inputs": {"images": ["2", 0]}},
+        "2": {
+            "class_type": "CheckpointLoaderSimple",
+            "inputs": {"ckpt_name": "myModel_v1.safetensors"},
+        },
+    }
+
+    filename_template = (
+        "%TOP_FOLDER%_%MODEL_NAME%_%TEXT_ENCODER_NAME%_%BATCH%_"
+        "%WIDTH%_%HEIGHT%_%SEED%_%STEPS%_%CFG%_%SAMPLER%_%SCHEDULER%_%DENOISE%_%BATCH_INDEX%_%BATCH_SIZE%_"
+        "%FRIENDLY_MODEL_NAME%_%CLEAN_FRIENDLY_MODEL_NAME%_%EXACT_MODEL_NAME%_%CUSTOM_MODEL_NAME%_"
+        "%FRIENDLY_TEXT_ENCODER_NAME%_%CLEAN_FRIENDLY_TEXT_ENCODER_NAME%_%EXACT_TEXT_ENCODER_NAME%_"
+        "%CUSTOM_TEXT_ENCODER_NAME%_%MODEL_NAME:upper%_%date:yyyy-MM-dd%"
+    )
+
+    result = saver.save_images(
+        images=images,
+        path_template=nodes.SaveImageClean.DEFAULT_TEMPLATE,
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        filename_datetime=filename_template,
+        subfolder="top",
+        prompt=prompt,
+        unique_id="1",
+    )
+
+    filename = result["ui"]["images"][0]["filename"]
+    assert "%" not in filename
+    assert "myModel" in filename
+
+
 def test_save_images_returns_filename_and_absolute_path_outputs(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

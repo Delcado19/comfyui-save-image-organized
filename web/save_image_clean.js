@@ -574,10 +574,22 @@ function renderStrftime(format, now) {
     });
 }
 
-function buildFilenameValue(node, now) {
+function buildFilenameValue(node, now, variables = null) {
     const pattern = String(getWidget(node, "filename_datetime")?.value || DEFAULT_FILENAME);
     let rendered = pattern.replace(/%date:([^%]+)%/g, (_, format) => renderDateFormat(format, now));
     rendered = rendered.replace(/%strftime:([^%]+)%/g, (_, format) => renderStrftime(format, now));
+    if (variables) {
+        // Mirrors nodes.py's _render_filename_value: the Filename field accepts the
+        // same %VARIABLE% tokens as the Output Path Template (e.g. %SEED%, %SAMPLER%),
+        // otherwise this preview mismatches the backend render and leaves the tokens
+        // as literal text inside %FILENAME%.
+        rendered = rendered.replace(VARIABLE_TOKEN_RE, (placeholder, key, filterText) => {
+            if (variables[key] === undefined) {
+                return placeholder;
+            }
+            return applyTemplateFilters(variables[key], parseTemplateFilters(filterText, placeholder, []));
+        });
+    }
     return sanitizePathPart(rendered);
 }
 
@@ -638,12 +650,13 @@ function buildVariables(node, now, detectionSnapshot = null) {
         DENOISE: String(detectionSnapshot?.denoise || "1"),
         BATCH_INDEX: String(detectionSnapshot?.batch_index || "1"),
         BATCH_SIZE: String(detectionSnapshot?.batch_size || "1"),
-        FILENAME: buildFilenameValue(node, now),
     };
     variables.BATCH = Number(variables.BATCH_SIZE) > 1 ? `_${variables.BATCH_INDEX}-of-${variables.BATCH_SIZE}` : "";
-
     variables.MODEL_NAME = resolveSelectedValue(modelSource, variables, "model");
     variables.TEXT_ENCODER_NAME = resolveSelectedValue(clipSource, variables, "clip");
+    // MODEL_NAME/TEXT_ENCODER_NAME must already be set before this call so the Filename
+    // field can also use them (same %VARIABLE% tokens as the path template).
+    variables.FILENAME = buildFilenameValue(node, now, variables);
     return variables;
 }
 
@@ -1251,11 +1264,11 @@ function createTemplateBuilderWidget(node, widgetName, triggerLabel) {
 
     const updatePreview = () => {
         const now = new Date();
+        const variables = buildVariables(node, now, node.__saveImageCleanLastRunInfo?.detection || null);
         if (widgetName === "filename_datetime") {
-            preview.textContent = buildFilenameValue(node, now);
+            preview.textContent = buildFilenameValue(node, now, variables);
             return;
         }
-        const variables = buildVariables(node, now, node.__saveImageCleanLastRunInfo?.detection || null);
         preview.textContent = buildLayoutExample(node, variables, now).path;
     };
 
