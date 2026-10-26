@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-10-26
+
 ### Fixed
 
 - `Save`-mode thumbnail now fills the node like `Preview` mode's does, instead of ComfyUI's small native thumbnail strip, which never resized with the node. The full-size custom grid previously only rendered in `Preview` mode.
