@@ -185,7 +185,7 @@ ignored for PNG.
 `Save` (default) writes every image immediately, exactly as before. `Preview` stores the result in
 ComfyUI's temp folder, like `Preview Image` does, without writing anything to the final path yet.
 A single-image result fills the available node width instead of a small thumbnail; a batch shows
-as a compact grid. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
+as a compact grid — in both `Save` and `Preview` mode. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
 `Save` mode, since that mode already writes every image on its own); clicking it writes that one
 image to the path that was already resolved when the node ran. Nothing is written until you click
 `Save` on an image, and a parked preview is dropped the next time the node runs or ComfyUI

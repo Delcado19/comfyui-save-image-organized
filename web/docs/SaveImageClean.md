@@ -221,7 +221,7 @@ loader's name is used:
 `Save` (default) writes every image immediately. `Preview` shows the result using ComfyUI's own
 built-in temporary-image mechanism — the same one every `Preview Image` node already uses, not a new save
 location of our own. A single-image result fills the available node width instead of a small
-thumbnail; a batch shows as a compact grid. Each image gets its own `Save` button, shown only in
+thumbnail; a batch shows as a compact grid — in both `Save` and `Preview` mode. Each image gets its own `Save` button, shown only in
 `Preview` mode (omitted in `Save` mode, since that mode already writes every image on its own) so
 you can write it later, to the path already shown when the node ran. A parked
 preview disappears the next time the node runs again or ComfyUI restarts; there is no separate
@@ -230,7 +230,9 @@ discard action.
 Preview-mode images intentionally skip the standard `ui.images` channel that ComfyUI's
 history/queue panel and native image lightbox read from (a deliberate choice to avoid duplicating
 the custom save-button grid with the native thumbnail strip), so the per-image grid in the node
-itself is the only place to see and save a pending preview.
+itself is the only place to see and save a pending preview. In `Save` mode the already-saved file
+does go through `ui.images`, so the node clears the native thumbnail strip itself to avoid showing
+the same image twice — the full-size grid is what you see either way.
 
 `FILENAME`/`FILE_PATH` are empty strings in `Preview` mode, since nothing has been saved yet.
 

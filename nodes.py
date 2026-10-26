@@ -2113,11 +2113,28 @@ class SaveImageClean:
 
             _write_image_to_path(image, target_path, image_format, image_quality, metadata, compress_level=self.compress_level)
 
+            saved_subfolder = str(target_path.parent.relative_to(output_root)) if target_path.parent != output_root else ""
             saved.append(
                 {
                     "filename": target_path.name,
-                    "subfolder": str(target_path.parent.relative_to(output_root)) if target_path.parent != output_root else "",
+                    "subfolder": saved_subfolder,
                     "type": self.type,
+                }
+            )
+            # Mirrors Preview mode's preview_entries_ui (user report 2026-10-26: the
+            # Save-mode thumbnail used ComfyUI's native node.imgs rendering instead of
+            # our full-node-height custom grid, so the v0.8.1 "preview zoom" fix never
+            # applied here) - reuses the already-saved file instead of the temp dir, so
+            # no Save button is offered client-side (save_mode != "Preview" check in
+            # updatePreviewGrid's showSaveButton).
+            preview_entries_ui.append(
+                {
+                    "batch_index": batch_index,
+                    "filename": target_path.name,
+                    "subfolder": saved_subfolder,
+                    "type": self.type,
+                    "width": image_width,
+                    "height": image_height,
                 }
             )
 
@@ -2129,8 +2146,12 @@ class SaveImageClean:
         ui = {"images": saved, "text": text_output}
         if detection_ui_payload is not None:
             ui["save_image_clean"] = [detection_ui_payload]
-        if save_mode == "Preview" and preview_entries_ui:
+        if preview_entries_ui:
+            # Sent in both modes now (see the Save-branch append above); the
+            # pending-save cache below is Preview-only since Save mode has
+            # already written every file.
             ui["save_image_clean_preview"] = preview_entries_ui
+        if save_mode == "Preview" and preview_entries:
             _PREVIEW_CACHE[node_key] = preview_entries
 
         # Batches save N images but two STRING outputs can only report one;

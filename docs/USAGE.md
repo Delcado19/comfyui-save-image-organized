@@ -196,7 +196,7 @@ temporary-image mechanism (the same one `Preview Image` uses) instead of a save 
 This node adds no new temp folder or disk-accumulation logic beyond what every other preview node in
 ComfyUI already does.
 A single-image result fills the available node width instead of a small thumbnail; a batch shows
-as a compact grid. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
+as a compact grid — in both `Save` and `Preview` mode. Each image gets its own `Save` button, shown only in `Preview` mode (omitted in
 `Save` mode, since that mode already writes every image on its own). Clicking it writes that image
 to the path that was already resolved when the node ran, using the `Image Format`,
 `Image Quality`, and `Export Workflow Metadata` settings active at that time, not whatever they are
@@ -208,7 +208,9 @@ when ComfyUI restarts. There is no separate "discard" button.
 Preview-mode images intentionally do not go through the standard `ui.images` channel ComfyUI's
 history/queue panel and native image lightbox read from (this avoids duplicating the thumbnails
 in both the custom save-button grid and the native thumbnail strip), so the per-image grid in the
-node itself is the only place to see and save a pending preview.
+node itself is the only place to see and save a pending preview. In `Save` mode the already-saved
+file does go through `ui.images`, so the node's own code clears the native thumbnail strip to
+avoid showing the same image twice; the full-size grid is what you see either way.
 
 ### Loader Priority
 

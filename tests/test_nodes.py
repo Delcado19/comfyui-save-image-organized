@@ -1482,6 +1482,52 @@ def test_save_images_preview_mode_does_not_write_final_file(workspace_tmp_path, 
     assert temp_file.exists()
 
 
+def test_save_images_save_mode_also_populates_preview_grid(workspace_tmp_path, tmp_path):
+    # User report 2026-10-26: Save mode's thumbnail used ComfyUI's native
+    # node.imgs rendering (small, never resizes with the node) instead of the
+    # custom full-height preview grid that Preview mode already got in v0.8.1.
+    # save_images must now emit save_image_clean_preview in Save mode too, so
+    # the frontend grid (and its zoom CSS) renders regardless of mode.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    saver.temp_dir = str(tmp_path / "temp")
+    images = [DummyImage(np.zeros((2, 2, 3), dtype=np.float32))]
+
+    result = saver.save_images(
+        images=images,
+        path_template="%TOP_FOLDER%/%FILENAME%",
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=True,
+        subfolder="output-tests",
+        filename_datetime="save-mode-preview",
+        save_mode="Save",
+        prompt={"1": {"class_type": "SaveImageClean", "inputs": {}}},
+        unique_id="save-grid-node",
+    )
+
+    saved_file = workspace_tmp_path / "output-tests" / "save-mode-preview.png"
+    assert saved_file.exists()
+
+    preview_payload = result["ui"]["save_image_clean_preview"]
+    assert len(preview_payload) == 1
+    entry = preview_payload[0]
+    assert entry["batch_index"] == 1
+    assert entry["filename"] == "save-mode-preview.png"
+    assert entry["subfolder"] == "output-tests"
+    # Must point at the real saved file (type "output"), not Preview mode's
+    # "temp" dir, since there is nothing left to save via the per-cell button.
+    assert entry["type"] == "output"
+    assert entry["width"] == 2
+    assert entry["height"] == 2
+
+    # Save mode has already written the file, so there is no pending entry to
+    # cache for /save_image_organized/save_now.
+    assert "save-grid-node" not in nodes._PREVIEW_CACHE
+
+
 def test_save_images_preview_mode_replaces_prior_cache_entry_on_rerun(workspace_tmp_path, tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)

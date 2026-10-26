@@ -932,10 +932,15 @@ function updatePreviewGrid(node, message) {
     }
     refs.container.style.display = "flex";
     // The native per-node thumbnail strip is driven by node.imgs, populated by
-    // ComfyUI's own default onExecuted from message.images. Preview-mode temp
-    // images are intentionally kept out of message.images (see nodes.py's
-    // save_image_clean_preview key) so they never reach node.imgs in the first
-    // place; this clears it defensively in case that ever changes upstream.
+    // ComfyUI's own default onExecuted from message.images. In Preview mode
+    // the temp images never reach node.imgs in the first place (kept out of
+    // message.images, see nodes.py's save_image_clean_preview key), so this
+    // is purely defensive there. In Save mode, save_image_clean_preview now
+    // mirrors the already-saved files (user report 2026-10-26: that
+    // thumbnail used the native strip's fixed small size, never resized with
+    // the node like this grid does) and message.images IS populated, so this
+    // clear is load-bearing: without it, the native strip would render the
+    // same image a second time underneath this grid.
     node.imgs = [];
     node.setDirtyCanvas?.(true, true);
 }
