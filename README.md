@@ -257,7 +257,7 @@ Append `:lower`, `:upper`, or `:slug` to template variables or `%node.widget%` p
 %MODEL_NAME:slug%/%TEXT_ENCODER_NAME:slug%/%KSampler.seed%/%FILENAME%
 ```
 
-Filters can be chained, for example `%MODEL_NAME:lower:slug%`. `slug` converts text to lowercase path-friendly words separated by hyphens.
+Filters can be chained, for example `%MODEL_NAME:lower:slug%`. `slug` converts text to lowercase path-friendly words separated by hyphens. German umlauts are spelled out (`Grün Größe` becomes `gruen-groesse`).
 
 ### Date Formatting
 

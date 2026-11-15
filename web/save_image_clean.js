@@ -681,7 +681,12 @@ function buildLegacyExample(node, variables) {
 }
 
 function slugifyTemplateValue(value) {
-    const slug = String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    // Mirrors nodes.py _slugify_template_value: umlauts/ß are transliterated
+    // ("Grün" -> "gruen", "ß" -> "ss" like Python's casefold) instead of dropped.
+    const UMLAUTS = { "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss" };
+    const slug = String(value || "").toLowerCase()
+        .replace(/[äöüß]/g, (ch) => UMLAUTS[ch])
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     return slug || "unnamed";
 }
 

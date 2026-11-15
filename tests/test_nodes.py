@@ -2080,6 +2080,18 @@ def test_counter_rejects_unsupported_placements(workspace_tmp_path, path_templat
         _save_with_counter(saver, path_template=path_template, filename=filename)
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("Grün Größe", "gruen-groesse"),
+        ("ÄÖÜ Straße", "aeoeue-strasse"),
+        ("Z-Image Turbo", "z-image-turbo"),
+    ],
+)
+def test_slug_transliterates_german_umlauts(value, expected):
+    assert nodes._slugify_template_value(value) == expected
+
+
 def test_counter_survives_slug_filter_on_filename(workspace_tmp_path):
     # CodeRabbit review: %FILENAME:slug% used to strip the counter placeholder,
     # leaving every image of a batch on the same unnumbered name.

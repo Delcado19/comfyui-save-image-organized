@@ -1001,8 +1001,15 @@ def _parse_template_filters(filter_text: str, placeholder: str) -> list[str]:
     return filters
 
 
+# German umlauts are transliterated ("Grün" -> "gruen") instead of becoming a "-"
+# (user request 2026-11-15); casefold() already turns "ß" into "ss".
+# Mirrored in web/save_image_clean.js slugifyTemplateValue.
+_SLUG_TRANSLITERATION = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue"})
+
+
 def _slugify_template_value(value: str) -> str:
-    slug = SLUG_SEPARATOR_RE.sub("-", (value or "").casefold()).strip("-")
+    folded = (value or "").casefold().translate(_SLUG_TRANSLITERATION)
+    slug = SLUG_SEPARATOR_RE.sub("-", folded).strip("-")
     return slug or "unnamed"
 
 

@@ -340,7 +340,7 @@ Available filters:
 
 - `lower` lowercases the value
 - `upper` uppercases the value
-- `slug` converts text to lowercase path-friendly words separated by hyphens
+- `slug` converts text to lowercase path-friendly words separated by hyphens. German umlauts are spelled out (`Grün Größe` becomes `gruen-groesse`).
 
 Filters can be chained from left to right, for example `%MODEL_NAME:lower:slug%`.
 
