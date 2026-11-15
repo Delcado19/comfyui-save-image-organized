@@ -680,12 +680,19 @@ function buildLegacyExample(node, variables) {
     return parts.join("/");
 }
 
+const SLUG_TRANSLITERATION = {
+    "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss",
+    "æ": "ae", "œ": "oe", "ø": "o", "ð": "d", "þ": "th", "đ": "d", "ħ": "h",
+    "ı": "i", "ĸ": "q", "ŀ": "l", "ł": "l", "ŉ": "n", "ŋ": "ng", "ŧ": "t",
+};
+const SLUG_TRANSLITERATION_RE = new RegExp(`[${Object.keys(SLUG_TRANSLITERATION).join("")}]`, "g");
+
 function slugifyTemplateValue(value) {
-    // Mirrors nodes.py _slugify_template_value: umlauts/ß are transliterated
-    // ("Grün" -> "gruen", "ß" -> "ss" like Python's casefold) instead of dropped.
-    const UMLAUTS = { "ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss" };
-    const slug = String(value || "").toLowerCase()
-        .replace(/[äöüß]/g, (ch) => UMLAUTS[ch])
+    // Mirrors nodes.py _slugify_template_value - keep the table identical. "ß" is
+    // listed here because toLowerCase() keeps it, while Python's casefold() makes "ss".
+    const slug = String(value || "").normalize("NFC").toLowerCase()
+        .replace(SLUG_TRANSLITERATION_RE, (ch) => SLUG_TRANSLITERATION[ch])
+        .normalize("NFKD").replace(/\p{M}/gu, "")
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     return slug || "unnamed";
 }

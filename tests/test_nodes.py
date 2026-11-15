@@ -2086,6 +2086,13 @@ def test_counter_rejects_unsupported_placements(workspace_tmp_path, path_templat
         ("Grün Größe", "gruen-groesse"),
         ("ÄÖÜ Straße", "aeoeue-strasse"),
         ("Z-Image Turbo", "z-image-turbo"),
+        # Language-neutral convention for everything else: accents dropped ...
+        ("Crème Brûlée à la Française", "creme-brulee-a-la-francaise"),
+        ("Señor Año Ñandú", "senor-ano-nandu"),
+        # ... and the undecomposable European letters from the table.
+        ("Skjønn Ærø Œuvre Łódź Þór", "skjonn-aero-oeuvre-lodz-thor"),
+        # A decomposed umlaut (u + combining diaeresis, e.g. macOS file names).
+        ("Grün", "gruen"),
     ],
 )
 def test_slug_transliterates_german_umlauts(value, expected):

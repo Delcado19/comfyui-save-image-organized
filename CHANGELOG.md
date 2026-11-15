@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- The `:slug` filter now spells out German umlauts instead of replacing them with a hyphen: `Grün Größe` becomes `gruen-groesse` (was `gr-n-gr-sse`). The live preview now also turns `ß` into `ss`, matching the saved name. Existing `:slug` layouts that contain umlauts produce different folder or file names from now on.
+- The `:slug` filter now transliterates instead of replacing non-ASCII letters with a hyphen. German umlauts are spelled out (`Grün Größe` becomes `gruen-groesse`, was `gr-n-gr-sse`); every other accented Latin letter keeps its base letter (`Crème Señor` becomes `creme-senor`); `æ`, `ø`, `œ`, `ł`, `þ` and the other European letters without a Unicode decomposition follow the common ASCII convention (`Skjønn Ærø` becomes `skjonn-aero`). The live preview matches the saved name, including `ß` -> `ss`. Existing `:slug` layouts containing such letters produce different folder or file names from now on.
 
 ### Fixed
 

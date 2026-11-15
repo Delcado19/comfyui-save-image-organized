@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from collections import deque
 from datetime import datetime
 from difflib import get_close_matches
@@ -1001,14 +1002,27 @@ def _parse_template_filters(filter_text: str, placeholder: str) -> list[str]:
     return filters
 
 
-# German umlauts are transliterated ("Grün" -> "gruen") instead of becoming a "-"
-# (user request 2026-11-15); casefold() already turns "ß" into "ss".
-# Mirrored in web/save_image_clean.js slugifyTemplateValue.
-_SLUG_TRANSLITERATION = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue"})
+# :slug transliteration (user request 2026-11-15), applied after casefold():
+# 1. German umlauts as the one language-specific exception ("Grün" -> "gruen");
+#    casefold() already turns "ß" into "ss".
+# 2. The language-neutral ASCII convention (Unicode Latin-ASCII / Unidecode) for the
+#    European Latin letters that have no Unicode decomposition ("ø" -> "o", "æ" -> "ae").
+# 3. NFKD decomposition then drops every remaining accent ("é" -> "e", "ñ" -> "n").
+# Anything still outside a-z/0-9 becomes "-". Mirrored in web/save_image_clean.js
+# slugifyTemplateValue - keep both tables identical.
+_SLUG_TRANSLITERATION = str.maketrans({
+    "ä": "ae", "ö": "oe", "ü": "ue",
+    "æ": "ae", "œ": "oe", "ø": "o", "ð": "d", "þ": "th", "đ": "d", "ħ": "h",
+    "ı": "i", "ĸ": "q", "ŀ": "l", "ł": "l", "ŉ": "n", "ŋ": "ng", "ŧ": "t",
+})
 
 
 def _slugify_template_value(value: str) -> str:
-    folded = (value or "").casefold().translate(_SLUG_TRANSLITERATION)
+    # NFC first: a decomposed "u" + combining diaeresis must still hit the umlaut rule.
+    folded = unicodedata.normalize("NFC", value or "").casefold().translate(_SLUG_TRANSLITERATION)
+    folded = "".join(
+        ch for ch in unicodedata.normalize("NFKD", folded) if not unicodedata.category(ch).startswith("M")
+    )
     slug = SLUG_SEPARATOR_RE.sub("-", folded).strip("-")
     return slug or "unnamed"
 
