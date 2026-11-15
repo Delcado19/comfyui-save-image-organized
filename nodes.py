@@ -452,7 +452,9 @@ def _normalize_template_file_path(value: str, extension: str) -> Path:
     relative_path = _sanitize_relative_path(value)
     if relative_path.suffix.lower().lstrip(".") in KNOWN_IMAGE_EXTENSIONS:
         relative_path = relative_path.with_suffix("")
-    return relative_path.with_suffix(f".{extension}")
+    # Append, never with_suffix(): any other "suffix" is part of the name, e.g.
+    # "RealVisXL V5.0 [FP16]" was cut to "RealVisXL V5" (GitHub issues #1/#2).
+    return relative_path.with_name(f"{relative_path.name}.{extension}")
 
 
 _MODEL_CLIP_TOKEN_PAIR_RE = re.compile(

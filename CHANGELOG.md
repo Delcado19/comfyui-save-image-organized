@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- Filenames no longer get cut at a dot inside a model name ([#1](https://github.com/Delcado19/comfyui-save-image-organized/issues/1), [#2](https://github.com/Delcado19/comfyui-save-image-organized/issues/2)). `RealVisXL Lightning V5.0 [FP16]` was saved as `RealVisXL Lightning V5.png`, dropping everything after `V5` including variables such as `%WIDTH%x%HEIGHT%`. Only a real image extension (`.png`, `.jpg`, `.jpeg`, `.webp`) is now replaced; any other dot stays part of the name.
+
 - `Save` mode no longer shows the saved image twice (the full-size grid plus ComfyUI's own preview underneath it). The v0.8.3 suppression only cleared `node.imgs`, which the current frontend ignores; the node now sets ComfyUI's `hideOutputImages` flag (Nodes 2.0) and hides the classic canvas preview widget.
 
 ## [0.8.3] - 2026-10-26

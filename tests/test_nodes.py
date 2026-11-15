@@ -35,6 +35,20 @@ def test_normalize_template_file_path_replaces_any_known_image_extension(
     assert nodes._normalize_template_file_path(f"shot{manual_suffix}", target_extension) == expected
 
 
+@pytest.mark.parametrize(
+    ("rendered", "expected"),
+    [
+        # GitHub issue #1: a dot inside a model name is not an extension.
+        ("Top/RealVisXL Lightning V5.0 [FP16]", Path("Top/RealVisXL Lightning V5.0 [FP16].png")),
+        # GitHub issue #2: text after the dotted name must survive.
+        ("Top/RealVisXL_V5.0_Lightning_fp16 128x128", Path("Top/RealVisXL_V5.0_Lightning_fp16 128x128.png")),
+        ("Top/RealVisXL_V5.0_Lightning_fp16.png", Path("Top/RealVisXL_V5.0_Lightning_fp16.png")),
+    ],
+)
+def test_normalize_template_file_path_keeps_dots_inside_names(rendered, expected):
+    assert nodes._normalize_template_file_path(rendered, "png") == expected
+
+
 def test_humanize_display_name_normalizes_known_model_alias_and_quant():
     value = nodes._humanize_display_name("flux-2-klein-9b-Q5_K_M.gguf", kind="model")
     assert value == "FLUX.2 Klein 9B [5K-M]"
