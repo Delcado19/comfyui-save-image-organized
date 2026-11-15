@@ -2093,6 +2093,8 @@ def test_counter_rejects_unsupported_placements(workspace_tmp_path, path_templat
         ("Skjønn Ærø Œuvre Łódź Þór", "skjonn-aero-oeuvre-lodz-thor"),
         # A decomposed umlaut (u + combining diaeresis, e.g. macOS file names).
         ("Grün", "gruen"),
+        # Letters whose decomposition exposes a table letter (CodeRabbit review).
+        ("ǽ ǿ Ǿrsted", "ae-o-orsted"),
     ],
 )
 def test_slug_transliterates_german_umlauts(value, expected):

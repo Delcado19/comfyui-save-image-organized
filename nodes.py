@@ -1020,9 +1020,11 @@ _SLUG_TRANSLITERATION = str.maketrans({
 def _slugify_template_value(value: str) -> str:
     # NFC first: a decomposed "u" + combining diaeresis must still hit the umlaut rule.
     folded = unicodedata.normalize("NFC", value or "").casefold().translate(_SLUG_TRANSLITERATION)
+    # The table runs again afterwards: decomposition can expose a table letter,
+    # e.g. "ǽ" -> "æ" + accent (CodeRabbit review).
     folded = "".join(
         ch for ch in unicodedata.normalize("NFKD", folded) if not unicodedata.category(ch).startswith("M")
-    )
+    ).translate(_SLUG_TRANSLITERATION)
     slug = SLUG_SEPARATOR_RE.sub("-", folded).strip("-")
     return slug or "unnamed"
 

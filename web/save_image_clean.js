@@ -693,6 +693,8 @@ function slugifyTemplateValue(value) {
     const slug = String(value || "").normalize("NFC").toLowerCase()
         .replace(SLUG_TRANSLITERATION_RE, (ch) => SLUG_TRANSLITERATION[ch])
         .normalize("NFKD").replace(/\p{M}/gu, "")
+        // Again after decomposition, which can expose a table letter ("ǽ" -> "æ").
+        .replace(SLUG_TRANSLITERATION_RE, (ch) => SLUG_TRANSLITERATION[ch])
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     return slug || "unnamed";
 }
