@@ -19,6 +19,7 @@ const LABELS = {
     save_mode: "Save Mode",
     counter_digits: "Counter Digits",
     counter_start: "Counter Start",
+    step_preview: "Step Preview",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",
@@ -956,6 +957,159 @@ function updatePreviewGrid(node, message) {
     // here: clearing node.imgs alone did not stop the duplicate (user report
     // 2026-11-15, v0.8.3), see that function's comment.
     node.setDirtyCanvas?.(true, true);
+}
+
+// --- Step Preview (user request 2026-11-15, modeled on ausboss-nodes' MIT-licensed
+// js/shared/step_preview.mjs, deliberately much smaller): while a run samples, show
+// ComfyUI's per-step pictures on every Save Image Organized node whose step_preview
+// switch is on, with a progress line and "Step x/y". Chained samplers simply follow
+// each other (the count restarts). Out of scope by decision: Stop button, matching a
+// picture to the sampler that feeds this particular node, tiled upscalers, runs
+// queued from another workflow tab. The pictures only exist when a live preview
+// method is active; nodes.py _ask_for_step_pictures requests "auto" when none is set.
+const stepPreviewNodes = new Set();
+const stepRun = { url: null, maker: null, value: 0, max: 0 };
+let stepEventsWired = false;
+
+function stepPreviewOn(node) {
+    return getWidget(node, "step_preview")?.value === true;
+}
+
+function renderStepPreview(node) {
+    const refs = node.__saveImageCleanStepRefs;
+    const grid = node.__saveImageCleanPreviewGridRefs?.container;
+    if (!refs) {
+        return;
+    }
+    const show = Boolean(stepRun.url) && stepPreviewOn(node);
+    if (show) {
+        if (!refs.root.classList.contains("on") && grid) {
+            // Hide the last result while steps run; restored in endStepPreview.
+            refs.gridDisplay = grid.style.display;
+            grid.style.display = "none";
+        }
+        if (refs.img.getAttribute("src") !== stepRun.url) {
+            refs.img.src = stepRun.url;
+        }
+        const fraction = stepRun.max > 0 ? Math.min(1, stepRun.value / stepRun.max) : 0;
+        refs.line.style.width = `${Math.round(fraction * 100)}%`;
+        refs.chip.textContent = stepRun.max > 0 ? `Step ${stepRun.value}/${stepRun.max}` : "Sampling...";
+        refs.root.classList.add("on");
+    } else {
+        hideStepPreview(node);
+    }
+    node.setDirtyCanvas?.(true, true);
+}
+
+function hideStepPreview(node) {
+    const refs = node.__saveImageCleanStepRefs;
+    if (!refs || !refs.root.classList.contains("on")) {
+        return;
+    }
+    refs.root.classList.remove("on");
+    refs.img.removeAttribute("src");
+    const grid = node.__saveImageCleanPreviewGridRefs?.container;
+    if (grid && refs.gridDisplay !== undefined) {
+        grid.style.display = refs.gridDisplay;
+        refs.gridDisplay = undefined;
+    }
+}
+
+function resetStepRun() {
+    if (stepRun.url) {
+        URL.revokeObjectURL(stepRun.url);
+    }
+    Object.assign(stepRun, { url: null, maker: null, value: 0, max: 0 });
+}
+
+function endStepPreview() {
+    resetStepRun();
+    for (const node of stepPreviewNodes) {
+        hideStepPreview(node);
+        node.setDirtyCanvas?.(true, true);
+    }
+}
+
+function wireStepPreviewEvents() {
+    if (stepEventsWired) {
+        return;
+    }
+    stepEventsWired = true;
+    const listen = (type, handler) => api.addEventListener(type, ({ detail }) => {
+        try {
+            handler(detail);
+        } catch (error) {
+            // Display only: a failed step picture must never disturb the run.
+            console.warn("[Save Image Organized] step preview:", error);
+        }
+    });
+    listen("execution_start", () => endStepPreview());
+    listen("b_preview_with_metadata", (detail) => {
+        if (!detail?.blob) {
+            return;
+        }
+        // nodeId (the executing id) rather than displayNodeId, so it matches the
+        // "progress" event's node id inside subgraphs too. Not live-verified.
+        const maker = String(detail.nodeId ?? detail.displayNodeId ?? "");
+        if (maker !== stepRun.maker) {
+            // Next sampler in a chain: its own step count starts over.
+            stepRun.maker = maker;
+            stepRun.value = 0;
+            stepRun.max = 0;
+        }
+        const previous = stepRun.url;
+        stepRun.url = URL.createObjectURL(detail.blob);
+        for (const node of stepPreviewNodes) {
+            renderStepPreview(node);
+        }
+        if (previous) {
+            URL.revokeObjectURL(previous);
+        }
+    });
+    listen("progress", (detail) => {
+        // Only the node that made the current picture; VAE decoders etc. also report progress.
+        if (!stepRun.url || String(detail?.node ?? "") !== stepRun.maker) {
+            return;
+        }
+        stepRun.value = Number(detail.value) || 0;
+        stepRun.max = Number(detail.max) || 0;
+        for (const node of stepPreviewNodes) {
+            renderStepPreview(node);
+        }
+    });
+    for (const type of ["execution_success", "execution_error", "execution_interrupted"]) {
+        listen(type, () => endStepPreview());
+    }
+}
+
+let _stepPreviewCssInjected = false;
+function buildStepPreview(node) {
+    if (!_stepPreviewCssInjected && !document.getElementById("save-image-clean-step-css")) {
+        const style = document.createElement("style");
+        style.id = "save-image-clean-step-css";
+        style.textContent = [
+            ".sic-step{display:none;position:relative;flex:1;min-height:160px;min-width:0;margin:6px 8px;",
+            "border-radius:6px;overflow:hidden;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.14);}",
+            ".sic-step.on{display:block;}",
+            ".sic-step img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}",
+            ".sic-step-line{position:absolute;left:0;top:0;height:3px;width:0;background:var(--sic-accent);",
+            "transition:width 150ms linear;}",
+            ".sic-step-chip{position:absolute;left:6px;bottom:6px;padding:2px 7px;border-radius:5px;",
+            "background:rgba(20,20,22,0.85);color:#e4e4e4;font-size:10px;font-variant-numeric:tabular-nums;}",
+        ].join("");
+        document.head.appendChild(style);
+    }
+    _stepPreviewCssInjected = true;
+    const root = el("div", "sic-step");
+    const img = document.createElement("img");
+    img.alt = "";
+    const line = el("div", "sic-step-line");
+    const chip = el("div", "sic-step-chip");
+    root.append(img, line, chip);
+    node.__saveImageCleanStepRefs = { root, img, line, chip, gridDisplay: undefined };
+    stepPreviewNodes.add(node);
+    wireStepPreviewEvents();
+    return root;
 }
 
 const NATIVE_IMAGE_PREVIEW_WIDGET = "$$canvas-image-preview";
@@ -1933,6 +2087,18 @@ function buildNodeUI(node) {
     if (saveModeSeg) outputModeRow.appendChild(saveModeSeg.root);
     inner.appendChild(outputModeRow);
 
+    // Visible in the main card on purpose (user request 2026-11-15), not under Advanced.
+    const stepSwitchRow = buildSwitchRow(node, "step_preview", "Step Preview");
+    node.__saveImageCleanStepSwitchRow = stepSwitchRow;
+    if (stepSwitchRow) {
+        stepSwitchRow.root.title = "Show the image here while it is being sampled, step by step. Display only.";
+        inner.appendChild(stepSwitchRow.root);
+        stepSwitchRow.checkboxEl.addEventListener("change", () => {
+            if (!stepSwitchRow.checkboxEl.checked) hideStepPreview(node);
+        });
+        inner.appendChild(buildStepPreview(node));
+    }
+
     // --- Preview grid (both modes since v0.8.3), existing internals reused ---
     injectPreviewGridCss();
     const gridContainer = el("div", "sic-preview-grid");
@@ -2012,6 +2178,7 @@ function buildNodeUI(node) {
         advanced.modelRow, advanced.clipRow, advanced.modelFolderRow, advanced.clipFolderRow,
         advanced.collisionRow, advanced.detectionRow, advanced.qualityRow, advanced.metadataRow,
         advanced.loaderDropdown, advanced.counterDigitsRow, advanced.counterStartRow,
+        node.__saveImageCleanStepSwitchRow,
     ].filter(Boolean);
 }
 
@@ -2113,6 +2280,8 @@ app.registerExtension({
             const result = onExecuted?.apply(this, arguments);
             setLastRunStateFromMessage(this, message);
             updateHelp(this);
+            // The real result replaces the step pictures (restores the grid first).
+            hideStepPreview(this);
             updatePreviewGrid(this, message);
             // Was missing here (found live 2026-10-13): this is exactly
             // where the preview grid's visibility/height changes the most
@@ -2127,6 +2296,7 @@ app.registerExtension({
         const onRemoved = nodeType.prototype.onRemoved;
         nodeType.prototype.onRemoved = function () {
             const result = onRemoved?.apply(this, arguments);
+            stepPreviewNodes.delete(this);
             this.__saveImageCleanBuilder_path_template_panel?.remove();
             this.__saveImageCleanBuilder_filename_datetime_panel?.remove();
             // Final-review finding (2026-10-13): createAdvancedPanel (Task 7)

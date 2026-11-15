@@ -41,6 +41,7 @@ The main card only shows what you'll change most often:
 - `Folder Structure` (path template) and `Top Folder`
 - `Filename`
 - `Output` format (`PNG`/`JPEG`/`WebP`) and `Mode` (`Save`/`Preview`), as two button groups side by side
+- the `Step Preview` switch (shows the image while it is being sampled)
 - the preview image (in `Preview` mode) and `Example Output`
 
 Everything else lives behind the gear icon (`Advanced Settings`), each with a one-line description:
@@ -215,6 +216,10 @@ loader's name is used:
   pixels.
 - `First Used`: the loader with the most upstream links, i.e. the first model
   applied in a multi-stage pipeline.
+
+## Step Preview
+
+The `Step Preview` switch (main card, default off) shows the image on the node while it is being sampled: the newest step picture, a thin progress line and `Step x/y`. It is display only and does not change what is saved; the finished image replaces it as soon as the node runs. With two samplers in a row (for example a base pass and a refine or upscale pass) the preview follows them one after the other and the step count starts again for the second one. ComfyUI only produces step pictures when a live preview method is active (`Settings > Comfy > Execution > Live preview method`, or `--preview-method` on the command line). When neither is set, a run with `Step Preview` on asks for `auto` for that one run; a method you chose yourself, such as `taesd`, is never overridden. Not covered: a workflow with several independent samplers feeding separate save nodes shows every sampler's pictures on every node with the switch on, tiled upscalers show single tiles, and a run started from another workflow tab also appears here.
 
 ## Save And Preview Modes
 
