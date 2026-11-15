@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- `Save` mode no longer shows the saved image twice (the full-size grid plus ComfyUI's own preview underneath it). The v0.8.3 suppression only cleared `node.imgs`, which the current frontend ignores; the node now sets ComfyUI's `hideOutputImages` flag (Nodes 2.0) and hides the classic canvas preview widget.
+
 ## [0.8.3] - 2026-10-26
 
 ### Fixed

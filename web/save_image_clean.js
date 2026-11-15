@@ -931,18 +931,57 @@ function updatePreviewGrid(node, message) {
         refs.body.appendChild(buildPreviewCell(node, entry, { showSaveButton }));
     }
     refs.container.style.display = "flex";
-    // The native per-node thumbnail strip is driven by node.imgs, populated by
-    // ComfyUI's own default onExecuted from message.images. In Preview mode
-    // the temp images never reach node.imgs in the first place (kept out of
-    // message.images, see nodes.py's save_image_clean_preview key), so this
-    // is purely defensive there. In Save mode, save_image_clean_preview now
-    // mirrors the already-saved files (user report 2026-10-26: that
-    // thumbnail used the native strip's fixed small size, never resized with
-    // the node like this grid does) and message.images IS populated, so this
-    // clear is load-bearing: without it, the native strip would render the
-    // same image a second time underneath this grid.
-    node.imgs = [];
+    // Native preview suppression lives in suppressNativeImagePreview(), not
+    // here: clearing node.imgs alone did not stop the duplicate (user report
+    // 2026-11-15, v0.8.3), see that function's comment.
     node.setDirtyCanvas?.(true, true);
+}
+
+const NATIVE_IMAGE_PREVIEW_WIDGET = "$$canvas-image-preview";
+
+function hideNativePreviewWidget(widget) {
+    if (!widget || widget.__sicHidden) {
+        return;
+    }
+    widget.__sicHidden = true;
+    widget.hidden = true;
+    widget.computeSize = () => [0, -4];
+    widget.computeLayoutSize = () => ({ minWidth: 0, minHeight: 0 });
+    widget.draw = () => {};
+    widget.mouse = () => false;
+}
+
+// In Save mode nodes.py returns ui.images (the saved files, kept so ComfyUI's
+// queue/history still lists them) AND save_image_clean_preview for our own
+// grid, so ComfyUI would draw the same image a second time under the node
+// (user report 2026-11-15: v0.8.3's `node.imgs = []` did not prevent this).
+// Frontend 1.59.1 draws that copy two ways, both confirmed in its bundle:
+// - Nodes 2.0 reads nodeOutputs[...].images directly and only skips it when
+//   node.hideOutputImages is set (GraphView chunk); node.imgs is ignored.
+// - The classic canvas adds a `$$canvas-image-preview` widget whenever
+//   node.imgs is non-empty and re-adds it if removed, so it is hidden in
+//   place instead (same pattern as ausboss-nodes' core_preview.mjs).
+function suppressNativeImagePreview(node) {
+    if (!node || node.__sicNativePreviewSuppressed) {
+        return;
+    }
+    node.__sicNativePreviewSuppressed = true;
+    node.hideOutputImages = true;
+    const addCustomWidget = node.addCustomWidget;
+    if (typeof addCustomWidget === "function") {
+        node.addCustomWidget = function (widget, ...rest) {
+            const added = addCustomWidget.call(this, widget, ...rest);
+            if ((added ?? widget)?.name === NATIVE_IMAGE_PREVIEW_WIDGET) {
+                hideNativePreviewWidget(added ?? widget);
+            }
+            return added;
+        };
+    }
+    for (const widget of node.widgets || []) {
+        if (widget?.name === NATIVE_IMAGE_PREVIEW_WIDGET) {
+            hideNativePreviewWidget(widget);
+        }
+    }
 }
 
 let _templateBuilderCssInjected = false;
@@ -1857,7 +1896,7 @@ function buildNodeUI(node) {
     if (saveModeSeg) outputModeRow.appendChild(saveModeSeg.root);
     inner.appendChild(outputModeRow);
 
-    // --- Preview grid (Preview-mode only), existing internals reused ---
+    // --- Preview grid (both modes since v0.8.3), existing internals reused ---
     injectPreviewGridCss();
     const gridContainer = el("div", "sic-preview-grid");
     gridContainer.style.display = "none";
@@ -2012,6 +2051,8 @@ app.registerExtension({
         const onNodeCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = onNodeCreated?.apply(this, arguments);
+            // Synchronous, before any run can add the native preview widget.
+            suppressNativeImagePreview(this);
             // Deferred to match `configure()` below: on a freshly-dropped
             // node, ComfyUI's native STRING widgets (path_template,
             // filename_datetime, subfolder, model_folder, clip_folder) do
