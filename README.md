@@ -18,6 +18,7 @@ It is built for ComfyUI workflows that need readable output folders, predictable
 - `FILENAME`/`FILE_PATH`/`IMAGES` outputs for chaining the saved image into other nodes mid-workflow
 - a `Build Path`/`Build Filename` window with click-to-insert variable chips, so you don't have to type `%TOKEN%` by hand
 - a `Preview` mode that shows the result without saving, with a per-image `Save` button when you're ready
+- a `Step Preview` switch that shows the image on the node while it is being sampled, step by step
 - in-node help plus markdown docs for the ComfyUI `Info` tab
 
 ## Included Nodes

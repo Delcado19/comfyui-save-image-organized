@@ -1446,6 +1446,51 @@ def _handle_save_now(node_id: str, batch_index: int, run_token: str) -> dict[str
     return {"filename": target_path.name, "file_path": str(target_path.resolve())}
 
 
+# Step Preview (user request 2026-11-15, modeled on ausboss-nodes' MIT-licensed
+# _step_preview_helpers.py). ComfyUI only sends per-step pictures when a live preview
+# method is active, and a fresh install runs with "none". So a queued run that has a
+# Save Image Organized node with step_preview on asks for "auto" (latent2rgb, needs
+# no extra model files) for that one run - only when nobody chose a method in the
+# frontend setting or on the server command line. execution.py applies
+# extra_data["preview_method"] per run and resets it on the next one.
+_UNCHOSEN_PREVIEW_METHODS = (None, "", "default")
+
+
+def _wants_step_pictures(prompt: Any) -> bool:
+    if not isinstance(prompt, dict):
+        return False
+    for entry in prompt.values():
+        if not isinstance(entry, dict) or entry.get("class_type") != "SaveImageClean":
+            continue
+        inputs = entry.get("inputs")
+        value = inputs.get("step_preview") if isinstance(inputs, dict) else None
+        # A linked switch is only decided during the run, so assume it is on.
+        if value is True or isinstance(value, list):
+            return True
+    return False
+
+
+def _ask_for_step_pictures(json_data: Any, server_method: str | None) -> Any:
+    """Set extra_data.preview_method to "auto" when step pictures are wanted and unset."""
+    if not isinstance(json_data, dict) or not _wants_step_pictures(json_data.get("prompt")):
+        return json_data
+    if server_method not in _UNCHOSEN_PREVIEW_METHODS and server_method != "none":
+        return json_data  # chosen on the command line, e.g. --preview-method taesd
+    extra = json_data.setdefault("extra_data", {})
+    if not isinstance(extra, dict) or extra.get("preview_method") not in _UNCHOSEN_PREVIEW_METHODS:
+        return json_data  # chosen in the frontend's "Live preview method" setting
+    extra["preview_method"] = "auto"
+    return json_data
+
+
+def _server_preview_method() -> str | None:
+    try:
+        from latent_preview import default_preview_method
+    except Exception:  # noqa: BLE001 - outside a real ComfyUI install
+        return None
+    return str(getattr(default_preview_method, "value", default_preview_method))
+
+
 class StripModelExtension:
     """Remove only the final known model extension from a loader/model name string."""
 
@@ -1703,6 +1748,19 @@ class SaveImageClean:
                             "First number for %COUNTER% when no matching numbered file exists "
                             "yet; an existing sequence continues from its highest number. "
                             "Only used when %COUNTER% is in the filename or path."
+                        ),
+                    },
+                ),
+                # Appended last, same positional-restore reason as above.
+                "step_preview": (
+                    "BOOLEAN",
+                    {
+                        "default": False,
+                        "tooltip": (
+                            "Show the image on this node while it is being sampled, step by "
+                            "step. Display only: what is saved does not change. If no live "
+                            "preview method is chosen in ComfyUI's settings, runs with this on "
+                            "ask for the fast 'auto' preview."
                         ),
                     },
                 ),
@@ -2110,6 +2168,7 @@ class SaveImageClean:
         save_mode: str = "Save",
         counter_digits: int = DEFAULT_COUNTER_DIGITS,
         counter_start: int = DEFAULT_COUNTER_START,
+        step_preview: bool = False,  # display only, read by the frontend and _wants_step_pictures
         prompt: Any = None,
         extra_pnginfo: Any = None,
         unique_id: Any = None,
@@ -2335,3 +2394,12 @@ if PromptServer is not None:
             return web.json_response({"error": str(exc)}, status=500)
 
         return web.json_response(result)
+
+    def _step_preview_prompt_handler(json_data):
+        try:
+            return _ask_for_step_pictures(json_data, _server_preview_method())
+        except Exception:  # noqa: BLE001 - never block a run; it just has no step pictures
+            return json_data
+
+    if callable(getattr(PromptServer.instance, "add_on_prompt_handler", None)):
+        PromptServer.instance.add_on_prompt_handler(_step_preview_prompt_handler)

@@ -190,6 +190,14 @@ def _organized_inputs(image_link: Any) -> list[dict[str, Any]]:
             "widget": {"name": "counter_start"},
             "link": None,
         },
+        {
+            "localized_name": "step_preview",
+            "name": "step_preview",
+            "shape": 7,
+            "type": "BOOLEAN",
+            "widget": {"name": "step_preview"},
+            "link": None,
+        },
     ]
 
 
@@ -214,6 +222,7 @@ def _organized_widgets(path_template: str) -> list[Any]:
         "Save",
         3,
         1,
+        False,
     ]
 
 

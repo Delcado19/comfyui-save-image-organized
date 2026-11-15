@@ -186,6 +186,10 @@ instead of a dropdown.
 Quality for `JPEG` and `WebP` output, from `1` to `100`, shown as a slider. Ignored when
 `Image Format` is `PNG`.
 
+### Step Preview
+
+The `Step Preview` switch (main card, default off) shows the image on the node while it is being sampled: the newest step picture, a thin progress line and `Step x/y`. It is display only and does not change what is saved; the finished image replaces it as soon as the node runs. With two samplers in a row (for example a base pass and a refine or upscale pass) the preview follows them one after the other and the step count starts again for the second one. ComfyUI only produces step pictures when a live preview method is active (`Settings > Comfy > Execution > Live preview method`, or `--preview-method` on the command line). When neither is set, a run with `Step Preview` on asks for `auto` for that one run; a method you chose yourself, such as `taesd`, is never overridden. Not covered: a workflow with several independent samplers feeding separate save nodes shows every sampler's pictures on every node with the switch on, tiled upscalers show single tiles, and a run started from another workflow tab also appears here.
+
 ### Save And Preview Modes
 
 `Save` (default) behaves exactly as every earlier version: every image in the batch is written to

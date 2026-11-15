@@ -2125,3 +2125,41 @@ def test_preview_mode_assigns_counter_on_save_click(workspace_tmp_path):
     saved = nodes._handle_save_now("1", 2, entries[1]["run_token"])
 
     assert saved["filename"] == "Bunny 001.png"
+
+
+# --- Step Preview: per-run preview method request ---
+
+
+def _queued(step_preview, extra_data=None, class_type="SaveImageClean"):
+    body = {"prompt": {"9": {"class_type": class_type, "inputs": {"step_preview": step_preview}}}}
+    if extra_data is not None:
+        body["extra_data"] = extra_data
+    return body
+
+
+@pytest.mark.parametrize(
+    ("body", "server_method", "expected"),
+    [
+        # Switch on, nothing chosen anywhere -> ask for "auto".
+        (_queued(True, {"preview_method": "default"}), "none", "auto"),
+        (_queued(True), None, "auto"),
+        # A linked switch is decided during the run: treat it as on.
+        (_queued(["5", 0], {}), "none", "auto"),
+        # Frontend setting chosen -> never overridden.
+        (_queued(True, {"preview_method": "taesd"}), "none", "taesd"),
+        (_queued(True, {"preview_method": "none"}), "none", "none"),
+        # Server started with --preview-method -> never overridden.
+        (_queued(True, {"preview_method": "default"}), "latent2rgb", "default"),
+        # Switch off, or no Save Image Organized node -> untouched.
+        (_queued(False, {"preview_method": "default"}), "none", "default"),
+        (_queued(True, {"preview_method": "default"}, class_type="SaveImage"), "none", "default"),
+    ],
+)
+def test_ask_for_step_pictures(body, server_method, expected):
+    result = nodes._ask_for_step_pictures(body, server_method)
+    assert result.get("extra_data", {}).get("preview_method") == expected
+
+
+def test_ask_for_step_pictures_ignores_malformed_bodies():
+    assert nodes._ask_for_step_pictures(None, "none") is None
+    assert nodes._ask_for_step_pictures({"prompt": "x"}, "none") == {"prompt": "x"}

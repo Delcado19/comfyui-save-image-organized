@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `Step Preview` switch in the main card: shows the image on the node while it is being sampled (newest step picture, progress line, `Step x/y`); chained samplers follow each other. Display only. When no live preview method is set in ComfyUI's settings or on the command line, a run with the switch on asks for `auto` for that one run; a chosen method is never overridden. Modeled on ausboss-nodes' Step Preview (MIT). The `step_preview` widget is appended after `Counter Start`, so existing workflows load unchanged.
 - `%COUNTER%` template variable for running numbers that start with the first file, e.g. `Bunny 001.png`, `Bunny 002.png` ([#3](https://github.com/Delcado19/comfyui-save-image-organized/issues/3)). It continues from the highest matching file already in the target folder (only names identical apart from the number count) and works in the file name only. Two new Advanced settings, `Counter Digits` (1-5, default 3) and `Counter Start` (default 1), are only used when `%COUNTER%` is present. Both widgets are appended after `Save Mode`, so existing workflows load unchanged; without `%COUNTER%` naming is exactly as before.
 
 ### Changed
