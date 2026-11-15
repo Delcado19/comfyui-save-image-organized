@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- `%COUNTER%` template variable for running numbers that start with the first file, e.g. `Bunny 001.png`, `Bunny 002.png` ([#3](https://github.com/Delcado19/comfyui-save-image-organized/issues/3)). It continues from the highest matching file already in the target folder (only names identical apart from the number count) and works in the file name only. Two new Advanced settings, `Counter Digits` (1-5, default 3) and `Counter Start` (default 1), are only used when `%COUNTER%` is present. Both widgets are appended after `Save Mode`, so existing workflows load unchanged; without `%COUNTER%` naming is exactly as before.
+
 ### Fixed
 
 - Filenames no longer get cut at a dot inside a model name ([#1](https://github.com/Delcado19/comfyui-save-image-organized/issues/1), [#2](https://github.com/Delcado19/comfyui-save-image-organized/issues/2)). `RealVisXL Lightning V5.0 [FP16]` was saved as `RealVisXL Lightning V5.png`, dropping everything after `V5` including variables such as `%WIDTH%x%HEIGHT%`. Only a real image extension (`.png`, `.jpg`, `.jpeg`, `.webp`) is now replaced; any other dot stays part of the name.

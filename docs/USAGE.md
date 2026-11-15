@@ -251,8 +251,10 @@ until you click `Save` on an image — see Save And Preview Modes above.
 - `%DENOISE%`
 - `%BATCH_INDEX%`
 - `%BATCH_SIZE%`
+- `%COUNTER%`
 
-`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH%` is empty for single-image saves and becomes a filename-safe suffix such as `_1-of-4` for multi-image saves. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
+`%WIDTH%` and `%HEIGHT%` use the real image size during saving. `%SEED%`, `%STEPS%`, `%CFG%`, `%SAMPLER%`, `%SCHEDULER%`, and `%DENOISE%` use the nearest matching upstream widget value when one is present. `%BATCH%` is empty for single-image saves and becomes a filename-safe suffix such as `_1-of-4` for multi-image saves. `%BATCH_INDEX%` increments for each image in a multi-image save. `%BATCH_SIZE%` is the total number of images in that save batch.
+`%COUNTER%` adds a running number, for example `%MODEL_NAME% %COUNTER%` gives `jibMix 001.png`, then `jibMix 002.png` (GitHub issue #3). Unlike `If File Exists = increment`, it numbers the first file too. The number continues from the highest matching file already in the target folder: only files whose name is identical apart from the number count, so `jibMix-02.png` continues as `jibMix-03` while `solistice-04.png` in the same folder is ignored. `Counter Digits` (Advanced, default `3`) sets the zero padding and `Counter Start` (default `1`) sets the first number of a new sequence; both are only used when `%COUNTER%` is in the filename or Save Layout. Keep the rest of the name stable: a name that changes every run (seconds in the date, a random `%SEED%`) never matches an earlier file, so every image starts again at `Counter Start`. `%COUNTER%` works in the file name only (not in folder names), once per name, and without filters. In `Preview` mode the number is assigned when you click `Save`. The live preview shows `Counter Start` as a sample; the node text output shows `%COUNTER%` because the real number is only known at save time.
 
 ### Detailed
 

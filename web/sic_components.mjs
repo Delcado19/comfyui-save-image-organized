@@ -382,6 +382,57 @@ export function buildSliderRow(node, widgetName, label, { min = 1, max = 100 } =
     return { widget, root, inputEl: input, valueEl, sync };
 }
 
+/**
+ * A labeled number field for a native INT widget whose range is too wide for a
+ * slider (counter_start, 0-99999). Same head layout as buildSliderRow; the value
+ * is clamped and only written back once it is a whole number in range.
+ */
+export function buildNumberRow(node, widgetName, label, { min = 0, max = 99999 } = {}) {
+    const widget = getWidget4(node, widgetName);
+    if (!widget) {
+        return null;
+    }
+    injectDesignTokens();
+    injectSliderCss();
+    injectTextRowCss();
+    hideNativeWidget(widget);
+
+    const root = el("div", "sic-slider-row");
+    const head = el("div", "sic-slider-head");
+    head.appendChild(el("span", "sic-slider-label", label));
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.className = "sic-text-input";
+    input.min = String(min);
+    input.max = String(max);
+    input.step = "1";
+    input.value = String(widget.value);
+
+    const commit = () => {
+        const parsed = Number.parseInt(input.value, 10);
+        if (Number.isNaN(parsed)) {
+            input.value = String(widget.value);
+            return;
+        }
+        const next = Math.max(min, Math.min(max, parsed));
+        input.value = String(next);
+        widget.value = next;
+        widget.callback?.(next);
+    };
+    input.addEventListener("change", commit);
+
+    root.appendChild(head);
+    root.appendChild(input);
+
+    // See buildDropdownRow's sync comment - same post-configure resync gap.
+    const sync = () => {
+        input.value = String(widget.value);
+    };
+
+    return { widget, root, inputEl: input, sync };
+}
+
 let _textRowCssInjected = false;
 function injectTextRowCss() {
     if (_textRowCssInjected || document.getElementById("sic-textrow-css")) {

@@ -174,6 +174,22 @@ def _organized_inputs(image_link: Any) -> list[dict[str, Any]]:
             "widget": {"name": "save_mode"},
             "link": None,
         },
+        {
+            "localized_name": "counter_digits",
+            "name": "counter_digits",
+            "shape": 7,
+            "type": "INT",
+            "widget": {"name": "counter_digits"},
+            "link": None,
+        },
+        {
+            "localized_name": "counter_start",
+            "name": "counter_start",
+            "shape": 7,
+            "type": "INT",
+            "widget": {"name": "counter_start"},
+            "link": None,
+        },
     ]
 
 
@@ -196,6 +212,8 @@ def _organized_widgets(path_template: str) -> list[Any]:
         95,
         "Nearest",
         "Save",
+        3,
+        1,
     ]
 
 

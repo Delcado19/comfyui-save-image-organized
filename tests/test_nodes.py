@@ -1987,3 +1987,109 @@ def test_save_images_clamps_out_of_range_quality_for_webp(workspace_tmp_path):
     saved_file = workspace_tmp_path / "webp-clamp-tests" / result["ui"]["images"][0]["filename"]
     with Image.open(saved_file) as webp:
         assert webp.format == "WEBP"
+
+
+# --- %COUNTER% (GitHub issue #3) ---
+
+
+def _save_with_counter(saver, *, images=1, path_template="%TOP_FOLDER%/%FILENAME%", filename="Bunny %COUNTER%", **kwargs):
+    return saver.save_images(
+        images=[DummyImage(np.zeros((2, 2, 3), dtype=np.float32)) for _ in range(images)],
+        path_template=path_template,
+        collision_mode="increment",
+        model_source="Friendly",
+        clip_source="Friendly",
+        detection_info="Off",
+        export_workflow_metadata=False,
+        subfolder="seq",
+        filename_datetime=filename,
+        unique_id="1",
+        **kwargs,
+    )
+
+
+def test_counter_numbers_the_first_file_with_padding(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    result = _save_with_counter(saver)
+
+    assert result["result"][0] == "Bunny 001.png"
+    assert result["ui"]["text"][0] == "seq/Bunny %COUNTER%"
+
+
+def test_counter_continues_only_the_matching_sequence(workspace_tmp_path):
+    # The issue's example: another model's numbered file in the same folder
+    # must not affect this name's sequence; other extensions still count.
+    folder = workspace_tmp_path / "seq"
+    folder.mkdir()
+    (folder / "jibMix-02.png").write_bytes(b"x")
+    (folder / "jibMix-07.jpg").write_bytes(b"x")
+    (folder / "solistice-40.png").write_bytes(b"x")
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    result = _save_with_counter(saver, filename="jibMix-%COUNTER%", counter_digits=2)
+
+    assert result["result"][0] == "jibMix-08.png"
+
+
+def test_counter_start_applies_only_to_a_new_sequence(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    first = _save_with_counter(saver, counter_start=100, counter_digits=4)
+    second = _save_with_counter(saver, counter_start=1, counter_digits=4)
+
+    assert first["result"][0] == "Bunny 0100.png"
+    assert second["result"][0] == "Bunny 0101.png"
+
+
+def test_counter_numbers_each_image_in_a_batch(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    result = _save_with_counter(saver, images=3, filename="%COUNTER%")
+
+    assert [entry["filename"] for entry in result["ui"]["images"]] == ["001.png", "002.png", "003.png"]
+
+
+def test_without_counter_increment_behavior_is_unchanged(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    first = _save_with_counter(saver, filename="Bunny")
+    second = _save_with_counter(saver, filename="Bunny")
+
+    assert (first["result"][0], second["result"][0]) == ("Bunny.png", "Bunny-2.png")
+
+
+@pytest.mark.parametrize(
+    ("path_template", "filename", "message"),
+    [
+        ("%COUNTER%/%FILENAME%", "Bunny", "not in folder names"),
+        ("%TOP_FOLDER%/%FILENAME% %COUNTER%", "Bunny %COUNTER%", "only appear once"),
+        ("%TOP_FOLDER%/%FILENAME%", "Bunny %COUNTER:slug%", "does not support filters"),
+    ],
+)
+def test_counter_rejects_unsupported_placements(workspace_tmp_path, path_template, filename, message):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    with pytest.raises(ValueError, match=message):
+        _save_with_counter(saver, path_template=path_template, filename=filename)
+
+
+def test_preview_mode_assigns_counter_on_save_click(workspace_tmp_path):
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+    saver.temp_dir = str(workspace_tmp_path / "temp")
+
+    result = _save_with_counter(saver, images=2, save_mode="Preview")
+    entries = result["ui"]["save_image_clean_preview"]
+    assert not (workspace_tmp_path / "seq").exists()  # nothing numbered or written yet
+
+    # Saving only the second preview still takes the first free number.
+    saved = nodes._handle_save_now("1", 2, entries[1]["run_token"])
+
+    assert saved["filename"] == "Bunny 001.png"

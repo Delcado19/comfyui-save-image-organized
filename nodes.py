@@ -164,6 +164,15 @@ DEFAULT_FILENAME_PATTERN = "%date:yyyy-MM-dd_hh-mm-ss%"
 # only some images in a batch does not free memory for the rest until the node reruns.
 _PREVIEW_CACHE: dict[str, dict[int, dict[str, Any]]] = {}
 
+# %COUNTER% (GitHub issue #3) is rendered as this placeholder and only turned into a
+# number right before writing, because the number depends on which files already
+# exist at that moment (and Preview mode writes later, on the Save click).
+# A private-use character: no case, not whitespace (str.strip() keeps it), and
+# not touched by _sanitize_path_component, so it survives template rendering.
+COUNTER_SENTINEL = ""
+DEFAULT_COUNTER_DIGITS = 3
+DEFAULT_COUNTER_START = 1
+
 
 def _sanitize_path_component(value: str) -> str:
     """Keep names readable while making them safe for Windows folders/files."""
@@ -441,7 +450,7 @@ def _humanize_clean_display_name(value: str, *, kind: str = "generic") -> str:
     return _humanize_display_name(_strip_releaser_prefix(value), kind=kind)
 
 
-_BATCH_DIFFERENTIATORS = frozenset({"%BATCH%", "%BATCH_INDEX%", "%BATCH_SIZE%"})
+_BATCH_DIFFERENTIATORS = frozenset({"%BATCH%", "%BATCH_INDEX%", "%BATCH_SIZE%", "%COUNTER%"})
 
 
 def _has_batch_differentiator(template: str) -> bool:
@@ -1296,7 +1305,50 @@ def _write_image_to_path(
     return target_path
 
 
-def _resolve_collision_path(candidate: Path, collision_mode: str, extension: str) -> Path:
+def _check_counter_placement(relative_path: Path) -> None:
+    if any(COUNTER_SENTINEL in part for part in relative_path.parts[:-1]):
+        raise ValueError("%COUNTER% is only supported in the file name, not in folder names.")
+    if relative_path.name.count(COUNTER_SENTINEL) > 1:
+        raise ValueError("%COUNTER% can only appear once in the file name (check %FILENAME% too).")
+
+
+def _apply_counter(candidate: Path, counter_digits: int, counter_start: int) -> Path:
+    """Replace the %COUNTER% placeholder with the next free number (GitHub issue #3).
+
+    Counts per file name: only files whose name matches this one apart from the
+    number (any known image extension) are considered, so "jibMix-02.png" continues
+    as "jibMix-03" while "solistice-04.png" in the same folder is ignored. Same idea
+    as ComfyUI's own folder_paths.get_save_image_path scan.
+    """
+    stem = candidate.stem
+    if COUNTER_SENTINEL not in stem:
+        return candidate
+    before, after = stem.split(COUNTER_SENTINEL, 1)
+    extensions = "|".join(sorted(re.escape(ext) for ext in KNOWN_IMAGE_EXTENSIONS))
+    pattern = re.compile(
+        rf"{re.escape(before)}(\d+){re.escape(after)}\.(?:{extensions})", re.IGNORECASE
+    )
+    highest = None
+    if candidate.parent.is_dir():
+        for existing in candidate.parent.iterdir():
+            match = pattern.fullmatch(existing.name)
+            if match:
+                number = int(match.group(1))
+                highest = number if highest is None else max(highest, number)
+    # The start number only applies to a new sequence; an existing one continues.
+    number = highest + 1 if highest is not None else max(0, int(counter_start))
+    digits = max(1, min(5, int(counter_digits)))
+    return candidate.with_name(f"{before}{number:0{digits}d}{after}{candidate.suffix}")
+
+
+def _resolve_collision_path(
+    candidate: Path,
+    collision_mode: str,
+    extension: str,
+    counter_digits: int = DEFAULT_COUNTER_DIGITS,
+    counter_start: int = DEFAULT_COUNTER_START,
+) -> Path:
+    candidate = _apply_counter(candidate, counter_digits, counter_start)
     candidate.parent.mkdir(parents=True, exist_ok=True)
 
     if collision_mode == "overwrite":
@@ -1342,7 +1394,13 @@ def _handle_save_now(node_id: str, batch_index: int, run_token: str) -> dict[str
     # collision handling was deliberately skipped during the preview run itself, so
     # it must run now, at the moment something actually gets written to disk.
     extension = IMAGE_FORMAT_INFO.get(entry["image_format"], IMAGE_FORMAT_INFO["PNG"])["extension"]
-    resolved_path = _resolve_collision_path(entry["target_path"], entry["collision_mode"], extension)
+    resolved_path = _resolve_collision_path(
+        entry["target_path"],
+        entry["collision_mode"],
+        extension,
+        entry.get("counter_digits", DEFAULT_COUNTER_DIGITS),
+        entry.get("counter_start", DEFAULT_COUNTER_START),
+    )
 
     target_path = _write_image_to_path(
         entry["image"],
@@ -1596,6 +1654,33 @@ class SaveImageClean:
                         ),
                     },
                 ),
+                # Appended after save_mode for the same positional-restore reason as
+                # the comment above (GitHub issue #3).
+                "counter_digits": (
+                    "INT",
+                    {
+                        "default": DEFAULT_COUNTER_DIGITS,
+                        "min": 1,
+                        "max": 5,
+                        "tooltip": (
+                            "Number of digits for %COUNTER% (3 -> 001). Only used when "
+                            "%COUNTER% is in the filename or path."
+                        ),
+                    },
+                ),
+                "counter_start": (
+                    "INT",
+                    {
+                        "default": DEFAULT_COUNTER_START,
+                        "min": 0,
+                        "max": 99999,
+                        "tooltip": (
+                            "First number for %COUNTER% when no matching numbered file exists "
+                            "yet; an existing sequence continues from its highest number. "
+                            "Only used when %COUNTER% is in the filename or path."
+                        ),
+                    },
+                ),
             },
             "hidden": {
                 "prompt": "PROMPT",
@@ -1731,6 +1816,7 @@ class SaveImageClean:
             "BATCH_INDEX": str(batch_index),
             "BATCH_SIZE": str(batch_size),
             "TOP_FOLDER": _sanitize_path_component(subfolder) if subfolder.strip() else "",
+            "COUNTER": COUNTER_SENTINEL,
         }
         variables["MODEL_NAME"] = _resolve_selected_variable(model_source, variables, kind="model")
         variables["TEXT_ENCODER_NAME"] = _resolve_selected_variable(clip_source, variables, kind="clip")
@@ -1935,6 +2021,9 @@ class SaveImageClean:
             now=now,
         )
         detection_lines = self._build_detection_info_lines(detection_info, detection_state)
+        # A filter such as :slug would rewrite the placeholder character itself.
+        if "%COUNTER:" in f"{path_template or ''}{filename_datetime or ''}":
+            raise ValueError("%COUNTER% does not support filters; use plain %COUNTER%.")
 
         if path_template and path_template.strip():
             clean_model = _sanitize_path_component(variables["MODEL_NAME"])
@@ -1944,7 +2033,9 @@ class SaveImageClean:
             )
             rendered = _render_path_template(template, variables, now, prompt)
             relative_path = _normalize_template_file_path(rendered, extension)
-            return relative_path, rendered, detection_lines, detection_state
+            _check_counter_placement(relative_path)
+            preview = rendered.replace(COUNTER_SENTINEL, "%COUNTER%")
+            return relative_path, preview, detection_lines, detection_state
 
         clean_model = _sanitize_path_component(variables["MODEL_NAME"])
         clean_clip = _sanitize_path_component(variables["TEXT_ENCODER_NAME"])
@@ -1956,7 +2047,9 @@ class SaveImageClean:
         relative_path = Path(*model_clip_segments) / f"{base_name}.{extension}"
         if clean_subfolder:
             relative_path = Path(clean_subfolder) / relative_path
-        preview = str(relative_path.with_suffix(""))
+        _check_counter_placement(relative_path)
+        # The real number is only known at write time (_apply_counter).
+        preview = str(relative_path.with_suffix("")).replace(COUNTER_SENTINEL, "%COUNTER%")
         return relative_path, preview, detection_lines, detection_state
 
     def _resolve_target_path(
@@ -1966,8 +2059,12 @@ class SaveImageClean:
         relative_path: Path,
         collision_mode: str,
         extension: str,
+        counter_digits: int = DEFAULT_COUNTER_DIGITS,
+        counter_start: int = DEFAULT_COUNTER_START,
     ) -> Path:
-        return _resolve_collision_path(output_root / relative_path, collision_mode, extension)
+        return _resolve_collision_path(
+            output_root / relative_path, collision_mode, extension, counter_digits, counter_start
+        )
 
     def save_images(
         self,
@@ -1986,6 +2083,8 @@ class SaveImageClean:
         filename_datetime: str = DEFAULT_FILENAME_PATTERN,
         loader_priority: str = "Nearest",
         save_mode: str = "Save",
+        counter_digits: int = DEFAULT_COUNTER_DIGITS,
+        counter_start: int = DEFAULT_COUNTER_START,
         prompt: Any = None,
         extra_pnginfo: Any = None,
         unique_id: Any = None,
@@ -2071,6 +2170,9 @@ class SaveImageClean:
                     "image_quality": image_quality,
                     "metadata": metadata,
                     "collision_mode": collision_mode,
+                    # %COUNTER% is numbered on the Save click, not here.
+                    "counter_digits": counter_digits,
+                    "counter_start": counter_start,
                     "run_token": preview_run_token,
                 }
                 temp_dir = Path(self.temp_dir)
@@ -2105,6 +2207,8 @@ class SaveImageClean:
                     relative_path=relative_path,
                     collision_mode=collision_mode,
                     extension=extension,
+                    counter_digits=counter_digits,
+                    counter_start=counter_start,
                 )
             except FileExistsError as exc:
                 if batch_collision_warning:

@@ -17,6 +17,8 @@ const LABELS = {
     image_quality: "Image Quality",
     loader_priority: "Loader Priority",
     save_mode: "Save Mode",
+    counter_digits: "Counter Digits",
+    counter_start: "Counter Start",
     subfolder: "Top Folder",
     model_folder: "Custom Model Name",
     clip_folder: "Custom Text Encoder Name",
@@ -124,6 +126,7 @@ const VALID_TEMPLATE_VARIABLES = new Set([
     "BATCH",
     "BATCH_INDEX",
     "BATCH_SIZE",
+    "COUNTER",
     "FRIENDLY_MODEL_NAME",
     "CLEAN_FRIENDLY_MODEL_NAME",
     "EXACT_MODEL_NAME",
@@ -137,7 +140,7 @@ const TEMPLATE_FILTERS = new Set(["lower", "upper", "slug"]);
 const TEMPLATE_BUILDER_GROUPS = [
     {
         label: "Main",
-        tokens: ["TOP_FOLDER", "MODEL_NAME", "TEXT_ENCODER_NAME", "FILENAME", "BATCH"],
+        tokens: ["TOP_FOLDER", "MODEL_NAME", "TEXT_ENCODER_NAME", "FILENAME", "BATCH", "COUNTER"],
     },
     {
         label: "Convenience",
@@ -650,6 +653,10 @@ function buildVariables(node, now, detectionSnapshot = null) {
         DENOISE: String(detectionSnapshot?.denoise || "1"),
         BATCH_INDEX: String(detectionSnapshot?.batch_index || "1"),
         BATCH_SIZE: String(detectionSnapshot?.batch_size || "1"),
+        // Sample only: the real number is picked at save time from the files already
+        // in the target folder (nodes.py _apply_counter, GitHub issue #3).
+        COUNTER: String(getWidget(node, "counter_start")?.value ?? 1)
+            .padStart(Number(getWidget(node, "counter_digits")?.value ?? 3), "0"),
     };
     variables.BATCH = Number(variables.BATCH_SIZE) > 1 ? `_${variables.BATCH_INDEX}-of-${variables.BATCH_SIZE}` : "";
     variables.MODEL_NAME = resolveSelectedValue(modelSource, variables, "model");
@@ -763,7 +770,7 @@ function buildLayoutExample(node, variables, now) {
     };
 }
 
-import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow, buildSliderRow, buildTextRow } from "./sic_components.mjs";
+import { el, injectDesignTokens, buildSegmentedControl, buildDropdownRow, buildSwitchRow, buildSliderRow, buildNumberRow, buildTextRow } from "./sic_components.mjs";
 
 const IMAGE_FORMAT_IDS = ["PNG", "JPEG", "WebP"];
 const SAVE_MODE_IDS = ["Save", "Preview"];
@@ -1231,6 +1238,19 @@ function createAdvancedPanel(node) {
             "Stores prompt/workflow metadata in the PNG - turn off for clean PNG files without it.");
     }
 
+    // GitHub issue #3: only used when %COUNTER% appears in the filename or path.
+    const counterDigitsRow = buildSliderRow(node, "counter_digits", "Counter Digits", { min: 1, max: 5 });
+    if (counterDigitsRow) {
+        addAdvancedRow(body, counterDigitsRow.root,
+            "Digits for %COUNTER% (3 = 001) - only used when %COUNTER% is in the filename or path.");
+    }
+    const counterStartRow = buildNumberRow(node, "counter_start", "Counter Start", { min: 0, max: 99999 });
+    if (counterStartRow) {
+        addAdvancedRow(body, counterStartRow.root,
+            "First number for %COUNTER% when no matching file exists yet; an existing sequence " +
+            "continues - only used when %COUNTER% is in the filename or path.");
+    }
+
     panel.appendChild(header);
     panel.appendChild(body);
     document.body.appendChild(panel);
@@ -1258,6 +1278,7 @@ function createAdvancedPanel(node) {
         trigger, panel, body, loaderDropdown,
         modelRow, modelFolderRow, clipRow, clipFolderRow,
         collisionRow, detectionRow, qualityRow, metadataRow,
+        counterDigitsRow, counterStartRow,
     };
     return node.__saveImageCleanAdvancedPanel;
 }
@@ -1718,6 +1739,8 @@ function hookWidgetUpdates(node) {
         "clip_folder",
         "export_workflow_metadata",
         "image_format",
+        "counter_digits",
+        "counter_start",
     ];
 
     for (const name of watchedNames) {
@@ -1974,7 +1997,7 @@ function buildNodeUI(node) {
         pathRow, subfolderRow, filenameRow,
         advanced.modelRow, advanced.clipRow, advanced.modelFolderRow, advanced.clipFolderRow,
         advanced.collisionRow, advanced.detectionRow, advanced.qualityRow, advanced.metadataRow,
-        advanced.loaderDropdown,
+        advanced.loaderDropdown, advanced.counterDigitsRow, advanced.counterStartRow,
     ].filter(Boolean);
 }
 
