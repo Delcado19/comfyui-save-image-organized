@@ -32,7 +32,9 @@ UNKNOWN_TOKEN_RE = re.compile(r"%([^%]+)%")
 DATE_FORMAT_TOKEN_RE = re.compile(r"yyyy|yy|hh|h|MM|M|dd|d|mm|m|ss|s")
 STRFTIME_DIRECTIVE_RE = re.compile(r"%(?:[%YymdHMSf]|[A-Za-z])")
 IDENTIFIER_RE = re.compile(r"[^a-z0-9]+")
-SLUG_SEPARATOR_RE = re.compile(r"[^a-z0-9]+")
+#  is COUNTER_SENTINEL: a :slug filter on a value holding %COUNTER% (e.g.
+# %FILENAME:slug%) must keep it, or the name silently loses its number (issue #3).
+SLUG_SEPARATOR_RE = re.compile(r"[^a-z0-9]+")
 DISPLAY_DOT_RE = re.compile(r"(?<!\d)\.|\.(?!\d)")
 LEADING_TAG_RE = re.compile(r"^(?:[A-Z0-9]{2,8}[_-]+)(.+)$")
 KNOWN_RELEASER_PREFIX_RE = re.compile(

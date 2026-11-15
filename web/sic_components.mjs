@@ -410,8 +410,10 @@ export function buildNumberRow(node, widgetName, label, { min = 0, max = 99999 }
     input.value = String(widget.value);
 
     const commit = () => {
-        const parsed = Number.parseInt(input.value, 10);
-        if (Number.isNaN(parsed)) {
+        // valueAsNumber, not parseInt: a number input accepts "1e3" (= 1000),
+        // which parseInt would silently read as 1.
+        const parsed = input.valueAsNumber;
+        if (!Number.isInteger(parsed)) {
             input.value = String(widget.value);
             return;
         }

@@ -2080,6 +2080,17 @@ def test_counter_rejects_unsupported_placements(workspace_tmp_path, path_templat
         _save_with_counter(saver, path_template=path_template, filename=filename)
 
 
+def test_counter_survives_slug_filter_on_filename(workspace_tmp_path):
+    # CodeRabbit review: %FILENAME:slug% used to strip the counter placeholder,
+    # leaving every image of a batch on the same unnumbered name.
+    saver = nodes.SaveImageClean()
+    saver.output_dir = str(workspace_tmp_path)
+
+    result = _save_with_counter(saver, images=2, path_template="%TOP_FOLDER%/%FILENAME:slug%")
+
+    assert [entry["filename"] for entry in result["ui"]["images"]] == ["bunny-001.png", "bunny-002.png"]
+
+
 def test_preview_mode_assigns_counter_on_save_click(workspace_tmp_path):
     saver = nodes.SaveImageClean()
     saver.output_dir = str(workspace_tmp_path)
