@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-15
+
 ### Added
 
 - `Step Preview` switch in the main card: shows the image on the node while it is being sampled (newest step picture, progress line, `Step x/y`); chained samplers follow each other. Display only. When no live preview method is set in ComfyUI's settings or on the command line, a run with the switch on asks for `auto` for that one run; a chosen method is never overridden. Modeled on ausboss-nodes' Step Preview (MIT). The `step_preview` widget is appended after `Counter Start`, so existing workflows load unchanged.
